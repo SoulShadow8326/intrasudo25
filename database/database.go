@@ -60,6 +60,11 @@ func InsertLogin(l Login) error {
 		INSERT INTO logins (hashed, seshTok, CSRFtok, gmail, verified, verificationNumber)
 		VALUES (?, ?, ?, ?, ?, ?)`,
 		l.Hashed, l.SeshTok, l.CSRFtok, l.Gmail, l.Verified, l.VerificationNumber)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec(`INSERT OR IGNORE INTO leaderboard (gmail, score) VALUES (?, 0)`, l.Gmail)
 	return err
 }
 
@@ -97,6 +102,16 @@ func DeleteLogin(gmail string) error {
 func UpdateScore(gmail string, score int) error {
 	_, err := db.Exec(`INSERT INTO leaderboard (gmail, score) VALUES (?, ?) ON CONFLICT(gmail) DO UPDATE SET score = excluded.score`, gmail, score)
 	return err
+}
+
+func GetUserScore(gmail string) (int, error) {
+	row := db.QueryRow(`SELECT score FROM leaderboard WHERE gmail = ?`, gmail)
+	var score int
+	err := row.Scan(&score)
+	if err != nil {
+		return 0, err
+	}
+	return score, nil
 }
 
 func GetLeaderboardTop(n int) ([]LeaderboardEntry, error) {
