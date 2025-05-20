@@ -1,8 +1,9 @@
 package routes
 
 import (
+	"intrasudo25/handlers"
+
 	"github.com/gin-gonic/gin"
-	"main/handlers"
 )
 
 func RegisterRoutes(r *gin.Engine) {
