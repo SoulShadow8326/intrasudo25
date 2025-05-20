@@ -6,17 +6,20 @@ import (
 	"log"
 
 	_ "github.com/mattn/go-sqlite3"
-	
 )
 
 type Login struct {
-	Hashed string
-	SeshTok string
-	CSRFtok string
-
-	Gmail string
-	Verified bool
+	Hashed             string
+	SeshTok            string
+	CSRFtok            string
+	Gmail              string
+	Verified           bool
 	VerificationNumber uint
+}
+
+type LeaderboardEntry struct {
+	Gmail string
+	Score int
 }
 
 var db *sql.DB
@@ -27,7 +30,7 @@ func InitDB() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	createTable := `
+	createLoginsTable := `
 	CREATE TABLE IF NOT EXISTS logins (
 		hashed TEXT PRIMARY KEY,
 		seshTok TEXT,
@@ -36,7 +39,17 @@ func InitDB() {
 		verified BOOLEAN,
 		verificationNumber INTEGER
 	);`
-	_, err = db.Exec(createTable)
+	_, err = db.Exec(createLoginsTable)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	createLeaderboardTable := `
+	CREATE TABLE IF NOT EXISTS leaderboard (
+		gmail TEXT PRIMARY KEY,
+		score INTEGER
+	);`
+	_, err = db.Exec(createLeaderboardTable)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -81,3 +94,26 @@ func DeleteLogin(gmail string) error {
 	return err
 }
 
+func UpdateScore(gmail string, score int) error {
+	_, err := db.Exec(`INSERT INTO leaderboard (gmail, score) VALUES (?, ?) ON CONFLICT(gmail) DO UPDATE SET score = excluded.score`, gmail, score)
+	return err
+}
+
+func GetLeaderboardTop(n int) ([]LeaderboardEntry, error) {
+	rows, err := db.Query(`SELECT gmail, score FROM leaderboard ORDER BY score DESC LIMIT ?`, n)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var entries []LeaderboardEntry
+	for rows.Next() {
+		var entry LeaderboardEntry
+		err := rows.Scan(&entry.Gmail, &entry.Score)
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, entry)
+	}
+	return entries, nil
+}
