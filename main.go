@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 
+	"intrasudo25/database"
 	"intrasudo25/routes"
 )
 
@@ -22,6 +23,8 @@ func main() {
 		mode = gin.ReleaseMode
 	}
 	gin.SetMode(mode)
+
+	database.InitDB()
 
 	router := gin.New()
 	router.Use(gin.Logger(), gin.Recovery(), cors.Default())
