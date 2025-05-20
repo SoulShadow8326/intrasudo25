@@ -14,6 +14,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 
+	//"strings"
+
 )
 
 /*
@@ -66,6 +68,10 @@ func hash(pass string) (string, error){
 }
 
 func validate(email string) (int, error) {
+	// Uncomment during production to only allow DPS RKP emails
+    // if !strings.HasSuffix(email, "@dpsrkp.net") {
+    //     return 0, fmt.Errorf("email must end with @dpsrkp.net")
+    //
 	rand.Seed(time.Now().UnixNano())
 	code := strconv.Itoa(100000 + rand.Intn(900000))
 
