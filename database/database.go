@@ -17,7 +17,7 @@ type Login struct {
 	VerificationNumber uint
 }
 
-type LeaderboardEntry struct {
+type Sucker struct {
 	Gmail string
 	Score int
 }
@@ -114,16 +114,16 @@ func GetUserScore(gmail string) (int, error) {
 	return score, nil
 }
 
-func GetLeaderboardTop(n int) ([]LeaderboardEntry, error) {
+func GetLeaderboardTop(n int) ([]Sucker, error) {
 	rows, err := db.Query(`SELECT gmail, score FROM leaderboard ORDER BY score DESC LIMIT ?`, n)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var entries []LeaderboardEntry
+	var entries []Sucker
 	for rows.Next() {
-		var entry LeaderboardEntry
+		var entry Sucker
 		err := rows.Scan(&entry.Gmail, &entry.Score)
 		if err != nil {
 			return nil, err
@@ -131,4 +131,17 @@ func GetLeaderboardTop(n int) ([]LeaderboardEntry, error) {
 		entries = append(entries, entry)
 	}
 	return entries, nil
+}
+
+func InsertSucker(s Sucker) error {
+	_, err := db.Exec(`
+		INSERT INTO leaderboard (gmail, score)
+		VALUES (?, ?)`,
+		s.Gmail, s.Score)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec(`INSERT OR IGNORE INTO leaderboard (gmail, score) VALUES (?, 0)`, s.Gmail)
+	return err
 }

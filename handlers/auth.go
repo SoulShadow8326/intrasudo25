@@ -30,6 +30,7 @@ type Login struct {
 */
 
 type Login = database.Login;
+type Sucker = database.Sucker;
 
 var users = map[string]Login{}
 
@@ -118,6 +119,7 @@ func Verify(c *gin.Context) {
 		return
 	}
 
+	database.InsertSucker(Sucker{Gmail: gmail, Score: 0})
 	c.JSON(http.StatusOK, gin.H{"message": "Welcome..."})
 	return
 
