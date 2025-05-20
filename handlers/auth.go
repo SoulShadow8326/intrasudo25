@@ -139,8 +139,11 @@ func LoginF(c *gin.Context) {
 	}
 
 	seshT := generateTok(32)
+	csrf := generateTok(32)
 	c.SetCookie("exun_sesh_cookie", seshT, 172800, "/", "", false, true)
+	c.SetCookie("X-CSRF_COOKIE", csrf, 172800, "/", "", false, false)
 	database.UpdateField(gmail, "SeshTok", seshT)
+	database.UpdateField(gmail, "CSRFtok", csrf)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Logged in..."})
 	return
@@ -156,4 +159,21 @@ func generateTok(length int) string {
 	rand.Read(bytes);
 	
 	return base64.URLEncoding.EncodeToString(bytes)
+}
+
+func Authorize(c *gin.Context) (bool, Login) {
+	cookie, err := c.Cookie("exun_sesh_cookie")
+	if err != nil || cookie == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error":"Login Pending..."})
+		return false, Login{}
+	}
+	acc, err := database.GetLoginFromCookie(cookie)
+	csrf := c.GetHeader("CSRFtok")
+
+	if csrf =="" || csrf != acc.CSRFtok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error":"Login Pending..."})
+		return false, Login{}
+	}
+
+	return true, *acc
 }

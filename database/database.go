@@ -60,6 +60,16 @@ func GetLogin(gmail string) (*Login, error) {
 	return &l, nil
 }
 
+func GetLoginFromCookie(tok string) (*Login, error) {
+	row := db.QueryRow(`SELECT hashed, seshTok, CSRFtok, gmail, verified, verificationNumber FROM logins WHERE seshTok = ?`, tok)
+	var l Login
+	err := row.Scan(&l.Hashed, &l.SeshTok, &l.CSRFtok, &l.Gmail, &l.Verified, &l.VerificationNumber)
+	if err != nil {
+		return nil, err
+	}
+	return &l, nil
+}
+
 func UpdateField(gmail string, field string, value interface{}) error {
 	query := fmt.Sprintf("UPDATE logins SET %s = ? WHERE gmail = ?", field)
 	_, err := db.Exec(query, value, gmail)
