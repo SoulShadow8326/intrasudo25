@@ -1,28 +1,34 @@
 package handlers
 
 import (
+	"intrasudo25/database"
 	"net/http"
 	"strconv"
-
-	"intrasudo25/database"
 
 	"github.com/gin-gonic/gin"
 )
 
 func LeaderboardPage(c *gin.Context) {
-	// Optional: support query param ?n=20
-	limitStr := c.DefaultQuery("n", "10")
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil || limit <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid limit"})
-		return
-	}
-
-	entries, err := database.GetLeaderboardTop(limit)
+	top, err := database.GetLeaderboardTop(10)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not fetch leaderboard"})
+		c.String(http.StatusInternalServerError, "Error fetching leaderboard")
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"leaderboard": entries})
+	type Entry struct {
+		Gmail string
+		Score string
+	}
+
+	var entries []Entry
+	for _, e := range top {
+		entries = append(entries, Entry{
+			Gmail: e.Gmail,
+			Score: strconv.Itoa(e.Score),
+		})
+	}
+
+	c.HTML(http.StatusOK, "leaderboard.html", gin.H{
+		"entries": entries,
+	})
 }
