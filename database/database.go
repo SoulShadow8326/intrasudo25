@@ -60,14 +60,14 @@ func GetLogin(gmail string) (*Login, error) {
 	return &l, nil
 }
 
-func UpdateField(hashed string, field string, value interface{}) error {
-	query := fmt.Sprintf("UPDATE logins SET %s = ? WHERE hashed = ?", field)
-	_, err := db.Exec(query, value, hashed)
+func UpdateField(gmail string, field string, value interface{}) error {
+	query := fmt.Sprintf("UPDATE logins SET %s = ? WHERE gmail = ?", field)
+	_, err := db.Exec(query, value, gmail)
 	return err
 }
 
-func deleteLogin(hashed string) error {
-	_, err := db.Exec(`DELETE FROM logins WHERE hashed = ?`, hashed)
+func DeleteLogin(gmail string) error {
+	_, err := db.Exec(`DELETE FROM logins WHERE gmail = ?`, gmail)
 	return err
 }
 

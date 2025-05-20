@@ -94,3 +94,26 @@ func validate(email string) (int, error) {
     }
 	return num, nil
 }
+
+func Verify(c *gin.Context) {
+	gmail := c.PostForm("gmail")
+	Vnum := c.PostForm("vnum")
+	vnum, err := strconv.ParseFloat(Vnum, 64)
+
+	acc, err := database.GetLogin(gmail); 
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Account not found"})
+		return
+	}
+	if acc.VerificationNumber == uint(vnum) {
+		database.UpdateField(gmail, "Verified", true)
+	} else{
+		database.DeleteLogin(gmail)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Incorrect Verification Number; Login Denied;"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Welcome..."})
+	return
+
+}
