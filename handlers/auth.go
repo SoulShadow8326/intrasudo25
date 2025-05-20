@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/smtp"
+	"os"
 	"strconv"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
+
 )
 
 /*
@@ -38,7 +40,7 @@ func New(c *gin.Context) {
 	gmail := c.PostForm("gmail");
 	password := c.PostForm("password");
 
-	if _, err := database.GetLogin(gmail); err != nil {
+	if _, err := database.GetLogin(gmail); err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Gmail Taken"})
 		return
 	}
@@ -67,8 +69,9 @@ func validate(email string) (int, error) {
 	rand.Seed(time.Now().UnixNano())
 	code := strconv.Itoa(100000 + rand.Intn(900000))
 
-	from := "hurshbajaj@gmail.com"
-	pass := "your-app-password"
+	from := "e11383hursh@dpsrkp.net"
+	
+	pass := os.Getenv("pass")
 
 	msg := []byte("To: " + email + "\r\n" +
 		"Subject: Exun Elite - Verification Code\r\n" +

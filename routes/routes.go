@@ -14,14 +14,5 @@ func RegisterRoutes(r *gin.Engine) {
 	// Placeholder for future chat route
 	// r.GET("/chat", handlers.ChatHandler)
 
-	r.GET("/enter/:value", func(c *gin.Context) {
-		path := c.Param("value");
-		if path == "" {
-			c.Redirect(302, "/enter/new");
-		}
-		switch path {
-			case "New":
-				handlers.New(c)
-		}
-	})
+	r.POST("/enter/New", handlers.New)
 }
