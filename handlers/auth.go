@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/base64"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -13,9 +14,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
-
 	//"strings"
-
 )
 
 /*
@@ -122,4 +121,39 @@ func Verify(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Welcome..."})
 	return
 
+}
+
+func LoginF(c *gin.Context) {
+	if c.Request.Method != "POST" {
+		c.JSON(http.StatusMethodNotAllowed, gin.H{"error": "please use POST"})
+		return
+	}
+
+	gmail := c.PostForm("gmail");
+	password := c.PostForm("password");
+
+	acc, err := database.GetLogin(gmail)
+	if err != nil || acc.Verified || checkHash(acc.Hashed, password) {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Either; Gmail incorrect ; not verified ; password incorrect"})
+		return		
+	}
+
+	seshT := generateTok(32)
+	c.SetCookie("exun_sesh_cookie", seshT, 172800, "/", "", false, true)
+	database.UpdateField(gmail, "SeshTok", seshT)
+
+	c.JSON(http.StatusOK, gin.H{"message": "Logged in..."})
+	return
+}
+
+func checkHash(hash string, pass string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(pass))
+	return err == nil
+}
+
+func generateTok(length int) string {
+	bytes := make([]byte, length)
+	rand.Read(bytes);
+	
+	return base64.URLEncoding.EncodeToString(bytes)
 }

@@ -21,4 +21,6 @@ func RegisterRoutes(r *gin.Engine) {
 	})
 
 	r.POST("/enter/verify", handlers.Verify)
+
+	r.POST("/enter/login", handlers.LoginF)
 }
