@@ -1,0 +1,7 @@
+package handlers
+
+import "github.com/gin-gonic/gin"
+
+func ChatHandler(c *gin.Context) {
+	c.JSON(200, gin.H{"message": "Live chat coming soon."})
+}
