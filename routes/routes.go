@@ -23,4 +23,14 @@ func RegisterRoutes(r *gin.Engine) {
 	r.POST("/enter/verify", handlers.Verify)
 
 	r.POST("/enter/login", handlers.LoginF)
+
+	// Dashboard API routes
+	dashboard := r.Group("/api/dashboard")
+	{
+		dashboard.GET("/questions", handlers.GetQuestionsHandler)
+		dashboard.GET("/questions/:id", handlers.GetQuestionHandler)
+		dashboard.POST("/questions", handlers.CreateQuestionHandler)
+		dashboard.PUT("/questions/:id", handlers.UpdateQuestionHandler)
+		dashboard.DELETE("/questions/:id", handlers.DeleteQuestionHandler)
+	}
 }
