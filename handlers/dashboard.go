@@ -12,27 +12,16 @@ func DashboardPage(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "Dashboard"})
 }
 
-func GetQuestionsHandler(c *gin.Context) {
-	questions, err := database.GetQuestions()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch questions"})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"questions": questions,
-	})
-}
-
 func GetQuestionHandler(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid question ID"})
+	var id uint;
+	if is_there, login := Authorize(c); is_there {
+		id = login.On
+	} else{
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Login pending..."})
 		return
 	}
 
-	question, err := database.GetQuestion(id)
+	question, err := database.GetQuestion(int(id))
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Question not found"})
 		return
