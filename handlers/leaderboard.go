@@ -9,7 +9,7 @@ import (
 )
 
 func LeaderboardPage(c *gin.Context) {
-	top, err := database.GetLeaderboardTop(10)
+	top, err := database.GetLeaderboardTop(0)
 	if err != nil {
 		c.String(http.StatusInternalServerError, "Error fetching leaderboard")
 		return

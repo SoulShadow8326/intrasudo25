@@ -141,10 +141,22 @@ func GetUserScore(gmail string) (int, error) {
 }
 
 func GetLeaderboardTop(n int) ([]Sucker, error) {
-	rows, err := db.Query(`SELECT gmail, score FROM leaderboard ORDER BY score DESC LIMIT ?`, n)
+	
+	var rows *sql.Rows;
+	var err error;
+
+	if n == 0 {
+		rows, err = db.Query(`SELECT gmail, score FROM leaderboard ORDER BY score DESC`, n) 
+
+	} else {
+		rows, err = db.Query(`SELECT gmail, score FROM leaderboard ORDER BY score DESC LIMIT ?`, n) 
+
+	}	
+
 	if err != nil {
 		return nil, err
 	}
+
 	defer rows.Close()
 
 	var entries []Sucker
@@ -236,6 +248,8 @@ func DeleteLevel(number int) error {
 }
 
 // GetActiveLevel retrieves the active level by number
+
+/*
 func GetActiveLevel(number int) (*Level, error) {
 	row := db.QueryRow(`SELECT level_number, markdown, src_hint, console_hint, answer, active FROM levels WHERE level_number = ? AND active = true`, number)
 
@@ -247,4 +261,4 @@ func GetActiveLevel(number int) (*Level, error) {
 
 	return &l, nil
 }
-
+*/ //recreate in service; fetch logged in user -> get his current q -> fetch that q; ++ ans submit logic in service as well
