@@ -184,7 +184,6 @@ func InsertSucker(s Sucker) error {
 	return err
 }
 
-// CreateQuestion adds a new question to the database
 func CreateLevel(q Level) (int64, error) {
 	result, err := db.Exec(`
         INSERT INTO levels (markdown, src_hint, console_hint, answer, active)
