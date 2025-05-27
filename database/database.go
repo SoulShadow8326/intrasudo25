@@ -15,6 +15,7 @@ type Login struct {
 	Gmail              string
 	Verified           bool
 	VerificationNumber uint
+	On 				   uint
 }
 
 type Sucker struct {
@@ -47,7 +48,8 @@ func InitDB() {
         CSRFtok TEXT,
         gmail TEXT,
         verified BOOLEAN,
-        verificationNumber INTEGER
+        verificationNumber INTEGER,
+		On INTEGER
     );`
 	_, err = db.Exec(createLoginsTable)
 	if err != nil {
@@ -71,7 +73,7 @@ func InitDB() {
         answer TEXT NOT NULL,
         image_url TEXT,
         text_clue TEXT NOT NULL,
-        question_order INTEGER NOT NULL,
+        question_order INTEGER NOT NULL UNIQUE,
         active BOOLEAN DEFAULT TRUE
     );`
 	_, err = db.Exec(createQuestionsTable)
@@ -82,9 +84,9 @@ func InitDB() {
 
 func InsertLogin(l Login) error {
 	_, err := db.Exec(`
-        INSERT INTO logins (hashed, seshTok, CSRFtok, gmail, verified, verificationNumber)
+        INSERT INTO logins (hashed, seshTok, CSRFtok, gmail, verified, verificationNumber, On)
         VALUES (?, ?, ?, ?, ?, ?)`,
-		l.Hashed, l.SeshTok, l.CSRFtok, l.Gmail, l.Verified, l.VerificationNumber)
+		l.Hashed, l.SeshTok, l.CSRFtok, l.Gmail, l.Verified, l.VerificationNumber, 1)
 	if err != nil {
 		return err
 	}
@@ -94,9 +96,9 @@ func InsertLogin(l Login) error {
 }
 
 func GetLogin(gmail string) (*Login, error) {
-	row := db.QueryRow(`SELECT hashed, seshTok, CSRFtok, gmail, verified, verificationNumber FROM logins WHERE gmail = ?`, gmail)
+	row := db.QueryRow(`SELECT hashed, seshTok, CSRFtok, gmail, verified, verificationNumber, On FROM logins WHERE gmail = ?`, gmail)
 	var l Login
-	err := row.Scan(&l.Hashed, &l.SeshTok, &l.CSRFtok, &l.Gmail, &l.Verified, &l.VerificationNumber)
+	err := row.Scan(&l.Hashed, &l.SeshTok, &l.CSRFtok, &l.Gmail, &l.Verified, &l.VerificationNumber, &l.On)
 	if err != nil {
 		return nil, err
 	}
@@ -104,9 +106,9 @@ func GetLogin(gmail string) (*Login, error) {
 }
 
 func GetLoginFromCookie(tok string) (*Login, error) {
-	row := db.QueryRow(`SELECT hashed, seshTok, CSRFtok, gmail, verified, verificationNumber FROM logins WHERE seshTok = ?`, tok)
+	row := db.QueryRow(`SELECT hashed, seshTok, CSRFtok, gmail, verified, verificationNumber, On FROM logins WHERE seshTok = ?`, tok)
 	var l Login
-	err := row.Scan(&l.Hashed, &l.SeshTok, &l.CSRFtok, &l.Gmail, &l.Verified, &l.VerificationNumber)
+	err := row.Scan(&l.Hashed, &l.SeshTok, &l.CSRFtok, &l.Gmail, &l.Verified, &l.VerificationNumber, &l.On)
 	if err != nil {
 		return nil, err
 	}
