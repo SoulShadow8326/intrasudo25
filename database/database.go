@@ -14,8 +14,8 @@ type Login struct {
 	CSRFtok            string
 	Gmail              string
 	Verified           bool
-	VerificationNumber uint
-	On 				   uint
+	VerificationNumber string // Changed from uint to string
+	On                 uint
 }
 
 type Sucker struct {
@@ -43,12 +43,12 @@ func InitDB() {
 	}
 	createLoginsTable := `
     CREATE TABLE IF NOT EXISTS logins (
-        hashed TEXT PRIMARY KEY,
+        gmail TEXT PRIMARY KEY,      -- Changed: gmail is now PRIMARY KEY
+        hashed TEXT NOT NULL,        -- Changed: no longer PRIMARY KEY
         seshTok TEXT,
         CSRFtok TEXT,
-        gmail TEXT,
         verified BOOLEAN,
-        verificationNumber INTEGER,
+        verificationNumber TEXT,     -- Changed: type to TEXT
 		On INTEGER
     );`
 	_, err = db.Exec(createLoginsTable)
@@ -84,9 +84,9 @@ func InitDB() {
 
 func InsertLogin(l Login) error {
 	_, err := db.Exec(`
-        INSERT INTO logins (hashed, seshTok, CSRFtok, gmail, verified, verificationNumber, On)
-        VALUES (?, ?, ?, ?, ?, ?)`,
-		l.Hashed, l.SeshTok, l.CSRFtok, l.Gmail, l.Verified, l.VerificationNumber, 1)
+        INSERT INTO logins (gmail, hashed, seshTok, CSRFtok, verified, verificationNumber, On)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`, /* Removed l.Hashed from first value, added l.Gmail */
+		l.Gmail, l.Hashed, l.SeshTok, l.CSRFtok, l.Verified, l.VerificationNumber, 1) // Added l.Gmail
 	if err != nil {
 		return err
 	}
@@ -96,9 +96,9 @@ func InsertLogin(l Login) error {
 }
 
 func GetLogin(gmail string) (*Login, error) {
-	row := db.QueryRow(`SELECT hashed, seshTok, CSRFtok, gmail, verified, verificationNumber, On FROM logins WHERE gmail = ?`, gmail)
+	row := db.QueryRow(`SELECT gmail, hashed, seshTok, CSRFtok, verified, verificationNumber, On FROM logins WHERE gmail = ?`, gmail) // Added gmail to SELECT
 	var l Login
-	err := row.Scan(&l.Hashed, &l.SeshTok, &l.CSRFtok, &l.Gmail, &l.Verified, &l.VerificationNumber, &l.On)
+	err := row.Scan(&l.Gmail, &l.Hashed, &l.SeshTok, &l.CSRFtok, &l.Gmail, &l.Verified, &l.VerificationNumber, &l.On) // Added &l.Gmail to scan
 	if err != nil {
 		return nil, err
 	}
@@ -106,9 +106,9 @@ func GetLogin(gmail string) (*Login, error) {
 }
 
 func GetLoginFromCookie(tok string) (*Login, error) {
-	row := db.QueryRow(`SELECT hashed, seshTok, CSRFtok, gmail, verified, verificationNumber, On FROM logins WHERE seshTok = ?`, tok)
+	row := db.QueryRow(`SELECT gmail, hashed, seshTok, CSRFtok, verified, verificationNumber, On FROM logins WHERE seshTok = ?`, tok) // Added gmail to SELECT
 	var l Login
-	err := row.Scan(&l.Hashed, &l.SeshTok, &l.CSRFtok, &l.Gmail, &l.Verified, &l.VerificationNumber, &l.On)
+	err := row.Scan(&l.Gmail, &l.Hashed, &l.SeshTok, &l.CSRFtok, &l.Gmail, &l.Verified, &l.VerificationNumber, &l.On) // Added &l.Gmail to scan
 	if err != nil {
 		return nil, err
 	}
