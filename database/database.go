@@ -8,6 +8,16 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+type Level struct {
+	Markdown string
+	//LevelNumber int || auto increment
+	SourceHint string
+	ConsoleHint string
+
+	Answer   string 
+	Active bool
+}
+
 type Login struct {
 	Hashed             string
 	SeshTok            string
@@ -21,16 +31,6 @@ type Login struct {
 type Sucker struct {
 	Gmail string
 	Score int
-}
-
-type Question struct {
-	ID       int    `json:"id"`
-	Title    string `json:"title"`
-	Answer   string `json:"answer"`
-	ImageURL string `json:"imageUrl,omitempty"`
-	TextClue string `json:"textClue"`
-	Order    int    `json:"order"`
-	Active   bool   `json:"active"`
 }
 
 var db *sql.DB
@@ -66,17 +66,16 @@ func InitDB() {
 		log.Fatal(err)
 	}
 
-	createQuestionsTable := `
-    CREATE TABLE IF NOT EXISTS questions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
+	createLevelsTable := `
+    CREATE TABLE IF NOT EXISTS levels (
+        level_number INTEGER PRIMARY KEY AUTOINCREMENT,
+        markdown TEXT,
+		src_hint TEXT,
+		console_hint TEXT,
         answer TEXT NOT NULL,
-        image_url TEXT,
-        text_clue TEXT NOT NULL,
-        question_order INTEGER NOT NULL UNIQUE,
         active BOOLEAN DEFAULT TRUE
     );`
-	_, err = db.Exec(createQuestionsTable)
+	_, err = db.Exec(createLevelsTable)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -174,11 +173,11 @@ func InsertSucker(s Sucker) error {
 }
 
 // CreateQuestion adds a new question to the database
-func CreateQuestion(q Question) (int64, error) {
+func CreateLevel(q Level) (int64, error) {
 	result, err := db.Exec(`
-        INSERT INTO questions (title, answer, image_url, text_clue, question_order, active)
+        INSERT INTO levels (markdown, src_hint, console_hint, answer, active)
         VALUES (?, ?, ?, ?, ?, ?)`,
-		q.Title, q.Answer, q.ImageURL, q.TextClue, q.Order, q.Active)
+		q.Markdown, q.SourceHint, q.ConsoleHint, q.Answer, q.Active)
 	if err != nil {
 		return 0, err
 	}
@@ -186,65 +185,66 @@ func CreateQuestion(q Question) (int64, error) {
 	return result.LastInsertId()
 }
 
-// GetQuestions retrieves all questions from the database
-func GetQuestions() ([]Question, error) {
-	rows, err := db.Query(`SELECT id, title, answer, image_url, text_clue, question_order, active FROM questions ORDER BY question_order ASC`)
+// GetLevels retrieves all levels from the database
+func GetLevels() ([]Level, error) {
+	rows, err := db.Query(`SELECT level_number, markdown, src_hint, console_hint, answer, active FROM levels ORDER BY level_number ASC`)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var questions []Question
+	var levels []Level
 	for rows.Next() {
-		var q Question
-		err := rows.Scan(&q.ID, &q.Title, &q.Answer, &q.ImageURL, &q.TextClue, &q.Order, &q.Active)
+		var l Level
+		err := rows.Scan(new(int), &l.Markdown, &l.SourceHint, &l.ConsoleHint, &l.Answer, &l.Active) // level_number ignored
 		if err != nil {
 			return nil, err
 		}
-		questions = append(questions, q)
+		levels = append(levels, l)
 	}
-	return questions, nil
+	return levels, nil
 }
 
-// GetQuestion retrieves a specific question by ID
-func GetQuestion(id int) (*Question, error) {
-	row := db.QueryRow(`SELECT id, title, answer, image_url, text_clue, question_order, active FROM questions WHERE id = ?`, id)
+// GetLevel retrieves a specific level by number
+func GetLevel(number int) (*Level, error) {
+	row := db.QueryRow(`SELECT level_number, markdown, src_hint, console_hint, answer, active FROM levels WHERE level_number = ?`, number)
 
-	var q Question
-	err := row.Scan(&q.ID, &q.Title, &q.Answer, &q.ImageURL, &q.TextClue, &q.Order, &q.Active)
+	var l Level
+	err := row.Scan(new(int), &l.Markdown, &l.SourceHint, &l.ConsoleHint, &l.Answer, &l.Active) // level_number ignored
 	if err != nil {
 		return nil, err
 	}
 
-	return &q, nil
+	return &l, nil
 }
 
-// UpdateQuestion updates an existing question
-func UpdateQuestion(q Question) error {
+// UpdateLevel updates an existing level
+func UpdateLevel(number int, l Level) error {
 	_, err := db.Exec(`
-        UPDATE questions 
-        SET title = ?, answer = ?, image_url = ?, text_clue = ?, question_order = ?, active = ?
-        WHERE id = ?`,
-		q.Title, q.Answer, q.ImageURL, q.TextClue, q.Order, q.Active, q.ID)
+        UPDATE levels 
+        SET markdown = ?, src_hint = ?, console_hint = ?, answer = ?, active = ?
+        WHERE level_number = ?`,
+		l.Markdown, l.SourceHint, l.ConsoleHint, l.Answer, l.Active, number)
 
 	return err
 }
 
-// DeleteQuestion removes a question by ID
-func DeleteQuestion(id int) error {
-	_, err := db.Exec(`DELETE FROM questions WHERE id = ?`, id)
+// DeleteLevel removes a level by number
+func DeleteLevel(number int) error {
+	_, err := db.Exec(`DELETE FROM levels WHERE level_number = ?`, number)
 	return err
 }
 
-// GetActiveQuestion retrieves the question at the specified order position that is active
-func GetActiveQuestion(order int) (*Question, error) {
-	row := db.QueryRow(`SELECT id, title, answer, image_url, text_clue, question_order, active FROM questions WHERE question_order = ? AND active = true`, order)
+// GetActiveLevel retrieves the active level by number
+func GetActiveLevel(number int) (*Level, error) {
+	row := db.QueryRow(`SELECT level_number, markdown, src_hint, console_hint, answer, active FROM levels WHERE level_number = ? AND active = true`, number)
 
-	var q Question
-	err := row.Scan(&q.ID, &q.Title, &q.Answer, &q.ImageURL, &q.TextClue, &q.Order, &q.Active)
+	var l Level
+	err := row.Scan(new(int), &l.Markdown, &l.SourceHint, &l.ConsoleHint, &l.Answer, &l.Active) // level_number ignored
 	if err != nil {
 		return nil, err
 	}
 
-	return &q, nil
+	return &l, nil
 }
+
