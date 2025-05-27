@@ -146,7 +146,7 @@ func GetLeaderboardTop(n int) ([]Sucker, error) {
 	var err error;
 
 	if n == 0 {
-		rows, err = db.Query(`SELECT gmail, score FROM leaderboard ORDER BY score DESC`, n) 
+		rows, err = db.Query(`SELECT gmail, score FROM leaderboard ORDER BY score DESC`) 
 
 	} else {
 		rows, err = db.Query(`SELECT gmail, score FROM leaderboard ORDER BY score DESC LIMIT ?`, n) 
