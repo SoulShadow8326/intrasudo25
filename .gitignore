@@ -1,4 +1,7 @@
+*.db
+logins.db
 questions.db
+intrasudo25
 
 .env
 .env.*
