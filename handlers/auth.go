@@ -4,78 +4,73 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/smtp"
 	"os"
 
+	//"strings"
+
 	"intrasudo25/database"
 
-	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
-	//"strings"
 )
-
-/*
-type Login struct {
-	Hashed string
-	SeshTok string
-	CSRFtok string
-
-	Gmail string
-	Verified bool
-	VerificationNumber uint
-}
-*/
 
 type Login = database.Login
 type Sucker = database.Sucker
 
-func New(c *gin.Context) {
-	if c.Request.Method != "POST" {
-		c.JSON(http.StatusMethodNotAllowed, gin.H{"error": "please use POST"})
+func New(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]string{"error": "please use POST"})
 		return
 	}
-	gmail := c.PostForm("gmail")
-	password := c.PostForm("password")
+
+	r.ParseForm()
+	gmail := r.FormValue("gmail")
+	password := r.FormValue("password")
 
 	if _, err := database.GetLogin(gmail); err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Gmail Taken"})
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Gmail Taken"})
 		return
 	}
 
-	// Generate a salted hash for the verification code
-	salt := generateSalt(16)                  // Generate a 16-byte salt
-	verificationCodeSource := password + salt // Combine password and salt
+	salt := generateSalt(16)
+	verificationCodeSource := password + salt
 	h := sha256.New()
 	h.Write([]byte(verificationCodeSource))
 	fullVerificationCodeHash := fmt.Sprintf("%x", h.Sum(nil))
 
-	// The code sent to the user is the last 4 digits of the hash
 	verificationCodeForUser := fullVerificationCodeHash[len(fullVerificationCodeHash)-4:]
 
-	hashedPass, err := hash(password) // This is for storing the login password, not the verification code
+	hashedPass, err := hash(password)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Error hashing password"})
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Error hashing password"})
 		return
 	}
 
 	err = sendVerificationEmail(gmail, verificationCodeForUser)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send verification email"})
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to send verification email"})
 		return
 	}
 
-	err = database.InsertLogin(Login{Gmail: gmail, Hashed: hashedPass, SeshTok: "", CSRFtok: "", Verified: false, VerificationNumber: fullVerificationCodeHash}) // Store the full hash
+	err = database.InsertLogin(Login{Gmail: gmail, Hashed: hashedPass, SeshTok: "", CSRFtok: "", Verified: false, VerificationNumber: fullVerificationCodeHash})
 
 	if err != nil {
 		fmt.Println(err)
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Unable to add user..."})
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Unable to add user..."})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Verification email sent. Please check your inbox for the last 4 digits of your verification code."})
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Verification email sent. Please check your inbox for the last 4 digits of your verification code."})
 }
 
 func hash(pass string) (string, error) {
@@ -83,9 +78,7 @@ func hash(pass string) (string, error) {
 	return string(bytes), err
 }
 
-// Renamed from validate to sendVerificationEmail and modified
 func sendVerificationEmail(email string, codeToSend string) error {
-	// Uncomment during production to only allow DPS RKP emails
 	// if !strings.HasSuffix(email, "@dpsrkp.net") {
 	//     return fmt.Errorf("email must end with @dpsrkp.net")
 	// }
@@ -110,54 +103,70 @@ func sendVerificationEmail(email string, codeToSend string) error {
 	return nil
 }
 
-func Verify(c *gin.Context) {
-	gmail := c.PostForm("gmail")
-	userProvidedCode := c.PostForm("vnum") // This is the 4-digit code from the user
+func Verify(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	gmail := r.FormValue("gmail")
+	userProvidedCode := r.FormValue("vnum")
 
 	acc, err := database.GetLogin(gmail)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Account not found or not registered"})
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Account not found or not registered"})
 		return
 	}
 
-	// Check if the last 4 digits of the stored hash match the user-provided code
 	storedFullVerificationHash := acc.VerificationNumber
 	if len(storedFullVerificationHash) < 4 || storedFullVerificationHash[len(storedFullVerificationHash)-4:] != userProvidedCode {
-		// Potentially delete the login attempt or implement a retry limit
-		// database.DeleteLogin(gmail) // Decided against auto-deletion for now, could lock out users.
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Incorrect Verification Number;"})
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Incorrect Verification Number;"})
 		return
 	}
 
 	database.UpdateField(gmail, "Verified", true)
 
 	database.InsertSucker(Sucker{Gmail: gmail, Score: 0})
-	c.JSON(http.StatusOK, gin.H{"message": "Welcome..."})
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Welcome..."})
 }
 
-func LoginF(c *gin.Context) {
-	if c.Request.Method != "POST" {
-		c.JSON(http.StatusMethodNotAllowed, gin.H{"error": "please use POST"})
+func LoginF(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]string{"error": "please use POST"})
 		return
 	}
 
-	gmail := c.PostForm("gmail")
-	password := c.PostForm("password")
+	r.ParseForm()
+	gmail := r.FormValue("gmail")
+	password := r.FormValue("password")
 
 	acc, err := database.GetLogin(gmail)
 	if err != nil || !acc.Verified || !checkHash(acc.Hashed, password) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Either; Gmail incorrect ; not verified ; password incorrect"})
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Either; Gmail incorrect ; not verified ; password incorrect"})
 		return
 	}
 
 	seshT := generateTok(32)
 	csrf := generateTok(32)
-	c.SetCookie("exun_sesh_cookie", seshT, 172800, "/", "", false, true)
-	c.SetCookie("X-CSRF_COOKIE", csrf, 172800, "/", "", false, false)
+	http.SetCookie(w, &http.Cookie{
+		Name:     "exun_sesh_cookie",
+		Value:    seshT,
+		MaxAge:   172800,
+		Path:     "/",
+		HttpOnly: true,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:   "X-CSRF_COOKIE",
+		Value:  csrf,
+		MaxAge: 172800,
+		Path:   "/",
+	})
 	database.UpdateField(gmail, "SeshTok", seshT)
 	database.UpdateField(gmail, "CSRFtok", csrf)
 
-	c.JSON(http.StatusOK, gin.H{"message": "Logged in..."})
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Logged in..."})
 }
 
 func checkHash(hash string, pass string) bool {
@@ -181,5 +190,3 @@ func generateSalt(length int) string {
 	}
 	return base64.URLEncoding.EncodeToString(bytes)
 }
-
-

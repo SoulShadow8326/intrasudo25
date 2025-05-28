@@ -1,87 +1,89 @@
 package handlers
 
 import (
+	"encoding/json"
 	"intrasudo25/database"
 	"net/http"
 	"strings"
-
-	"github.com/gin-gonic/gin"
 )
 
-func DashboardPage(c *gin.Context) {
-	c.JSON(200, gin.H{"message": "Dashboard"})
+func DashboardPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Dashboard"})
 }
 
-func GetQuestionHandler(c *gin.Context) {
+func GetQuestionHandler(w http.ResponseWriter, r *http.Request) {
 	var id uint
-	if is_there, login := Authorize(c); is_there {
+	if is_there, login := Authorize(r); is_there {
 		id = login.On
 	} else {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Login pending..."})
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Login pending..."})
 		return
 	}
 
 	question, err := database.GetLevel(int(id))
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Question not found"})
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Question not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"question": question,
 	})
 }
 
-func SubmitAnswer(c *gin.Context) {
-	// Authorize the user
-	is_there, login := Authorize(c)
+func SubmitAnswer(w http.ResponseWriter, r *http.Request) {
+	is_there, login := Authorize(r)
 	if !is_there {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Login pending..."})
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Login pending..."})
 		return
 	}
 
-	// Get the user's submitted answer
-	userAnswer := c.PostForm("answer")
+	r.ParseForm()
+	userAnswer := r.FormValue("answer")
 	if userAnswer == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Answer is required"})
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Answer is required"})
 		return
 	}
 
-	// Check the level they are on
 	currentLevel := int(login.On)
 	level, err := database.GetLevel(currentLevel)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Level not found"})
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Level not found"})
 		return
 	}
 
-	// Compare their answer with level answer
 	userAnswerTrimmed := strings.TrimSpace(strings.ToLower(userAnswer))
 	correctAnswerTrimmed := strings.TrimSpace(strings.ToLower(level.Answer))
 
+	w.Header().Set("Content-Type", "application/json")
 	if userAnswerTrimmed == correctAnswerTrimmed {
-		// Correct answer - advance to next level
 		nextLevel := currentLevel + 1
 		err = database.UpdateField(login.Gmail, "On", nextLevel)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update progress"})
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"error": "Failed to update progress"})
 			return
 		}
 
-		// Update score
 		currentScore, _ := database.GetUserScore(login.Gmail)
-		newScore := currentScore + 10 // 10 points per correct answer
+		newScore := currentScore + 10
 		database.UpdateScore(login.Gmail, newScore)
 
-		c.JSON(http.StatusOK, gin.H{
+		json.NewEncoder(w).Encode(map[string]interface{}{
 			"message":    "Correct answer!",
 			"correct":    true,
 			"next_level": nextLevel,
 			"score":      newScore,
 		})
 	} else {
-		// Wrong answer
-		c.JSON(http.StatusOK, gin.H{
+		json.NewEncoder(w).Encode(map[string]interface{}{
 			"message":       "Incorrect answer. Try again!",
 			"correct":       false,
 			"current_level": currentLevel,

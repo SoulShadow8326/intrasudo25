@@ -3,10 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 
 	"intrasudo25/database"
@@ -18,20 +17,9 @@ func init() {
 }
 
 func main() {
-	mode := os.Getenv("GIN_MODE")
-	if mode == "" {
-		mode = gin.ReleaseMode
-	}
-	gin.SetMode(mode)
-
 	database.InitDB()
 
-	router := gin.New()
-	router.Use(gin.Logger(), gin.Recovery(), cors.Default())
-
-	routes.RegisterRoutes(router)
-
-	router.Static("/static", "./static")
+	mux := routes.RegisterRoutes()
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -40,5 +28,5 @@ func main() {
 
 	address := fmt.Sprintf(":%s", port)
 	log.Printf("Server running on %s", address)
-	log.Fatal(router.Run(address))
+	log.Fatal(http.ListenAndServe(address, mux))
 }

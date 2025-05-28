@@ -1,7 +1,11 @@
 package handlers
 
-import "github.com/gin-gonic/gin"
+import (
+	"encoding/json"
+	"net/http"
+)
 
-func ChatHandler(c *gin.Context) {
-	c.JSON(200, gin.H{"message": "Live chat coming soon!"})
+func ChatHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Live chat coming soon!"})
 }

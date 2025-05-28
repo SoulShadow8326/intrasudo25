@@ -3,39 +3,59 @@ package routes
 import (
 	"intrasudo25/handlers"
 	"net/http"
-
-	"github.com/gin-gonic/gin"
+	"strings"
 )
 
-func RegisterRoutes(r *gin.Engine) {
-	//placeholdr :: replace with static after frotnend
-	r.GET("/leaderboard", handlers.LeaderboardPage)
-	r.GET("/questions/attempt", handlers.AttemptQuestionPage)
-	r.GET("/dashboard", handlers.DashboardPage)
+func RegisterRoutes() *http.ServeMux {
+	mux := http.NewServeMux()
 
-	// Placeholder for future chat route
-	// r.GET("/chat", handlers.ChatHandler)
+	mux.HandleFunc("/leaderboard", handlers.LeaderboardPage)
+	mux.HandleFunc("/questions/attempt", handlers.AttemptQuestionPage)
+	mux.HandleFunc("/dashboard", handlers.DashboardPage)
+	mux.HandleFunc("/chat", handlers.ChatHandler)
 
-	r.POST("/enter/New", handlers.New)
-	r.POST("/enter", func(c *gin.Context) {
-		c.Redirect(http.StatusPermanentRedirect, "/enter/New")
+	mux.HandleFunc("/enter/New", handlers.New)
+	mux.HandleFunc("/enter", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/enter/New", http.StatusPermanentRedirect)
 	})
 
-	r.POST("/enter/verify", handlers.Verify)
+	mux.HandleFunc("/enter/verify", handlers.Verify)
+	mux.HandleFunc("/enter/login", handlers.LoginF)
 
-	r.POST("/enter/login", handlers.LoginF)
+	mux.HandleFunc("/api/question", handlers.GetQuestionHandler)
+	mux.HandleFunc("/api/submit", handlers.SubmitAnswer)
 
-	// Playground/Dashboard
-	r.GET("/api/question", handlers.GetQuestionHandler)
-	r.POST("/api/submit", handlers.SubmitAnswer)
+	mux.HandleFunc("/api/admin/", func(w http.ResponseWriter, r *http.Request) {
+		if !handlers.AdminAuth(w, r, []string{}) {
+			return
+		}
 
-	// Admin Panel API routes - for level management
-	admin := r.Group("/api/admin", handlers.AdminPriv([]string{})) //to be replaced w/ array of admin gmails
-	{
-		admin.GET("/", handlers.AdminPanelHandler)
-		admin.GET("/levels", handlers.GetAllLevelsHandler)
-		admin.POST("/levels", handlers.CreateLvlHandler)
-		admin.PUT("/levels/:id", handlers.UpdateLvlHandler)
-		admin.DELETE("/levels/:id", handlers.DeleteLvlHandler)
-	}
+		path := strings.TrimPrefix(r.URL.Path, "/api/admin")
+		if path == "/" || path == "" {
+			handlers.AdminPanelHandler(w, r)
+			return
+		}
+
+		if strings.HasPrefix(path, "/levels") {
+			levelPath := strings.TrimPrefix(path, "/levels")
+			if levelPath == "" || levelPath == "/" {
+				if r.Method == "GET" {
+					handlers.GetAllLevelsHandler(w, r)
+				} else if r.Method == "POST" {
+					handlers.CreateLvlHandler(w, r)
+				}
+			} else {
+				id := strings.TrimPrefix(levelPath, "/")
+				if r.Method == "PUT" {
+					handlers.UpdateLvlHandler(w, r, id)
+				} else if r.Method == "DELETE" {
+					handlers.DeleteLvlHandler(w, r, id)
+				}
+			}
+		}
+	})
+
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+
+	return mux
 }

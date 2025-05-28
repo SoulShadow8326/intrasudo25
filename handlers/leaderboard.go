@@ -1,17 +1,17 @@
 package handlers
 
 import (
+	"encoding/json"
 	"intrasudo25/database"
 	"net/http"
 	"strconv"
-
-	"github.com/gin-gonic/gin"
 )
 
-func LeaderboardPage(c *gin.Context) {
+func LeaderboardPage(w http.ResponseWriter, r *http.Request) {
 	top, err := database.GetLeaderboardTop(0)
 	if err != nil {
-		c.String(http.StatusInternalServerError, "Error fetching leaderboard")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte("Error fetching leaderboard"))
 		return
 	}
 
@@ -28,7 +28,8 @@ func LeaderboardPage(c *gin.Context) {
 		})
 	}
 
-	c.HTML(http.StatusOK, "leaderboard.html", gin.H{
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"entries": entries,
 	})
 }

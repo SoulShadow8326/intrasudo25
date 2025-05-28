@@ -1,57 +1,53 @@
 package handlers
 
 import (
+	"encoding/json"
 	"intrasudo25/database"
 	"net/http"
-
-	"github.com/gin-gonic/gin"
 )
 
-func Authorize(c *gin.Context) (bool, Login) {
-	cookie, err := c.Cookie("exun_sesh_cookie")
-	if err != nil || cookie == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Login Pending..."})
+func Authorize(r *http.Request) (bool, Login) {
+	cookie, err := r.Cookie("exun_sesh_cookie")
+	if err != nil || cookie.Value == "" {
 		return false, Login{}
 	}
-	acc, err := database.GetLoginFromCookie(cookie)
+	acc, err := database.GetLoginFromCookie(cookie.Value)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Login Pending..."})
 		return false, Login{}
 	}
-	csrf := c.GetHeader("CSRFtok")
+	csrf := r.Header.Get("CSRFtok")
 
 	if csrf == "" || csrf != acc.CSRFtok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Login Pending..."})
 		return false, Login{}
 	}
 
 	return true, *acc
 }
 
-func AdminPriv(users []string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		isAuth, user := Authorize(c)
+func AdminAuth(w http.ResponseWriter, r *http.Request, users []string) bool {
+	isAuth, user := Authorize(r)
 
-		if !isAuth {
-			c.AbortWithStatusJSON(403, gin.H{"error": "Forbidden"})
-			return
-		}
-
-		// Check if user is in allowed list
-		allowed := false
-		for _, u := range users {
-			if u == user.Gmail {
-				allowed = true
-				break
-			}
-		}
-
-		if !allowed {
-			c.AbortWithStatusJSON(403, gin.H{"error": "Forbidden"})
-			return
-		}
-
-		c.Next() // allow request to continue
+	if !isAuth {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Forbidden"})
+		return false
 	}
-}
 
+	allowed := false
+	for _, u := range users {
+		if u == user.Gmail {
+			allowed = true
+			break
+		}
+	}
+
+	if !allowed {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Forbidden"})
+		return false
+	}
+
+	return true
+}

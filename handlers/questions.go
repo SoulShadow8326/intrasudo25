@@ -1,7 +1,11 @@
 package handlers
 
-import "github.com/gin-gonic/gin"
+import (
+	"encoding/json"
+	"net/http"
+)
 
-func AttemptQuestionPage(c *gin.Context) {
-	c.JSON(200, gin.H{"message": "Attempt your questions here."})
+func AttemptQuestionPage(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Attempt your questions here."})
 }

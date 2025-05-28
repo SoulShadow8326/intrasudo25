@@ -1,84 +1,90 @@
 package handlers
 
 import (
+	"encoding/json"
 	"intrasudo25/database"
 	"net/http"
 	"strconv"
-
-	"github.com/gin-gonic/gin"
 )
 
-
-
-func CreateLvlHandler(c *gin.Context) {
-	var newLvl database.Level //NOTE
-	if err := c.ShouldBindJSON(&newLvl); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+func CreateLvlHandler(w http.ResponseWriter, r *http.Request) {
+	var newLvl database.Level
+	if err := json.NewDecoder(r.Body).Decode(&newLvl); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
 
 	_, err := database.CreateLevel(newLvl)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create lvl"})
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to create lvl"})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"message": "Lvl created successfully",
 		"lvl":     newLvl,
 	})
 }
 
-func UpdateLvlHandler(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
+func UpdateLvlHandler(w http.ResponseWriter, r *http.Request, id string) {
+	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid lvl ID"})
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid lvl ID"})
 		return
 	}
 
 	var updatedLvl database.Level
-	if err := c.ShouldBindJSON(&updatedLvl); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if err := json.NewDecoder(r.Body).Decode(&updatedLvl); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return
 	}
 
-	err = database.UpdateLevel(id, updatedLvl)
+	err = database.UpdateLevel(idInt, updatedLvl)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update lvl"})
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to update lvl"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"message": "Lvl updated successfully",
 		"lvl":     updatedLvl,
 	})
 }
 
-func DeleteLvlHandler(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
+func DeleteLvlHandler(w http.ResponseWriter, r *http.Request, id string) {
+	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid lvl ID"})
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid lvl ID"})
 		return
 	}
 
-	err = database.DeleteLevel(id)
+	err = database.DeleteLevel(idInt)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete lvl"})
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to delete lvl"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
 		"message": "Lvl deleted successfully",
 	})
 }
 
-// Admin Panel Handlers - for managing all levels/questions
-func AdminPanelHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
+func AdminPanelHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"message": "Admin Panel - Level Management",
-		"endpoints": gin.H{
+		"endpoints": map[string]string{
 			"GET /api/admin/levels":        "Get all levels",
 			"POST /api/admin/levels":       "Create new level",
 			"PUT /api/admin/levels/:id":    "Update level",
@@ -87,14 +93,16 @@ func AdminPanelHandler(c *gin.Context) {
 	})
 }
 
-func GetAllLevelsHandler(c *gin.Context) {
+func GetAllLevelsHandler(w http.ResponseWriter, r *http.Request) {
 	levels, err := database.GetLevels()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve levels"})
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to retrieve levels"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
 		"levels": levels,
 		"count":  len(levels),
 	})
