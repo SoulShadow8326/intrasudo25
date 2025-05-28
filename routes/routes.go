@@ -24,6 +24,10 @@ func RegisterRoutes(r *gin.Engine) {
 
 	r.POST("/enter/login", handlers.LoginF)
 
+	// Playground/Game routes
+	r.GET("/api/question", handlers.GetQuestionHandler)
+	r.POST("/api/submit", handlers.SubmitAnswer)
+
 	// Dashboard API routes
 	dashboard := r.Group("/api/dashboard")
 	{
