@@ -69,7 +69,13 @@ func New(c *gin.Context) {
 		return
 	}
 
-	database.InsertLogin(Login{Gmail: gmail, Hashed: hashedPass, SeshTok: "", CSRFtok: "", Verified: false, VerificationNumber: fullVerificationCodeHash}) // Store the full hash
+	err	= database.InsertLogin(Login{Gmail: gmail, Hashed: hashedPass, SeshTok: "", CSRFtok: "", Verified: false, VerificationNumber: fullVerificationCodeHash}) // Store the full hash
+
+	if err != nil {
+		fmt.Println(err);
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Unable to add user..."})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Verification email sent. Please check your inbox for the last 4 digits of your verification code."})
 	return
@@ -144,7 +150,7 @@ func LoginF(c *gin.Context) {
 	password := c.PostForm("password")
 
 	acc, err := database.GetLogin(gmail)
-	if err != nil || acc.Verified || checkHash(acc.Hashed, password) {
+	if err != nil || !acc.Verified || !checkHash(acc.Hashed, password) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Either; Gmail incorrect ; not verified ; password incorrect"})
 		return
 	}

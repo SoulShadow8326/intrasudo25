@@ -9,12 +9,12 @@ import (
 )
 
 type Level struct {
-	Markdown string
+	Markdown    string
 	//LevelNumber int || auto increment
-	SourceHint string
+	SourceHint  string
 	ConsoleHint string
 
-	Answer   string 
+	Answer string
 	Active bool
 }
 
@@ -49,7 +49,7 @@ func InitDB() {
         CSRFtok TEXT,
         verified BOOLEAN,
         verificationNumber TEXT,     -- Changed: type to TEXT
-		On INTEGER
+		"on" INTEGER
     );`
 	_, err = db.Exec(createLoginsTable)
 	if err != nil {
@@ -83,9 +83,9 @@ func InitDB() {
 
 func InsertLogin(l Login) error {
 	_, err := db.Exec(`
-        INSERT INTO logins (gmail, hashed, seshTok, CSRFtok, verified, verificationNumber, On)
-        VALUES (?, ?, ?, ?, ?, ?, ?)`, /* Removed l.Hashed from first value, added l.Gmail */
-		l.Gmail, l.Hashed, l.SeshTok, l.CSRFtok, l.Verified, l.VerificationNumber, 1) // Added l.Gmail
+        INSERT INTO logins (gmail, hashed, seshTok, CSRFtok, verified, verificationNumber, "on")
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		l.Gmail, l.Hashed, l.SeshTok, l.CSRFtok, l.Verified, l.VerificationNumber, l.On)
 	if err != nil {
 		return err
 	}
@@ -95,9 +95,9 @@ func InsertLogin(l Login) error {
 }
 
 func GetLogin(gmail string) (*Login, error) {
-	row := db.QueryRow(`SELECT gmail, hashed, seshTok, CSRFtok, verified, verificationNumber, On FROM logins WHERE gmail = ?`, gmail) // Added gmail to SELECT
+	row := db.QueryRow(`SELECT gmail, hashed, seshTok, CSRFtok, verified, verificationNumber, "on" FROM logins WHERE gmail = ?`, gmail)
 	var l Login
-	err := row.Scan(&l.Gmail, &l.Hashed, &l.SeshTok, &l.CSRFtok, &l.Gmail, &l.Verified, &l.VerificationNumber, &l.On) // Added &l.Gmail to scan
+	err := row.Scan(&l.Gmail, &l.Hashed, &l.SeshTok, &l.CSRFtok, &l.Verified, &l.VerificationNumber, &l.On)
 	if err != nil {
 		return nil, err
 	}
@@ -105,9 +105,9 @@ func GetLogin(gmail string) (*Login, error) {
 }
 
 func GetLoginFromCookie(tok string) (*Login, error) {
-	row := db.QueryRow(`SELECT gmail, hashed, seshTok, CSRFtok, verified, verificationNumber, On FROM logins WHERE seshTok = ?`, tok) // Added gmail to SELECT
+	row := db.QueryRow(`SELECT gmail, hashed, seshTok, CSRFtok, verified, verificationNumber, "on" FROM logins WHERE seshTok = ?`, tok)
 	var l Login
-	err := row.Scan(&l.Gmail, &l.Hashed, &l.SeshTok, &l.CSRFtok, &l.Gmail, &l.Verified, &l.VerificationNumber, &l.On) // Added &l.Gmail to scan
+	err := row.Scan(&l.Gmail, &l.Hashed, &l.SeshTok, &l.CSRFtok, &l.Verified, &l.VerificationNumber, &l.On)
 	if err != nil {
 		return nil, err
 	}
@@ -141,17 +141,17 @@ func GetUserScore(gmail string) (int, error) {
 }
 
 func GetLeaderboardTop(n int) ([]Sucker, error) {
-	
-	var rows *sql.Rows;
-	var err error;
+
+	var rows *sql.Rows
+	var err error
 
 	if n == 0 {
-		rows, err = db.Query(`SELECT gmail, score FROM leaderboard ORDER BY score DESC`) 
+		rows, err = db.Query(`SELECT gmail, score FROM leaderboard ORDER BY score DESC`)
 
 	} else {
-		rows, err = db.Query(`SELECT gmail, score FROM leaderboard ORDER BY score DESC LIMIT ?`, n) 
+		rows, err = db.Query(`SELECT gmail, score FROM leaderboard ORDER BY score DESC LIMIT ?`, n)
 
-	}	
+	}
 
 	if err != nil {
 		return nil, err
@@ -187,7 +187,7 @@ func InsertSucker(s Sucker) error {
 func CreateLevel(q Level) (int64, error) {
 	result, err := db.Exec(`
         INSERT INTO levels (markdown, src_hint, console_hint, answer, active)
-        VALUES (?, ?, ?, ?, ?, ?)`,
+        VALUES (?, ?, ?, ?, ?)`,
 		q.Markdown, q.SourceHint, q.ConsoleHint, q.Answer, q.Active)
 	if err != nil {
 		return 0, err
@@ -246,9 +246,9 @@ func DeleteLevel(number int) error {
 	return err
 }
 
+/*
 // GetActiveLevel retrieves the active level by number
 
-/*
 func GetActiveLevel(number int) (*Level, error) {
 	row := db.QueryRow(`SELECT level_number, markdown, src_hint, console_hint, answer, active FROM levels WHERE level_number = ? AND active = true`, number)
 
@@ -260,4 +260,5 @@ func GetActiveLevel(number int) (*Level, error) {
 
 	return &l, nil
 }
-*/ //recreate in service; fetch logged in user -> get his current q -> fetch that q; ++ ans submit logic in service as well
+*/
+
