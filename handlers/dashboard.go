@@ -12,66 +12,92 @@ func DashboardPage(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "Dashboard"})
 }
 
-func CreateQuestionHandler(c *gin.Context) {
-	var newQuestion database.Level //NOTE 
-	if err := c.ShouldBindJSON(&newQuestion); err != nil {
+func CreateLvlHandler(c *gin.Context) {
+	var newLvl database.Level //NOTE
+	if err := c.ShouldBindJSON(&newLvl); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	_, err := database.CreateLevel(newQuestion)
+	_, err := database.CreateLevel(newLvl)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create question"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create lvl"})
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message":  "Question created successfully",
-		"question": newQuestion,
+		"message": "Lvl created successfully",
+		"lvl":     newLvl,
 	})
 }
 
-func UpdateQuestionHandler(c *gin.Context) {
+func UpdateLvlHandler(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid question ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid lvl ID"})
 		return
 	}
 
-	var updatedQuestion database.Level
-	if err := c.ShouldBindJSON(&updatedQuestion); err != nil {
+	var updatedLvl database.Level
+	if err := c.ShouldBindJSON(&updatedLvl); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err = database.UpdateLevel(id, updatedQuestion)
+	err = database.UpdateLevel(id, updatedLvl)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update question"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update lvl"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":  "Question updated successfully",
-		"question": updatedQuestion,
+		"message": "Lvl updated successfully",
+		"lvl":     updatedLvl,
 	})
 }
 
-func DeleteQuestionHandler(c *gin.Context) {
+func DeleteLvlHandler(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid question ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid lvl ID"})
 		return
 	}
 
 	err = database.DeleteLevel(id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete question"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete lvl"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Question deleted successfully",
+		"message": "Lvl deleted successfully",
+	})
+}
+
+// Admin Panel Handlers - for managing all levels/questions
+func AdminPanelHandler(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Admin Panel - Level Management",
+		"endpoints": gin.H{
+			"GET /api/admin/levels":        "Get all levels",
+			"POST /api/admin/levels":       "Create new level",
+			"PUT /api/admin/levels/:id":    "Update level",
+			"DELETE /api/admin/levels/:id": "Delete level",
+		},
+	})
+}
+
+func GetAllLevelsHandler(c *gin.Context) {
+	levels, err := database.GetLevels()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve levels"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"levels": levels,
+		"count":  len(levels),
 	})
 }

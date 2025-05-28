@@ -1,10 +1,10 @@
 package handlers
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"net/smtp"
 	"os"
@@ -30,8 +30,6 @@ type Login struct {
 
 type Login = database.Login
 type Sucker = database.Sucker
-
-var users = map[string]Login{}
 
 func New(c *gin.Context) {
 	if c.Request.Method != "POST" {
@@ -69,16 +67,15 @@ func New(c *gin.Context) {
 		return
 	}
 
-	err	= database.InsertLogin(Login{Gmail: gmail, Hashed: hashedPass, SeshTok: "", CSRFtok: "", Verified: false, VerificationNumber: fullVerificationCodeHash}) // Store the full hash
+	err = database.InsertLogin(Login{Gmail: gmail, Hashed: hashedPass, SeshTok: "", CSRFtok: "", Verified: false, VerificationNumber: fullVerificationCodeHash}) // Store the full hash
 
 	if err != nil {
-		fmt.Println(err);
+		fmt.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Unable to add user..."})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Verification email sent. Please check your inbox for the last 4 digits of your verification code."})
-	return
 }
 
 func hash(pass string) (string, error) {
@@ -136,8 +133,6 @@ func Verify(c *gin.Context) {
 
 	database.InsertSucker(Sucker{Gmail: gmail, Score: 0})
 	c.JSON(http.StatusOK, gin.H{"message": "Welcome..."})
-	return
-
 }
 
 func LoginF(c *gin.Context) {
@@ -163,7 +158,6 @@ func LoginF(c *gin.Context) {
 	database.UpdateField(gmail, "CSRFtok", csrf)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Logged in..."})
-	return
 }
 
 func checkHash(hash string, pass string) bool {
@@ -173,7 +167,9 @@ func checkHash(hash string, pass string) bool {
 
 func generateTok(length int) string {
 	bytes := make([]byte, length)
-	rand.Read(bytes)
+	if _, err := rand.Read(bytes); err != nil {
+		panic(err)
+	}
 
 	return base64.URLEncoding.EncodeToString(bytes)
 }
@@ -181,8 +177,6 @@ func generateTok(length int) string {
 func generateSalt(length int) string {
 	bytes := make([]byte, length)
 	if _, err := rand.Read(bytes); err != nil {
-		// Handle error, perhaps by panicking or returning a default salt
-		// For simplicity, this example will panic, but in production, consider a more robust error handling strategy.
 		panic(err)
 	}
 	return base64.URLEncoding.EncodeToString(bytes)
@@ -195,6 +189,10 @@ func Authorize(c *gin.Context) (bool, Login) {
 		return false, Login{}
 	}
 	acc, err := database.GetLoginFromCookie(cookie)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Login Pending..."})
+		return false, Login{}
+	}
 	csrf := c.GetHeader("CSRFtok")
 
 	if csrf == "" || csrf != acc.CSRFtok {

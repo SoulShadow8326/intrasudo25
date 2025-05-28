@@ -30,4 +30,14 @@ func RegisterRoutes(r *gin.Engine) {
 		//dashboard.GET("/questions", handlers.GetQuestionsHandler)
 		dashboard.GET("/questions/:id", handlers.GetQuestionHandler)
 	}
+
+	// Admin Panel API routes - for level management
+	admin := r.Group("/api/admin")
+	{
+		admin.GET("/", handlers.AdminPanelHandler)
+		admin.GET("/levels", handlers.GetAllLevelsHandler)
+		admin.POST("/levels", handlers.CreateLvlHandler)
+		admin.PUT("/levels/:id", handlers.UpdateLvlHandler)
+		admin.DELETE("/levels/:id", handlers.DeleteLvlHandler)
+	}
 }
