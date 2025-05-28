@@ -182,23 +182,4 @@ func generateSalt(length int) string {
 	return base64.URLEncoding.EncodeToString(bytes)
 }
 
-func Authorize(c *gin.Context) (bool, Login) {
-	cookie, err := c.Cookie("exun_sesh_cookie")
-	if err != nil || cookie == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Login Pending..."})
-		return false, Login{}
-	}
-	acc, err := database.GetLoginFromCookie(cookie)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Login Pending..."})
-		return false, Login{}
-	}
-	csrf := c.GetHeader("CSRFtok")
 
-	if csrf == "" || csrf != acc.CSRFtok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Login Pending..."})
-		return false, Login{}
-	}
-
-	return true, *acc
-}

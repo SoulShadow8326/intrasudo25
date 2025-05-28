@@ -3,7 +3,7 @@ package handlers
 import (
 	"intrasudo25/database"
 	"net/http"
-	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -12,92 +12,79 @@ func DashboardPage(c *gin.Context) {
 	c.JSON(200, gin.H{"message": "Dashboard"})
 }
 
-func CreateLvlHandler(c *gin.Context) {
-	var newLvl database.Level //NOTE
-	if err := c.ShouldBindJSON(&newLvl); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+func GetQuestionHandler(c *gin.Context) {
+	var id uint
+	if is_there, login := Authorize(c); is_there {
+		id = login.On
+	} else {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Login pending..."})
 		return
 	}
 
-	_, err := database.CreateLevel(newLvl)
+	question, err := database.GetLevel(int(id))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create lvl"})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Lvl created successfully",
-		"lvl":     newLvl,
-	})
-}
-
-func UpdateLvlHandler(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid lvl ID"})
-		return
-	}
-
-	var updatedLvl database.Level
-	if err := c.ShouldBindJSON(&updatedLvl); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	err = database.UpdateLevel(id, updatedLvl)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update lvl"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Question not found"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Lvl updated successfully",
-		"lvl":     updatedLvl,
+		"question": question,
 	})
 }
 
-func DeleteLvlHandler(c *gin.Context) {
-	idStr := c.Param("id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid lvl ID"})
+func SubmitAnswer(c *gin.Context) {
+	// Authorize the user
+	is_there, login := Authorize(c)
+	if !is_there {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Login pending..."})
 		return
 	}
 
-	err = database.DeleteLevel(id)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete lvl"})
+	// Get the user's submitted answer
+	userAnswer := c.PostForm("answer")
+	if userAnswer == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Answer is required"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Lvl deleted successfully",
-	})
-}
-
-// Admin Panel Handlers - for managing all levels/questions
-func AdminPanelHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Admin Panel - Level Management",
-		"endpoints": gin.H{
-			"GET /api/admin/levels":        "Get all levels",
-			"POST /api/admin/levels":       "Create new level",
-			"PUT /api/admin/levels/:id":    "Update level",
-			"DELETE /api/admin/levels/:id": "Delete level",
-		},
-	})
-}
-
-func GetAllLevelsHandler(c *gin.Context) {
-	levels, err := database.GetLevels()
+	// Check the level they are on
+	currentLevel := int(login.On)
+	level, err := database.GetLevel(currentLevel)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve levels"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Level not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"levels": levels,
-		"count":  len(levels),
-	})
+	// Compare their answer with level answer
+	userAnswerTrimmed := strings.TrimSpace(strings.ToLower(userAnswer))
+	correctAnswerTrimmed := strings.TrimSpace(strings.ToLower(level.Answer))
+
+	if userAnswerTrimmed == correctAnswerTrimmed {
+		// Correct answer - advance to next level
+		nextLevel := currentLevel + 1
+		err = database.UpdateField(login.Gmail, "On", nextLevel)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update progress"})
+			return
+		}
+
+		// Update score
+		currentScore, _ := database.GetUserScore(login.Gmail)
+		newScore := currentScore + 10 // 10 points per correct answer
+		database.UpdateScore(login.Gmail, newScore)
+
+		c.JSON(http.StatusOK, gin.H{
+			"message":    "Correct answer!",
+			"correct":    true,
+			"next_level": nextLevel,
+			"score":      newScore,
+		})
+	} else {
+		// Wrong answer
+		c.JSON(http.StatusOK, gin.H{
+			"message":       "Incorrect answer. Try again!",
+			"correct":       false,
+			"current_level": currentLevel,
+		})
+	}
 }

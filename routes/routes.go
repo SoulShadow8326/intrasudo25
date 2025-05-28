@@ -8,6 +8,7 @@ import (
 )
 
 func RegisterRoutes(r *gin.Engine) {
+	//placeholdr :: replace with static after frotnend
 	r.GET("/leaderboard", handlers.LeaderboardPage)
 	r.GET("/questions/attempt", handlers.AttemptQuestionPage)
 	r.GET("/dashboard", handlers.DashboardPage)
@@ -24,19 +25,12 @@ func RegisterRoutes(r *gin.Engine) {
 
 	r.POST("/enter/login", handlers.LoginF)
 
-	// Playground/Game routes
+	// Playground/Dashboard
 	r.GET("/api/question", handlers.GetQuestionHandler)
 	r.POST("/api/submit", handlers.SubmitAnswer)
 
-	// Dashboard API routes
-	dashboard := r.Group("/api/dashboard")
-	{
-		//dashboard.GET("/questions", handlers.GetQuestionsHandler)
-		dashboard.GET("/questions/:id", handlers.GetQuestionHandler)
-	}
-
 	// Admin Panel API routes - for level management
-	admin := r.Group("/api/admin")
+	admin := r.Group("/api/admin", handlers.AdminPriv([]string{})) //to be replaced w/ array of admin gmails
 	{
 		admin.GET("/", handlers.AdminPanelHandler)
 		admin.GET("/levels", handlers.GetAllLevelsHandler)
