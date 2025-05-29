@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0D0E11">
+    <meta name="description" content="Website for Intra Sudo 2025">
+    <title>Intra Sudo 2025 - Chat</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="index.html" class="logo-link">
+                <img class="logo-img" src="assets/logo-blue.png" alt="Sudocrypt" />
+                <span class="nav-brand">Intra Sudo vX.X</span>
+            </a>
+        </div>
+        <div class="nav-center">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+            <a href="hints.html" class="nav-link">Hints</a>
+        </div>
+        <div class="nav-right">
+            <a href="#" class="nav-link" onclick="handleLogout()">Log Out</a>
+        </div>
+    </nav>
+
+    <main class="main-container">
+        <div class="main-content">
+            <h1 class="level-heading">Chat</h1>
+
+            <div class="chat-content">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="loading-state" id="chatLoadingState">Loading messages...</div>
+                </div>
+            </div>
+
+            <div class="chat-footer">
+                <form class="chat-input-form" onsubmit="handleChatSubmit(event)">
+                    <input 
+                        type="text" 
+                        class="chat-input" 
+                        placeholder="Type your message..." 
+                        autocomplete="off"
+                        id="chatInput"
+                    >
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let chatSocket = null;
+        let userId = null;
+        let userRole = null;
+
+        async function initializeChat() {
+            try {
+                const sessionResponse = await fetch('/api/user/session');
+                if (!sessionResponse.ok) {
+                    window.location.href = 'auth.html';
+                    return;
+                }
+                
+                const sessionData = await sessionResponse.json();
+                userId = sessionData.userId;
+                userRole = sessionData.role;
+                
+                await loadChatHistory();
+                connectWebSocket();
+                enableChatInput();
+                
+            } catch (error) {
+                console.error('Failed to initialize chat:', error);
+                showError('Failed to initialize chat');
+            }
+        }
+
+        async function loadChatHistory() {
+            try {
+                const response = await fetch('/api/chat/messages');
+                if (!response.ok) throw new Error('Failed to load chat history');
+                
+                const messages = await response.json();
+                displayMessages(messages);
+                
+                document.getElementById('chatLoadingState').style.display = 'none';
+                
+            } catch (error) {
+                console.error('Failed to load chat history:', error);
+                document.getElementById('chatLoadingState').textContent = 'Failed to load messages';
+            }
+        }
+
+        function connectWebSocket() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/chat`;
+            
+            chatSocket = new WebSocket(wsUrl);
+            
+            chatSocket.onopen = function() {
+                console.log('Chat WebSocket connected');
+            };
+            
+            chatSocket.onmessage = function(event) {
+                const message = JSON.parse(event.data);
+                displayMessage(message);
+            };
+            
+            chatSocket.onclose = function() {
+                console.log('Chat WebSocket disconnected');
+                setTimeout(connectWebSocket, 3000);
+            };
+            
+            chatSocket.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        function displayMessages(messages) {
+            const container = document.getElementById('chatMessages');
+            container.innerHTML = '';
+            
+            messages.forEach(message => {
+                displayMessage(message);
+            });
+            
+            scrollToBottom();
+        }
+
+        function displayMessage(message) {
+            const container = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${message.isAdmin ? 'admin-message' : 'user-message'}`;
+            
+            const timeString = new Date(message.timestamp).toLocaleTimeString();
+            
+            messageDiv.innerHTML = `
+                <div class="message-header">
+                    <span class="message-author">${message.authorName}</span>
+                    <span class="message-time">${timeString}</span>
+                </div>
+                <div class="message-text">${escapeHtml(message.content)}</div>
+            `;
+            
+            container.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function enableChatInput() {
+            const input = document.getElementById('chatInput');
+            input.disabled = false;
+            input.focus();
+        }
+
+        async function handleChatSubmit(event) {
+            event.preventDefault();
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            try {
+                const response = await fetch('/api/chat/send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        content: message,
+                        userId: userId
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Failed to send message');
+                
+                input.value = '';
+                
+            } catch (error) {
+                console.error('Failed to send message:', error);
+                showError('Failed to send message');
+            }
+        }
+
+        function scrollToBottom() {
+            const container = document.getElementById('chatMessages');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showError(message) {
+            const container = document.getElementById('chatMessages');
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = message;
+            container.appendChild(errorDiv);
+            scrollToBottom();
+        }
+
+        async function handleLogout() {
+            try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                window.location.href = 'auth.html';
+            } catch (error) {
+                console.error('Logout failed:', error);
+                window.location.href = 'auth.html';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', initializeChat);
+    </script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0D0E11">
+    <meta name="description" content="Website for Exun Intra Sudo 2025">
+    <title>Intra Sudo 2025 - Leaderboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="index.html" class="logo-link">
+                <img class="logo-img" src="assets/logo-blue.png" alt="Sudocrypt" />
+                <span class="nav-brand">Intra Sudo vX.X</span>
+            </a>
+        </div>
+        <div class="nav-center">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="leaderboard.html" class="nav-link active">Leaderboard</a>
+            <a href="hints.html" class="nav-link">Hints</a>
+        </div>
+        <div class="nav-right">
+            <a href="admin.html" class="nav-link" id="adminLink" style="display: none;">Admin</a>
+            <a href="#" class="nav-link" onclick="handleLogout()">Log Out</a>
+        </div>
+    </nav>
+
+    <main class="main-container">
+        <div class="main-content">
+            <h1 class="level-heading">Leaderboard</h1>
+            
+            <div class="leaderboard-header">
+                <div class="rank-header">Rank</div>
+                <div class="name-header">Name</div>
+                <div class="level-header">Level</div>
+            </div>
+            
+            <div class="leaderboard-list" id="leaderboardList">
+                <div class="leaderboard-entry" style="text-align: center; padding: 2rem; color: rgba(255, 255, 255, 0.7);">
+                    Loading leaderboard...
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div class="chat-button">
+        <a href="chat.html" class="chat-link">
+            <img src="assets/logo_nobg.png" alt="Chat" class="chat-logo">
+            <div class="notification-dot" id="notificationDot"></div>
+        </a>
+    </div>
+
+    <script>
+        async function loadLeaderboard() {
+            try {
+                const response = await fetch('/api/leaderboard');
+                const leaderboard = await response.json();
+                const listContainer = document.getElementById('leaderboardList');
+                
+                checkAdminAccess();
+                
+                if (leaderboard.length === 0) {
+                    listContainer.innerHTML = '<div class="leaderboard-entry" style="text-align: center; padding: 2rem; color: rgba(255, 255, 255, 0.7);">No participants yet</div>';
+                    return;
+                }
+                
+                listContainer.innerHTML = leaderboard.map((entry, index) => `
+                    <div class="leaderboard-entry">
+                        <div class="entry-left">
+                            <span class="rank">${index + 1}</span>
+                            <span class="name">${entry.username}</span>
+                        </div>
+                        <div class="entry-right">
+                            <span class="level">${entry.currentLevel}</span>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to load leaderboard:', error);
+                document.getElementById('leaderboardList').innerHTML = 
+                    '<div class="leaderboard-entry" style="text-align: center; padding: 2rem; color: #dc3545;">Failed to load leaderboard</div>';
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                window.location.href = 'auth.html';
+            } catch (error) {
+                console.error('Logout failed:', error);
+                window.location.href = 'auth.html';
+            }
+        }
+
+        async function checkNotifications() {
+            try {
+                const response = await fetch('/api/notifications/unread-count');
+                const data = await response.json();
+                const notificationDot = document.getElementById('notificationDot');
+                
+                if (data.count > 0) {
+                    notificationDot.classList.add('show');
+                } else {
+                    notificationDot.classList.remove('show');
+                }
+            } catch (error) {
+                console.error('Failed to check notifications:', error);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAdminAccess();
+            loadLeaderboard();
+            checkNotifications();
+            setInterval(loadLeaderboard, 30000);
+            setInterval(checkNotifications, 30000);
+        });
+
+        async function checkAdminAccess() {
+            try {
+                const response = await fetch('/api/user/session');
+                if (response.ok) {
+                    const userData = await response.json();
+                    const adminEmails = ['admin@intrasudo.com', 'organizer@intrasudo.com'];
+                    
+                    if (adminEmails.includes(userData.email)) {
+                        document.getElementById('adminLink').style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to check admin access:', error);
+            }
+        }
+    </script>
+</body>
+</html>

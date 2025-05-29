@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0D0E11">
+    <meta name="description" content="Website for Exun Intra Sudo 2025">
+    <title>Intra Sudo 2025</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="assets/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <div class="page-container">
+        <main class="main-content-pages">
+            <div class="content-card">
+                <div class="card-header">
+                    <img src="assets/logo-blue.png" alt="Sudocrypt Logo" class="auth-logo">
+                    <h1 class="card-title">Intra Sudo vX.X</h1>
+                    <p class="auth-subtitle">Welcome to the most challenging cryptic hunt by Exun Clan</p>
+                </div>
+                
+                <div class="card-content">
+                    <div class="landing-description">
+                        <p class="landing-text">This platform encompasses an Online Cryptic Treasure Hunt where students navigate through cryptic levels created over the years. Each level presents clues that together point to one answer.</p>
+                    </div>
+                    
+                    <div class="landing-actions">
+                        <a href="auth.html" class="landing-button">Get Started</a>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        async function checkExistingSession() {
+            try {
+                const response = await fetch('/api/user/session');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.userId) {
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.log('No existing session found');
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', checkExistingSession);
+    </script>
+</body>
+</html>

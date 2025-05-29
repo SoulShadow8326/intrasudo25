@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0D0E11">
+    <meta name="description" content="Admin Dashboard for Intra Sudo 2025">
+    <title>Admin Dashboard - Intra Sudo 2025</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="index.html" class="logo-link">
+                <img class="logo-img" src="assets/logo-blue.png" alt="Sudocrypt" />
+                <span class="nav-brand">Intra Sudo vX.X</span>
+            </a>
+        </div>
+        <div class="nav-center">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="leaderboard.html" class="nav-link">Leaderboard</a>
+            <a href="hints.html" class="nav-link">Hints</a>
+        </div>
+        <div class="nav-right">
+            <a href="admin.html" class="nav-link active">Admin</a>
+            <a href="#" class="nav-link" onclick="handleLogout()">Log Out</a>
+        </div>
+    </nav>
+
+    <div class="page-container">
+        <div class="main-content-pages">
+            <div class="admin-container">
+                <header class="admin-header">
+                    <h1 class="admin-title">Admin Dashboard</h1>
+                    <p class="admin-subtitle">Manage levels, monitor users, and control system settings</p>
+                </header>
+
+                <div class="admin-dashboard">
+                    <!-- Statistics Section -->
+                    <section class="admin-section">
+                        <div class="section-header">
+                            <h2 class="section-title">System Overview</h2>
+                        </div>
+                        <div class="stats-grid" id="statsGrid">
+                            <div class="stat-card">
+                                <div class="stat-value" id="totalUsers">-</div>
+                                <div class="stat-label">Total Users</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="totalLevels">-</div>
+                                <div class="stat-label">Total Levels</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="activeUsers">-</div>
+                                <div class="stat-label">Active Users</div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Level Management Section -->
+                    <section class="admin-section">
+                        <div class="section-header">
+                            <h2 class="section-title">Level Management</h2>
+                            <button class="btn-primary" onclick="toggleAddLevelForm()">
+                                Add New Level
+                            </button>
+                        </div>
+
+                        <!-- Add Level Form -->
+                        <div class="add-level-form" id="addLevelForm">
+                            <div class="form-group">
+                                <label class="form-label" for="levelNumber">Level Number:</label>
+                                <input type="number" id="levelNumber" class="form-input" placeholder="Enter level number" min="1">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="levelTitle">Level Title:</label>
+                                <input type="text" id="levelTitle" class="form-input" placeholder="Enter level title">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="levelQuestion">Level Question:</label>
+                                <textarea id="levelQuestion" class="form-input form-textarea" placeholder="Enter the level question or description"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="levelAnswer">Correct Answer:</label>
+                                <input type="text" id="levelAnswer" class="form-input" placeholder="Enter the correct answer">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="levelHint">Hint (Optional):</label>
+                                <input type="text" id="levelHint" class="form-input" placeholder="Enter a hint for this level">
+                            </div>
+                            <div class="form-actions">
+                                <button class="btn-secondary" onclick="cancelAddLevel()">Cancel</button>
+                                <button class="btn-primary" onclick="createLevel()">Create Level</button>
+                            </div>
+                        </div>
+
+                        <!-- Levels List -->
+                        <div id="levelsContainer">
+                            <div class="loading-state" id="levelsLoading">Loading levels...</div>
+                            <div class="level-list" id="levelsList" style="display: none;"></div>
+                            <div class="empty-state" id="levelsEmpty" style="display: none;">
+                                <div class="empty-state-icon">?</div>
+                                <p>No levels found. Create your first level to get started!</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Question State Management Section -->
+                    <section class="admin-section" id="questionStateSection" style="display: none;">
+                        <div class="section-header">
+                            <h2 class="section-title">Question State Management</h2>
+                            <div class="section-actions">
+                                <button class="btn-primary" onclick="toggleAllQuestions(true)">
+                                    Enable All
+                                </button>
+                                <button class="btn-danger" onclick="toggleAllQuestions(false)">
+                                    Disable All
+                                </button>
+                            </div>
+                        </div>
+                        <div id="questionStateContainer">
+                            <div class="question-state-list" id="questionStateList"></div>
+                        </div>
+                    </section>
+
+                    <!-- User Management Section -->
+                    <section class="admin-section">
+                        <div class="section-header">
+                            <h2 class="section-title">User Management</h2>
+                            <button class="btn-primary" onclick="refreshUsers()">
+                                Refresh
+                            </button>
+                        </div>
+                        <div id="usersContainer">
+                            <div class="loading-state">Loading users...</div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let levels = [];
+        let users = [];
+        let stats = {};
+
+        // Initialize admin dashboard
+        async function initializeAdmin() {
+            try {
+                await Promise.all([
+                    loadStats(),
+                    loadLevels(),
+                    loadUsers()
+                ]);
+            } catch (error) {
+                console.error('Failed to initialize admin dashboard:', error);
+            }
+        }
+
+        // Load system statistics
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/admin/stats');
+                stats = await response.json();
+                updateStatsDisplay();
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+                // Initialize empty stats
+                stats = {
+                    totalUsers: 0,
+                    totalLevels: 0,
+                    activeUsers: 0
+                };
+                updateStatsDisplay();
+            }
+        }
+
+        function updateStatsDisplay() {
+            document.getElementById('totalUsers').textContent = stats.totalUsers || 0;
+            document.getElementById('totalLevels').textContent = stats.totalLevels || 0;
+            document.getElementById('activeUsers').textContent = stats.activeUsers || 0;
+        }
+
+        // Level Management Functions
+        async function loadLevels() {
+            const container = document.getElementById('levelsContainer');
+            const loading = document.getElementById('levelsLoading');
+            const list = document.getElementById('levelsList');
+            const empty = document.getElementById('levelsEmpty');
+
+            try {
+                loading.style.display = 'block';
+                list.style.display = 'none';
+                empty.style.display = 'none';
+
+                const response = await fetch('/api/admin/levels');
+                levels = await response.json();
+                
+                if (levels.length === 0) {
+                    loading.style.display = 'none';
+                    empty.style.display = 'block';
+                    hideQuestionStateSection();
+                } else {
+                    renderLevels();
+                    loading.style.display = 'none';
+                    list.style.display = 'block';
+                    showQuestionStateSection();
+                    renderQuestionStates();
+                }
+            } catch (error) {
+                console.error('Failed to load levels:', error);
+                // Initialize empty levels array
+                levels = [];
+                loading.style.display = 'none';
+                empty.style.display = 'block';
+                hideQuestionStateSection();
+            }
+        }
+
+        function renderLevels() {
+            const list = document.getElementById('levelsList');
+            list.innerHTML = levels.map(level => `
+                <div class="level-item">
+                    <div class="level-info">
+                        <div class="level-number">${level.number}</div>
+                        <div class="level-details">
+                            <h4 class="level-title">${level.title}</h4>
+                            <p class="level-description">${level.question.substring(0, 50)}${level.question.length > 50 ? '...' : ''}</p>
+                        </div>
+                    </div>
+                    <div class="level-actions">
+                        <button class="btn-danger" onclick="deleteLevel(${level.id})">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function toggleAddLevelForm() {
+            const form = document.getElementById('addLevelForm');
+            const isVisible = form.classList.contains('show');
+            
+            if (isVisible) {
+                form.classList.remove('show');
+            } else {
+                form.classList.add('show');
+                document.getElementById('levelNumber').focus();
+            }
+        }
+
+        function cancelAddLevel() {
+            const form = document.getElementById('addLevelForm');
+            form.classList.remove('show');
+            clearAddLevelForm();
+        }
+
+        function clearAddLevelForm() {
+            document.getElementById('levelNumber').value = '';
+            document.getElementById('levelTitle').value = '';
+            document.getElementById('levelQuestion').value = '';
+            document.getElementById('levelAnswer').value = '';
+            document.getElementById('levelHint').value = '';
+        }
+
+        async function createLevel() {
+            const levelData = {
+                number: parseInt(document.getElementById('levelNumber').value),
+                title: document.getElementById('levelTitle').value.trim(),
+                question: document.getElementById('levelQuestion').value.trim(),
+                answer: document.getElementById('levelAnswer').value.trim(),
+                hint: document.getElementById('levelHint').value.trim()
+            };
+
+            // Validation
+            if (!levelData.number || !levelData.title || !levelData.question || !levelData.answer) {
+                showNotification('Please fill in all required fields.', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/levels', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(levelData)
+                });
+
+                if (response.ok) {
+                    showNotification('Level created successfully!', 'success');
+                    cancelAddLevel();
+                    loadLevels();
+                    loadStats();
+                } else {
+                    throw new Error('Failed to create level');
+                }
+            } catch (error) {
+                console.error('Error creating level:', error);
+                showNotification('Failed to create level. Please try again.', 'error');
+            }
+        }
+
+        async function deleteLevel(levelId) {
+            if (!confirm('Are you sure you want to delete this level? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/levels/${levelId}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showNotification('Level deleted successfully!', 'success');
+                    loadLevels();
+                    loadStats();
+                } else {
+                    throw new Error('Failed to delete level');
+                }
+            } catch (error) {
+                console.error('Error deleting level:', error);
+                showNotification('Failed to delete level. Please try again.', 'error');
+            }
+        }
+
+        // Question State Management
+        function showQuestionStateSection() {
+            document.getElementById('questionStateSection').style.display = 'block';
+        }
+
+        function hideQuestionStateSection() {
+            document.getElementById('questionStateSection').style.display = 'none';
+        }
+
+        function renderQuestionStates() {
+            const list = document.getElementById('questionStateList');
+            list.innerHTML = levels.map(level => `
+                <div class="question-state-item">
+                    <div class="question-info">
+                        <div class="question-number">Level ${level.number}</div>
+                        <div class="question-title">${level.title}</div>
+                    </div>
+                    <div class="question-state-toggle">
+                        <label class="toggle-switch">
+                            <input type="checkbox" ${level.enabled !== false ? 'checked' : ''} onchange="toggleQuestionState(${level.id}, this.checked)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="toggle-label">${level.enabled !== false ? 'Enabled' : 'Disabled'}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function toggleQuestionState(levelId, enabled) {
+            try {
+                const response = await fetch(`/api/admin/levels/${levelId}/state`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled })
+                });
+
+                if (response.ok) {
+                    // Update local state
+                    const level = levels.find(l => l.id === levelId);
+                    if (level) {
+                        level.enabled = enabled;
+                    }
+                    showNotification(`Question ${enabled ? 'enabled' : 'disabled'} successfully!`, 'success');
+                    renderQuestionStates();
+                } else {
+                    throw new Error('Failed to update question state');
+                }
+            } catch (error) {
+                console.error('Error updating question state:', error);
+                showNotification('Failed to update question state. Please try again.', 'error');
+                // Revert the toggle
+                renderQuestionStates();
+            }
+        }
+
+        async function toggleAllQuestions(enabled) {
+            const confirmMessage = enabled ? 
+                'Are you sure you want to enable all questions?' : 
+                'Are you sure you want to disable all questions?';
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/admin/levels/bulk-state', {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled })
+                });
+
+                if (response.ok) {
+                    // Update local state
+                    levels.forEach(level => level.enabled = enabled);
+                    showNotification(`All questions ${enabled ? 'enabled' : 'disabled'} successfully!`, 'success');
+                    renderQuestionStates();
+                } else {
+                    throw new Error('Failed to update question states');
+                }
+            } catch (error) {
+                console.error('Error updating question states:', error);
+                showNotification('Failed to update question states. Please try again.', 'error');
+            }
+        }
+
+        // User Management
+        async function loadUsers() {
+            // Implementation for loading users
+            // For now, just show placeholder
+        }
+
+        async function refreshUsers() {
+            await loadUsers();
+            showNotification('Users refreshed!', 'success');
+        }
+
+        // Utility Functions
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 80px;
+                right: 20px;
+                padding: 1rem 1.5rem;
+                border-radius: 0.5rem;
+                color: white;
+                z-index: 1001;
+                background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#007bff'};
+                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                animation: slideInRight 0.3s ease-out;
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOutRight 0.3s ease-in';
+                setTimeout(() => notification.remove(), 300);
+            }, 4000);
+        }
+
+        async function handleLogout() {
+            try {
+                await fetch('/api/auth/logout', { method: 'POST' });
+                window.location.href = 'auth.html';
+            } catch (error) {
+                console.error('Logout failed:', error);
+                window.location.href = 'auth.html';
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', initializeAdmin);
+    </script>
+
+    <style>
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+        }
+    </style>
+</body>
+</html>

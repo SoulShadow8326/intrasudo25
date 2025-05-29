@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0D0E11">
+    <meta name="description" content="Website for Exun Intra Sudo 2025">
+    <title>Login - Intra Sudo 2025</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="assets/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <div class="page-container">
+        <main class="main-content-pages">
+            <div class="content-card auth-card">
+                <div class="card-header">
+                    <img src="assets/logo-blue.png" alt="Sudocrypt Logo" class="auth-logo">
+                    <h1 class="card-title">Welcome to Intra Sudo vX.X</h1>
+                    <p class="auth-subtitle">Sign in to start your cryptic journey</p>
+                </div>
+                
+                <div class="card-content">
+                    <form class="auth-form" id="login-form">
+                        <div class="auth-field">
+                            <label for="username" class="auth-label">Username</label>
+                            <input type="text" id="username" name="username" class="auth-input" placeholder="Enter your username" required>
+                        </div>
+                        
+                        <div class="auth-field">
+                            <label for="password" class="auth-label">Password</label>
+                            <input type="password" id="password" name="password" class="auth-input" placeholder="Enter your password" required>
+                        </div>
+                        
+                        <button type="submit" class="auth-button" id="loginButton">
+                            <span id="loginButtonText">Sign In</span>
+                        </button>
+                        
+                        <div class="auth-error" id="loginError" style="display: none;"></div>
+                    </form>
+                    
+                    <div class="auth-footer">
+                        <a href="landing.html" class="auth-back">
+                            Back to landing
+                        </a>
+                    </div>
+                    
+                    <div class="auth-info">
+                        <p>New to Intra Sudo? Contact the organizing team for registration.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <script>
+        async function handleLogin(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const loginButton = document.getElementById('loginButton');
+            const loginButtonText = document.getElementById('loginButtonText');
+            const loginError = document.getElementById('loginError');
+            
+            if (!username || !password) {
+                showError('Please enter both username and password');
+                return;
+            }
+            
+            setLoading(true);
+            hideError();
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    if (data.redirectUrl) {
+                        window.location.href = data.redirectUrl;
+                    } else {
+                        window.location.href = 'index.html';
+                    }
+                } else {
+                    showError(data.message || 'Login failed. Please check your credentials.');
+                }
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                showError('Network error. Please try again.');
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        function setLoading(loading) {
+            const loginButton = document.getElementById('loginButton');
+            const loginButtonText = document.getElementById('loginButtonText');
+            
+            if (loading) {
+                loginButton.disabled = true;
+                loginButtonText.textContent = 'Signing In...';
+                loginButton.classList.add('loading');
+            } else {
+                loginButton.disabled = false;
+                loginButtonText.textContent = 'Sign In';
+                loginButton.classList.remove('loading');
+            }
+        }
+        
+        function showError(message) {
+            const loginError = document.getElementById('loginError');
+            loginError.textContent = message;
+            loginError.style.display = 'block';
+        }
+        
+        function hideError() {
+            const loginError = document.getElementById('loginError');
+            loginError.style.display = 'none';
+        }
+        
+        async function checkExistingSession() {
+            try {
+                const response = await fetch('/api/user/session');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.userId) {
+                        window.location.href = 'index.html';
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.log('No existing session found');
+            }
+        }
+        
+        document.getElementById('login-form').addEventListener('submit', handleLogin);
+        document.addEventListener('DOMContentLoaded', checkExistingSession);
+    </script>
+</body>
+</html>
