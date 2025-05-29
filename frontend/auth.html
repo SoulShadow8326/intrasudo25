@@ -16,30 +16,43 @@
                 <div class="card-header">
                     <img src="assets/logo-blue.png" alt="Sudocrypt Logo" class="auth-logo">
                     <h1 class="card-title">Welcome to Intra Sudo vX.X</h1>
-                    <p class="auth-subtitle">Sign in to start your cryptic journey</p>
+                    <p class="auth-subtitle">Enter your email to receive a verification code</p>
                 </div>
                 
                 <div class="card-content">
-                    <form class="auth-form" id="login-form">
+
+                    <form class="auth-form" id="email-form" style="display: block;">
                         <div class="auth-field">
-                            <label for="username" class="auth-label">Username</label>
-                            <input type="text" id="username" name="username" class="auth-input" placeholder="Enter your username" required>
+                            <input type="email" id="email" name="email" class="auth-input" placeholder="Enter your email address" required>
                         </div>
                         
-                        <div class="auth-field">
-                            <label for="password" class="auth-label">Password</label>
-                            <input type="password" id="password" name="password" class="auth-input" placeholder="Enter your password" required>
-                        </div>
-                        
-                        <button type="submit" class="auth-button" id="loginButton">
-                            <span id="loginButtonText">Sign In</span>
+                        <button type="submit" class="auth-button" id="emailButton">
+                            <span id="emailButtonText">Get Login Code</span>
                         </button>
                         
-                        <div class="auth-error" id="loginError" style="display: none;"></div>
+                        <div class="auth-error" id="emailError" style="display: none;"></div>
+                    </form>
+                    
+
+                    <form class="auth-form" id="code-form" style="display: none;">
+                        <div class="auth-field">
+                            <input type="text" id="verification-code" name="verification-code" class="auth-input" placeholder="Enter your 4-digit login code" maxlength="4" required>
+                            <small class="auth-helper centered">Check your email for your permanent 4-digit login code</small>
+                        </div>
+                        
+                        <button type="submit" class="auth-button" id="codeButton">
+                            <span id="codeButtonText">Sign In</span>
+                        </button>
+                        
+                        <button type="button" class="auth-button-secondary" id="backButton">
+                            <span>Back</span>
+                        </button>
+                        
+                        <div class="auth-error" id="codeError" style="display: none;"></div>
                     </form>
                     
                     <div class="auth-footer">
-                        <a href="landing.html" class="auth-back">
+                        <a href="/landing" class="auth-back">
                             Back to landing
                         </a>
                     </div>
@@ -52,89 +65,232 @@
         </main>
     </div>
     
+
+    <div class="auth-modal" id="authModal">
+        <div class="auth-modal-window">
+            <h3 class="auth-modal-title" id="authModalTitle">Notice</h3>
+            <p class="auth-modal-message" id="authModalMessage">Message here</p>
+            <button class="auth-modal-button" id="authModalOkButton">OK</button>
+        </div>
+    </div>
+    
     <script>
-        async function handleLogin(event) {
+        let userEmail = '';
+        
+        // Step 1: Handle email submission
+        async function handleEmailSubmit(event) {
             event.preventDefault();
             
-            const username = document.getElementById('username').value.trim();
-            const password = document.getElementById('password').value;
-            const loginButton = document.getElementById('loginButton');
-            const loginButtonText = document.getElementById('loginButtonText');
-            const loginError = document.getElementById('loginError');
+            const email = document.getElementById('email').value.trim();
+            const emailButton = document.getElementById('emailButton');
+            const emailButtonText = document.getElementById('emailButtonText');
+            const emailError = document.getElementById('emailError');
             
-            if (!username || !password) {
-                showError('Please enter both username and password');
+            if (!email) {
+                showError('emailError', 'Please enter your email address');
                 return;
             }
             
-            setLoading(true);
-            hideError();
+            if (!validateEmail(email)) {
+                showError('emailError', 'Please enter a valid email address');
+                return;
+            }
+            
+            setEmailLoading(true);
+            hideError('emailError');
             
             try {
-                const response = await fetch('/api/auth/login', {
+                const formData = new FormData();
+                formData.append('gmail', email);
+                
+                const response = await fetch('/enter/email', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        username: username,
-                        password: password
-                    })
+                    body: formData
                 });
                 
                 const data = await response.json();
                 
                 if (response.ok) {
-                    if (data.redirectUrl) {
-                        window.location.href = data.redirectUrl;
+                    userEmail = email;
+                    
+                    if (data.existing_user === "true") {
+                        // Existing user - show info popup and go to code form
+                        showPopup('info', 'Account Found', 'You already have an account. Please enter your permanent 4-digit login code to continue.', () => {
+                            showCodeForm();
+                        });
                     } else {
-                        window.location.href = 'index.html';
+                        // New user - show success popup and go to code form
+                        showPopup('success', 'Code Sent!', 'Check your email for your permanent 4-digit login code.', () => {
+                            showCodeForm();
+                        });
                     }
                 } else {
-                    showError(data.message || 'Login failed. Please check your credentials.');
+                    if (data.cooldown === "true") {
+                        showPopup('warning', 'Please Wait', data.error);
+                    } else {
+                        showError('emailError', data.error || 'Failed to send login code');
+                    }
                 }
                 
             } catch (error) {
-                console.error('Login error:', error);
-                showError('Network error. Please try again.');
+                console.error('Email submission error:', error);
+                showError('emailError', 'Network error. Please try again.');
             } finally {
-                setLoading(false);
+                setEmailLoading(false);
             }
         }
         
-        function setLoading(loading) {
-            const loginButton = document.getElementById('loginButton');
-            const loginButtonText = document.getElementById('loginButtonText');
+        // Step 2: Handle code verification
+        async function handleCodeSubmit(event) {
+            event.preventDefault();
+            
+            const code = document.getElementById('verification-code').value.trim();
+            const codeButton = document.getElementById('codeButton');
+            const codeButtonText = document.getElementById('codeButtonText');
+            const codeError = document.getElementById('codeError');
+            
+            if (!code || code.length !== 4) {
+                showError('codeError', 'Please enter your 4-digit login code');
+                return;
+            }
+            
+            setCodeLoading(true);
+            hideError('codeError');
+            
+            try {
+                const formData = new FormData();
+                formData.append('gmail', userEmail);
+                formData.append('vnum', code);
+                
+                const response = await fetch('/enter/email-verify', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Verification successful, user is automatically logged in
+                    showPopup('success', 'Welcome!', 'Successfully logged in. Redirecting...', () => {
+                        window.location.href = '/home';
+                    });
+                } else {
+                    showError('codeError', data.error || 'Invalid verification code');
+                }
+                
+            } catch (error) {
+                console.error('Code verification error:', error);
+                showError('codeError', 'Network error. Please try again.');
+            } finally {
+                setCodeLoading(false);
+            }
+        }
+        
+        // UI Helper Functions
+        function showCodeForm() {
+            document.getElementById('email-form').style.display = 'none';
+            document.getElementById('code-form').style.display = 'block';
+            document.getElementById('verification-code').focus();
+        }
+        
+        function showEmailForm() {
+            document.getElementById('code-form').style.display = 'none';
+            document.getElementById('email-form').style.display = 'block';
+            document.getElementById('email').focus();
+        }
+        
+        function setEmailLoading(loading) {
+            const emailButton = document.getElementById('emailButton');
+            const emailButtonText = document.getElementById('emailButtonText');
             
             if (loading) {
-                loginButton.disabled = true;
-                loginButtonText.textContent = 'Signing In...';
-                loginButton.classList.add('loading');
+                emailButton.disabled = true;
+                emailButtonText.textContent = 'Sending Code...';
+                emailButton.classList.add('loading');
             } else {
-                loginButton.disabled = false;
-                loginButtonText.textContent = 'Sign In';
-                loginButton.classList.remove('loading');
+                emailButton.disabled = false;
+                emailButtonText.textContent = 'Get Login Code';
+                emailButton.classList.remove('loading');
             }
         }
         
-        function showError(message) {
-            const loginError = document.getElementById('loginError');
-            loginError.textContent = message;
-            loginError.style.display = 'block';
+        function setCodeLoading(loading) {
+            const codeButton = document.getElementById('codeButton');
+            const codeButtonText = document.getElementById('codeButtonText');
+            
+            if (loading) {
+                codeButton.disabled = true;
+                codeButtonText.textContent = 'Signing In...';
+                codeButton.classList.add('loading');
+            } else {
+                codeButton.disabled = false;
+                codeButtonText.textContent = 'Sign In';
+                codeButton.classList.remove('loading');
+            }
         }
         
-        function hideError() {
-            const loginError = document.getElementById('loginError');
-            loginError.style.display = 'none';
+        function showError(elementId, message) {
+            const errorElement = document.getElementById(elementId);
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+            errorElement.style.color = '#dc3545';
         }
         
+        function showSuccess(message) {
+            const codeError = document.getElementById('codeError');
+            codeError.textContent = message;
+            codeError.style.display = 'block';
+            codeError.style.color = '#28a745';
+        }
+        
+        function hideError(elementId) {
+            const errorElement = document.getElementById(elementId);
+            errorElement.style.display = 'none';
+        }
+        
+        function validateEmail(email) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(email);
+        }
+        
+        // Popup Functions
+        function showPopup(type, title, message, callback = null) {
+            const modal = document.getElementById('authModal');
+            const titleEl = document.getElementById('authModalTitle');
+            const messageEl = document.getElementById('authModalMessage');
+            const button = document.getElementById('authModalOkButton');
+            
+            titleEl.textContent = title;
+            messageEl.textContent = message;
+            modal.classList.add('show');
+            
+            const handleClick = () => {
+                hidePopup();
+                if (callback) callback();
+                button.removeEventListener('click', handleClick);
+            };
+            
+            button.addEventListener('click', handleClick);
+        }
+        
+        function hidePopup() {
+            const modal = document.getElementById('authModal');
+            modal.classList.remove('show');
+        }
+        
+        // Event Listeners
+        document.getElementById('email-form').addEventListener('submit', handleEmailSubmit);
+        document.getElementById('code-form').addEventListener('submit', handleCodeSubmit);
+        document.getElementById('backButton').addEventListener('click', showEmailForm);
+        
+        // Check for existing session on page load
         async function checkExistingSession() {
             try {
                 const response = await fetch('/api/user/session');
                 if (response.ok) {
                     const data = await response.json();
                     if (data.userId) {
-                        window.location.href = 'index.html';
+                        window.location.href = '/home';
                         return;
                     }
                 }
@@ -143,8 +299,65 @@
             }
         }
         
-        document.getElementById('login-form').addEventListener('submit', handleLogin);
         document.addEventListener('DOMContentLoaded', checkExistingSession);
     </script>
+
+    <style>
+    .auth-modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100vw;
+        height: 100vh;
+        background: none !important;
+        opacity: 1 !important;
+        justify-content: center;
+        align-items: center;
+    }
+    .auth-modal.show {
+        display: flex;
+    }
+    .auth-modal-window {
+        background: #181a20 !important;
+        color: #fff;
+        border-radius: 12px;
+        box-shadow: 0 8px 40px 0 rgba(0,0,0,0.65), 0 0 0 2px #2977f5;
+        padding: 2rem 2.5rem;
+        min-width: 320px;
+        max-width: 90vw;
+        text-align: center;
+        border: 1.5px solid #2977f5;
+        outline: 0.5px solid #2977f5;
+        backdrop-filter: none !important;
+        opacity: 1 !important;
+    }
+    .auth-modal-title {
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        color: #2977f5;
+    }
+    .auth-modal-message {
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+        color: #e0e0e0;
+    }
+    .auth-modal-button {
+        background: #2977f5;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        padding: 0.6rem 1.5rem;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .auth-modal-button:hover {
+        background: #1e5fd9;
+    }
+    </style>
 </body>
 </html>

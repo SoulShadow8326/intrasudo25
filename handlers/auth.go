@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/smtp"
 	"os"
+	"sync"
+	"time"
 
 	//"strings"
 
@@ -17,8 +19,44 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+// CodeCooldown tracks when codes were last sent to prevent spam
+type CodeCooldown struct {
+	mu       sync.RWMutex
+	lastSent map[string]time.Time
+}
+
+var codeCooldown = &CodeCooldown{
+	lastSent: make(map[string]time.Time),
+}
+
 type Login = database.Login
 type Sucker = database.Sucker
+
+type EmailConfig struct {
+	Email struct {
+		From     string `json:"from"`
+		Password string `json:"password"`
+		SMTPHost string `json:"smtp_host"`
+		SMTPPort string `json:"smtp_port"`
+	} `json:"email"`
+}
+
+func loadEmailConfig() (*EmailConfig, error) {
+	file, err := os.Open("config.json")
+	if err != nil {
+		return nil, fmt.Errorf("could not open config.json: %v", err)
+	}
+	defer file.Close()
+
+	var config EmailConfig
+	decoder := json.NewDecoder(file)
+	err = decoder.Decode(&config)
+	if err != nil {
+		return nil, fmt.Errorf("could not decode config.json: %v", err)
+	}
+
+	return &config, nil
+}
 
 func New(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
@@ -31,7 +69,8 @@ func New(w http.ResponseWriter, r *http.Request) {
 	gmail := r.FormValue("gmail")
 	password := r.FormValue("password")
 
-	if _, err := database.GetLogin(gmail); err == nil {
+	result, err := database.Get("login", map[string]interface{}{"gmail": gmail})
+	if err == nil && result != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Gmail Taken"})
 		return
@@ -60,7 +99,7 @@ func New(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = database.InsertLogin(Login{Gmail: gmail, Hashed: hashedPass, SeshTok: "", CSRFtok: "", Verified: false, VerificationNumber: fullVerificationCodeHash})
+	err = database.Create("login", Login{Gmail: gmail, Hashed: hashedPass, SeshTok: "", CSRFtok: "", Verified: false, VerificationNumber: fullVerificationCodeHash})
 
 	if err != nil {
 		fmt.Println(err)
@@ -83,16 +122,22 @@ func sendVerificationEmail(email string, codeToSend string) error {
 	//     return fmt.Errorf("email must end with @dpsrkp.net")
 	// }
 
-	from := "e11383hursh@dpsrkp.net"
-	pass := os.Getenv("pass")
+	config, err := loadEmailConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load email config: %v", err)
+	}
+
+	from := config.Email.From
+	pass := config.Email.Password
+	smtpHost := config.Email.SMTPHost + ":" + config.Email.SMTPPort
 
 	msg := []byte("To: " + email + "\r\n" +
 		"Subject: Exun Elite - Verification Code\r\n" +
 		"\r\n" +
 		"Your verification code (last 4 digits) is: " + codeToSend + "\r\n")
 
-	err := smtp.SendMail("smtp.gmail.com:587",
-		smtp.PlainAuth("", from, pass, "smtp.gmail.com"),
+	err = smtp.SendMail(smtpHost,
+		smtp.PlainAuth("", from, pass, config.Email.SMTPHost),
 		from, []string{email}, msg)
 
 	if err != nil {
@@ -103,17 +148,61 @@ func sendVerificationEmail(email string, codeToSend string) error {
 	return nil
 }
 
+func sendLoginCodeEmail(email string, name string, loginCode string) error {
+	config, err := loadEmailConfig()
+	if err != nil {
+		return fmt.Errorf("failed to load email config: %v", err)
+	}
+
+	from := config.Email.From
+	pass := config.Email.Password
+	smtpHost := config.Email.SMTPHost + ":" + config.Email.SMTPPort
+
+	greeting := "Hello,"
+	if name != "" {
+		greeting = "Hello " + name + ","
+	}
+
+	msg := []byte("To: " + email + "\r\n" +
+		"Subject: Intra Sudo 2025 - Your Login Code\r\n" +
+		"\r\n" +
+		greeting + "\r\n" +
+		"\r\n" +
+		"Your permanent 4-digit login code for Intra Sudo 2025 is: " + loginCode + "\r\n" +
+		"\r\n" +
+		"Keep this code safe - you'll use it every time you log in.\r\n" +
+		"\r\n" +
+		"Good luck with the challenge!\r\n" +
+		"- Exun Team\r\n")
+
+	err = smtp.SendMail(smtpHost,
+		smtp.PlainAuth("", from, pass, config.Email.SMTPHost),
+		from, []string{email}, msg)
+
+	if err != nil {
+		return err
+	}
+
+	userName := name
+	if userName == "" {
+		userName = "user"
+	}
+	fmt.Println("Sent login code:", loginCode, "to:", email, "for user:", userName)
+	return nil
+}
+
 func Verify(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	gmail := r.FormValue("gmail")
 	userProvidedCode := r.FormValue("vnum")
 
-	acc, err := database.GetLogin(gmail)
+	result, err := database.Get("login", map[string]interface{}{"gmail": gmail})
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Account not found or not registered"})
 		return
 	}
+	acc := result.(*database.Login)
 
 	storedFullVerificationHash := acc.VerificationNumber
 	if len(storedFullVerificationHash) < 4 || storedFullVerificationHash[len(storedFullVerificationHash)-4:] != userProvidedCode {
@@ -122,9 +211,9 @@ func Verify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	database.UpdateField(gmail, "Verified", true)
+	database.Update("login_field", map[string]interface{}{"gmail": gmail, "field": "verified"}, true)
 
-	database.InsertSucker(Sucker{Gmail: gmail, Score: 0})
+	database.Create("leaderboard", Sucker{Gmail: gmail, Score: 0})
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Welcome..."})
 }
@@ -140,8 +229,14 @@ func LoginF(w http.ResponseWriter, r *http.Request) {
 	gmail := r.FormValue("gmail")
 	password := r.FormValue("password")
 
-	acc, err := database.GetLogin(gmail)
-	if err != nil || !acc.Verified || !checkHash(acc.Hashed, password) {
+	result, err := database.Get("login", map[string]interface{}{"gmail": gmail})
+	if err != nil || result == nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Either; Gmail incorrect ; not verified ; password incorrect"})
+		return
+	}
+	acc := result.(*database.Login)
+	if !acc.Verified || !checkHash(acc.Hashed, password) {
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Either; Gmail incorrect ; not verified ; password incorrect"})
 		return
@@ -162,8 +257,8 @@ func LoginF(w http.ResponseWriter, r *http.Request) {
 		MaxAge: 172800,
 		Path:   "/",
 	})
-	database.UpdateField(gmail, "SeshTok", seshT)
-	database.UpdateField(gmail, "CSRFtok", csrf)
+	database.Update("login_field", map[string]interface{}{"gmail": gmail, "field": "seshTok"}, seshT)
+	database.Update("login_field", map[string]interface{}{"gmail": gmail, "field": "CSRFtok"}, csrf)
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"message": "Logged in..."})
@@ -189,4 +284,178 @@ func generateSalt(length int) string {
 		panic(err)
 	}
 	return base64.URLEncoding.EncodeToString(bytes)
+}
+
+func Logout(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]string{"error": "please use POST"})
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   false,
+	})
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "logged out successfully"})
+}
+
+// EmailOnly handles email-only registration/login
+func EmailOnly(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]string{"error": "please use POST"})
+		return
+	}
+
+	err := r.ParseMultipartForm(10 << 20) // 10 MB max
+	if err != nil {
+		// Try regular form parsing as fallback
+		r.ParseForm()
+	}
+	gmail := r.FormValue("gmail")
+
+	if gmail == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Email is required"})
+		return
+	}
+
+	// Check cooldown - prevent duplicate requests within 60 seconds
+	codeCooldown.mu.RLock()
+	lastSent, exists := codeCooldown.lastSent[gmail]
+	codeCooldown.mu.RUnlock()
+
+	if exists && time.Since(lastSent) < 60*time.Second {
+		remainingTime := 60 - int(time.Since(lastSent).Seconds())
+		w.WriteHeader(http.StatusTooManyRequests)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error":    fmt.Sprintf("Please wait %d seconds before requesting another code", remainingTime),
+			"cooldown": "true",
+		})
+		return
+	}
+
+	// Check if user exists
+	_, err = database.Get("login", map[string]interface{}{"gmail": gmail})
+	if err != nil {
+		// User doesn't exist, create new user
+		// Generate permanent 4-digit login code
+		salt := generateSalt(16)
+		codeSource := gmail + salt
+		h := sha256.New()
+		h.Write([]byte(codeSource))
+		fullHash := fmt.Sprintf("%x", h.Sum(nil))
+		permanentLoginCode := fullHash[len(fullHash)-4:]
+
+		// Create a default password hash (user will login via email verification only)
+		hashedPass, err := hash("email_verified_user")
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"error": "Error creating account"})
+			return
+		}
+
+		err = sendLoginCodeEmail(gmail, "", permanentLoginCode)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"error": "Failed to send login code email"})
+			return
+		}
+
+		// Update cooldown tracker
+		codeCooldown.mu.Lock()
+		codeCooldown.lastSent[gmail] = time.Now()
+		codeCooldown.mu.Unlock()
+
+		err = database.Create("login", Login{
+			Gmail:              gmail,
+			Name:               "",
+			Hashed:             hashedPass,
+			SeshTok:            "",
+			CSRFtok:            "",
+			Verified:           false,
+			VerificationNumber: fullHash,
+			LoginCode:          permanentLoginCode,
+			On:                 1, // Start at level 1
+		})
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"error": "Unable to create account"})
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Account created! Check your email for your permanent 4-digit login code."})
+	} else {
+		// User exists - don't send another email, just tell them to use existing code
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{
+			"message":       "Account found! Use your existing 4-digit login code.",
+			"existing_user": "true",
+		})
+	}
+}
+
+// EmailVerify handles verification and automatic login
+func EmailVerify(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseMultipartForm(10 << 20) // 10 MB max
+	if err != nil {
+		// Try regular form parsing as fallback
+		r.ParseForm()
+	}
+	gmail := r.FormValue("gmail")
+	userProvidedCode := r.FormValue("vnum")
+
+	result, err := database.Get("login", map[string]interface{}{"gmail": gmail})
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Account not found"})
+		return
+	}
+	acc := result.(*database.Login)
+
+	// Check against permanent login code
+	if acc.LoginCode != userProvidedCode {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Incorrect login code"})
+		return
+	}
+
+	// Mark as verified
+	database.Update("login_field", map[string]interface{}{"gmail": gmail, "field": "verified"}, true)
+
+	// Add to leaderboard if new user
+	leaderboardResult, _ := database.Get("leaderboard", map[string]interface{}{"gmail": gmail})
+	if leaderboardResult == nil {
+		database.Create("leaderboard", Sucker{Gmail: gmail, Score: 0})
+	}
+
+	// Automatically log them in
+	seshT := generateTok(32)
+	csrf := generateTok(32)
+	http.SetCookie(w, &http.Cookie{
+		Name:     "exun_sesh_cookie",
+		Value:    seshT,
+		MaxAge:   172800,
+		Path:     "/",
+		HttpOnly: true,
+	})
+	http.SetCookie(w, &http.Cookie{
+		Name:   "X-CSRF_COOKIE",
+		Value:  csrf,
+		MaxAge: 172800,
+		Path:   "/",
+	})
+	database.Update("login_field", map[string]interface{}{"gmail": gmail, "field": "seshTok"}, seshT)
+	database.Update("login_field", map[string]interface{}{"gmail": gmail, "field": "CSRFtok"}, csrf)
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Verified and logged in successfully"})
 }

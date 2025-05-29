@@ -1,38 +1,169 @@
 package routes
 
 import (
+	"intrasudo25/database"
 	"intrasudo25/handlers"
 	"net/http"
 	"strings"
 )
 
-func RegisterRoutes() *http.ServeMux {
+type CustomHandler struct {
+	mux *http.ServeMux
+}
+
+func (h *CustomHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// Check if the request path has a registered handler
+	_, pattern := h.mux.Handler(r)
+	if pattern == "" {
+		// No handler found, serve 404 page
+		handlers.NotFoundHandler(w, r)
+		return
+	}
+
+	// Serve the request normally
+	h.mux.ServeHTTP(w, r)
+}
+
+func RegisterRoutes() *CustomHandler {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/leaderboard", handlers.LeaderboardPage)
-	mux.HandleFunc("/questions/attempt", handlers.AttemptQuestionPage)
-	mux.HandleFunc("/dashboard", handlers.DashboardPage)
-	mux.HandleFunc("/chat", handlers.ChatHandler)
+	// Admin emails for middleware
+	adminEmails := []string{"admin@intrasudo.com", "lead@intrasudo.com", "organizer@intrasudo.com"}
 
+	mux.HandleFunc("/landing", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./frontend/landing.html")
+	})
+	mux.HandleFunc("/home", handlers.IndexHandler)
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/landing", http.StatusSeeOther)
+	})
+	mux.HandleFunc("/auth", handlers.AuthPageHandler)
+
+	// Add direct 404 route
+	mux.HandleFunc("/404", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./frontend/404.html")
+	})
+
+	// Protected routes requiring authentication
+	mux.HandleFunc("/leaderboard", handlers.RequireAuth(handlers.LeaderboardHandler))
+	mux.HandleFunc("/hints", handlers.RequireAuth(handlers.HintsHandler))
+	mux.HandleFunc("/chat", handlers.RequireAuth(handlers.ChatPageHandler))
+
+	// Admin-only routes
+	mux.HandleFunc("/admin", handlers.RequireAdmin(adminEmails)(handlers.AdminDashboardHandler))
+	mux.HandleFunc("/admin/levels/new", handlers.RequireAdmin(adminEmails)(handlers.NewLevelFormHandler))
+
+	// Form submission handlers (protected)
+	mux.HandleFunc("/submit", handlers.RequireAuth(handlers.SubmitAnswerHandler))
+
+	// Admin form submission handlers
+	mux.HandleFunc("/admin/levels/create", handlers.RequireAdmin(adminEmails)(handlers.CreateLvlHandler))
+	mux.HandleFunc("/admin/levels/", handlers.RequireAdmin(adminEmails)(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		if strings.HasSuffix(path, "/edit") {
+			// Handle GET request for edit form
+			handlers.EditLevelFormHandler(w, r)
+		} else if strings.HasSuffix(path, "/update") {
+			// Handle POST request for update
+			levelID := strings.TrimSuffix(strings.TrimPrefix(path, "/admin/levels/"), "/update")
+			handlers.UpdateLvlHandler(w, r, levelID)
+		} else if strings.HasSuffix(path, "/delete") {
+			// Handle POST request for delete
+			levelID := strings.TrimSuffix(strings.TrimPrefix(path, "/admin/levels/"), "/delete")
+			handlers.DeleteLvlHandler(w, r, levelID)
+		} else {
+			// Default to edit form handler
+			handlers.EditLevelFormHandler(w, r)
+		}
+	}))
+
+	// Admin user management handlers
+	mux.HandleFunc("/admin/users/", func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		if strings.HasSuffix(path, "/delete") {
+			// Handle POST request for user delete
+			userEmail := strings.TrimSuffix(strings.TrimPrefix(path, "/admin/users/"), "/delete")
+			if r.Method == http.MethodPost {
+				// Check admin access
+				user, err := handlers.GetUserFromSession(r)
+				if err != nil || user == nil {
+					http.Error(w, "Access denied", http.StatusForbidden)
+					return
+				}
+
+				// Check if user is admin
+				adminEmails := []string{"admin@intrasudo.com", "lead@intrasudo.com", "organizer@intrasudo.com"}
+				isAdmin := false
+				for _, adminEmail := range adminEmails {
+					if strings.ToLower(user.Gmail) == adminEmail {
+						isAdmin = true
+						break
+					}
+				}
+				if !isAdmin {
+					http.Error(w, "Access denied", http.StatusForbidden)
+					return
+				}
+
+				// Prevent admin from deleting themselves
+				if user.Gmail == userEmail {
+					http.Redirect(w, r, "/admin?error=Cannot delete your own account", http.StatusSeeOther)
+					return
+				}
+
+				err = database.Delete("login", map[string]interface{}{"gmail": userEmail})
+				if err != nil {
+					http.Redirect(w, r, "/admin?error=Failed to delete user", http.StatusSeeOther)
+					return
+				}
+
+				http.Redirect(w, r, "/admin?success=User deleted successfully", http.StatusSeeOther)
+			} else {
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
+		}
+	})
+
+	// Chat API endpoints
+	mux.HandleFunc("/api/chat", handlers.ChatAPIHandler)
+	mux.HandleFunc("/api/chat/leave", handlers.ChatLeaveHandler)
+
+	// Authentication handlers
 	mux.HandleFunc("/enter/New", handlers.New)
 	mux.HandleFunc("/enter", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/enter/New", http.StatusPermanentRedirect)
 	})
-
 	mux.HandleFunc("/enter/verify", handlers.Verify)
 	mux.HandleFunc("/enter/login", handlers.LoginF)
+	mux.HandleFunc("/enter/logout", handlers.Logout)
 
+	// Email-only authentication (simplified)
+	mux.HandleFunc("/enter/email", handlers.EmailOnly)
+	mux.HandleFunc("/enter/email-verify", handlers.EmailVerify)
+
+	// Legacy API endpoints (for backward compatibility)
 	mux.HandleFunc("/api/question", handlers.GetQuestionHandler)
 	mux.HandleFunc("/api/submit", handlers.SubmitAnswer)
+	mux.HandleFunc("/dashboard", handlers.DashboardPage)
 
+	// User session API
+	mux.HandleFunc("/api/user/session", handlers.UserSessionHandler)
+
+	// Admin API endpoints
 	mux.HandleFunc("/api/admin/", func(w http.ResponseWriter, r *http.Request) {
-		if !handlers.AdminAuth(w, r, []string{}) {
+		adminEmails := []string{"admin@intrasudo.com", "lead@intrasudo.com", "organizer@intrasudo.com"}
+		if !handlers.AdminAuth(w, r, adminEmails) {
 			return
 		}
 
 		path := strings.TrimPrefix(r.URL.Path, "/api/admin")
 		if path == "/" || path == "" {
 			handlers.AdminPanelHandler(w, r)
+			return
+		}
+
+		if path == "/stats" {
+			handlers.GetStatsHandler(w, r)
 			return
 		}
 
@@ -53,9 +184,29 @@ func RegisterRoutes() *http.ServeMux {
 				}
 			}
 		}
+
+		if strings.HasPrefix(path, "/users") {
+			userPath := strings.TrimPrefix(path, "/users")
+			if userPath == "" || userPath == "/" {
+				if r.Method == "GET" {
+					handlers.GetAllUsersHandler(w, r)
+				}
+			} else {
+				email := strings.TrimPrefix(userPath, "/")
+				if r.Method == "DELETE" {
+					handlers.DeleteUserHandler(w, r, email)
+				}
+			}
+		}
 	})
 
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	// Static file serving
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./frontend/"))))
+	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./frontend/assets/"))))
+	mux.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("./frontend/css/"))))
+	mux.HandleFunc("/styles.css", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./frontend/styles.css")
+	})
 
-	return mux
+	return &CustomHandler{mux: mux}
 }

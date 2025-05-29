@@ -22,7 +22,7 @@
 .admin-title {
     font-size: 2rem;
     font-weight: 700;
-    color: var(--foreground);
+    color: #2977f5; /* Exun blue instead of var(--foreground) */
     margin: 0;
 }
 
@@ -34,16 +34,38 @@
 
 /* Admin Sections */
 .admin-section {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(13, 14, 17, 0.9) !important; /* Force dark background */
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
     border-radius: 0.75rem;
     padding: 2rem 2.5rem;
     transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    color: var(--foreground) !important;
 }
 
 .admin-section:hover {
-    background: rgba(255, 255, 255, 0.04);
-    border-color: rgba(41, 119, 245, 0.2);
+    background: rgba(13, 14, 17, 0.95) !important;
+    border-color: #2977f5 !important;
+    box-shadow: 0 6px 25px rgba(41, 119, 245, 0.1);
+}
+
+/* Force dark theme for any nested elements */
+.admin-section * {
+    background: transparent !important;
+    color: inherit !important;
+}
+
+.admin-section .form-input,
+.admin-section .form-textarea {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: var(--foreground) !important;
+}
+
+.admin-section .form-input:focus,
+.admin-section .form-textarea:focus {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: var(--primary) !important;
 }
 
 .section-header {
@@ -56,13 +78,13 @@
 .section-title {
     font-size: 1.25rem;
     font-weight: 600;
-    color: var(--foreground);
+    color: #2977f5; /* Exun blue */
     margin: 0;
 }
 
 /* Buttons */
 .btn-primary {
-    background: var(--primary);
+    background: linear-gradient(135deg, #2977f5 0%, #1e63d9 100%);
     color: white;
     border: none;
     padding: 1rem 2rem;
@@ -76,11 +98,13 @@
     gap: 0.5rem;
     min-width: 120px;
     justify-content: center;
+    box-shadow: 0 2px 8px rgba(41, 119, 245, 0.3);
 }
 
 .btn-primary:hover {
-    background: var(--primary-hover);
-    transform: translateY(-1px);
+    background: linear-gradient(135deg, #1e63d9 0%, #1557c0 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(41, 119, 245, 0.4);
 }
 
 .btn-secondary {
@@ -121,6 +145,32 @@
     background: #c82333;
     transform: translateY(-1px);
     box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+}
+
+/* Status Badges */
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-active {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.status-inactive {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.level-meta {
+    margin-top: 0.5rem;
 }
 
 /* Add Level Form */
@@ -224,16 +274,19 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 0.5rem;
-    transition: all 0.2s ease;
+    padding: 1.5rem;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 0.75rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .level-item:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(41, 119, 245, 0.3);
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(41, 119, 245, 0.4) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(41, 119, 245, 0.15);
 }
 
 .level-info {
@@ -244,16 +297,25 @@
 }
 
 .level-number {
-    width: 2.5rem;
-    height: 2.5rem;
-    background: var(--primary);
+    width: 3rem;
+    height: 3rem;
+    background: linear-gradient(135deg, #2977f5 0%, #1e63d9 100%);
     color: white;
-    border-radius: 50%;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: bold;
-    font-size: 0.9rem;
+    font-weight: 700;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 12px rgba(41, 119, 245, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    transition: all 0.3s ease;
+}
+
+.level-item:hover .level-number {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 20px rgba(41, 119, 245, 0.4);
+    border-color: rgba(255, 255, 255, 0.3);
 }
 
 .level-details {
@@ -443,6 +505,86 @@ input:checked + .toggle-slider:before {
     font-weight: 500;
     color: var(--text-secondary);
     min-width: 60px;
+}
+
+/* Comprehensive Dark Theme Overrides */
+.admin-container *, 
+.admin-dashboard *,
+.admin-section *,
+.stats-grid *,
+.level-list *,
+.user-list *,
+.form-group *,
+.add-level-form * {
+    background: transparent !important;
+    color: var(--foreground) !important;
+}
+
+/* Tables and Lists */
+table, tbody, thead, tr, td, th {
+    background: transparent !important;
+    color: var(--foreground) !important;
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Level and User Items */
+.level-item, .user-item {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: var(--foreground) !important;
+}
+
+.level-item:hover, .user-item:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(41, 119, 245, 0.3) !important;
+}
+
+/* Ensure no white backgrounds anywhere */
+.admin-container div,
+.admin-container span,
+.admin-container p,
+.admin-container ul,
+.admin-container li {
+    background: transparent !important;
+    color: inherit !important;
+}
+
+/* Special override for any stubborn white backgrounds */
+* {
+    background: transparent !important;
+    color: var(--foreground) !important;
+}
+
+/* Re-establish necessary backgrounds */
+body {
+    background: var(--background) !important;
+}
+
+.admin-section {
+    background: rgba(13, 14, 17, 0.9) !important;
+}
+
+.stat-card {
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.form-input, .form-textarea {
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+.btn-primary {
+    background: #2977f5 !important;
+    color: white !important;
+}
+
+.btn-danger {
+    background: #dc3545 !important;
+    color: white !important;
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: var(--foreground) !important;
 }
 
 /* Responsive Design */

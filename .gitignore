@@ -1,8 +1,18 @@
-*.db
-logins.db
-questions.db
+# Go binary
 intrasudo25
 
+# Database files
+*.db
+data/
+
+# Build output
+dist/
+
+# Environment files
 .env
 .env.*
+config.json
+
+# OS generated files
+.DS_Store
 

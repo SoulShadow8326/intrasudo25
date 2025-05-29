@@ -66,20 +66,18 @@
     align-items: center;
     justify-content: center;
     padding: 1rem 2rem;
-    background: var(--primary);
-    color: white;
+    background: #2977F5 !important;
+    color: white !important;
     text-decoration: none;
     border-radius: 0.5rem;
     font-size: 1rem;
     font-weight: 600;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(41, 119, 245, 0.3);
 }
 
 .landing-button:hover {
-    background: var(--primary-hover);
+    background: #2977F5 !important;
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(41, 119, 245, 0.4);
 }
 
 .landing-button:active {

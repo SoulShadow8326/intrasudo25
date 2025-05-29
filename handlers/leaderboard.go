@@ -8,12 +8,13 @@ import (
 )
 
 func LeaderboardPage(w http.ResponseWriter, r *http.Request) {
-	top, err := database.GetLeaderboardTop(0)
+	result, err := database.Get("leaderboard", map[string]interface{}{"limit": 0})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Error fetching leaderboard"))
 		return
 	}
+	top := result.([]database.Sucker)
 
 	type Entry struct {
 		Gmail string

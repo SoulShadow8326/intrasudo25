@@ -29,6 +29,7 @@
     flex: 1;
     display: flex;
     justify-content: flex-end;
+    gap: 2.5rem; /* Increased spacing between nav items */
 }
 
 .logo-link {
@@ -44,7 +45,7 @@
 }
 
 .logo-link:hover .nav-brand {
-    color: var(--primary);
+    color: #2977f5 !important; 
 }
 
 .logo-img {
@@ -60,18 +61,46 @@
 }
 
 .nav-link {
-    color: var(--foreground);
+    color: var(--foreground) !important;
     text-decoration: none;
     font-weight: 400;
     font-size: 1rem;
-    transition: color 0.2s ease;
+    transition: all 0.2s ease;
+    position: relative;
 }
 
 .nav-link:hover {
-    color: var(--primary);
+    color: #2977f5 !important; /* Force Exun blue on hover */
+    transform: translateY(-1px);
 }
 
 .nav-link.active {
-    color: var(--primary);
+    color: #2977f5 !important; /* Force Exun blue for active */
     font-weight: 600;
+}
+
+.navbar .nav-center .nav-link:hover,
+.navbar .nav-right .nav-link:hover {
+    color: #2977f5 !important;
+}
+
+.navbar .nav-center .nav-link.active,
+.navbar .nav-right .nav-link.active {
+    color: #2977f5 !important;
+    font-weight: 600;
+}
+
+.logo-link:hover .nav-brand {
+    color: #2977f5 !important; /* Force Exun blue on brand hover */
+}
+
+.nav-brand {
+    color: var(--foreground) !important;
+    font-weight: 500;
+    font-size: 1.125rem;
+    transition: all 0.2s ease;
+}
+
+.navbar .nav-left .logo-link:hover .nav-brand {
+    color: #2977f5 !important;
 }

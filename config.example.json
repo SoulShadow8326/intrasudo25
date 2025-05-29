@@ -1,0 +1,13 @@
+{
+  "email": {
+    "from": "e11383hursh@dpsrkp.net",
+    "password": "your-gmail-app-password-here",
+    "smtp_host": "smtp.gmail.com",
+    "smtp_port": "587"
+  },
+  "admin_emails": [
+    "",
+    "",
+    ""
+  ]
+}

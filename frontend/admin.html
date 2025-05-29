@@ -7,6 +7,7 @@
     <meta name="description" content="Admin Dashboard for Intra Sudo 2025">
     <title>Admin Dashboard - Intra Sudo 2025</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/admin.css">
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
 </head>
 <body>
@@ -37,7 +38,7 @@
                 </header>
 
                 <div class="admin-dashboard">
-                    <!-- Statistics Section -->
+
                     <section class="admin-section">
                         <div class="section-header">
                             <h2 class="section-title">System Overview</h2>
@@ -58,7 +59,7 @@
                         </div>
                     </section>
 
-                    <!-- Level Management Section -->
+
                     <section class="admin-section">
                         <div class="section-header">
                             <h2 class="section-title">Level Management</h2>
@@ -67,7 +68,7 @@
                             </button>
                         </div>
 
-                        <!-- Add Level Form -->
+
                         <div class="add-level-form" id="addLevelForm">
                             <div class="form-group">
                                 <label class="form-label" for="levelNumber">Level Number:</label>
@@ -85,17 +86,13 @@
                                 <label class="form-label" for="levelAnswer">Correct Answer:</label>
                                 <input type="text" id="levelAnswer" class="form-input" placeholder="Enter the correct answer">
                             </div>
-                            <div class="form-group">
-                                <label class="form-label" for="levelHint">Hint (Optional):</label>
-                                <input type="text" id="levelHint" class="form-input" placeholder="Enter a hint for this level">
-                            </div>
                             <div class="form-actions">
                                 <button class="btn-secondary" onclick="cancelAddLevel()">Cancel</button>
                                 <button class="btn-primary" onclick="createLevel()">Create Level</button>
                             </div>
                         </div>
 
-                        <!-- Levels List -->
+
                         <div id="levelsContainer">
                             <div class="loading-state" id="levelsLoading">Loading levels...</div>
                             <div class="level-list" id="levelsList" style="display: none;"></div>
@@ -106,7 +103,7 @@
                         </div>
                     </section>
 
-                    <!-- Question State Management Section -->
+
                     <section class="admin-section" id="questionStateSection" style="display: none;">
                         <div class="section-header">
                             <h2 class="section-title">Question State Management</h2>
@@ -124,7 +121,7 @@
                         </div>
                     </section>
 
-                    <!-- User Management Section -->
+
                     <section class="admin-section">
                         <div class="section-header">
                             <h2 class="section-title">User Management</h2>
@@ -206,8 +203,8 @@
                     renderLevels();
                     loading.style.display = 'none';
                     list.style.display = 'block';
-                    showQuestionStateSection();
-                    renderQuestionStates();
+                    // Hide question state section since backend doesn't support it
+                    hideQuestionStateSection();
                 }
             } catch (error) {
                 console.error('Failed to load levels:', error);
@@ -228,6 +225,11 @@
                         <div class="level-details">
                             <h4 class="level-title">${level.title}</h4>
                             <p class="level-description">${level.question.substring(0, 50)}${level.question.length > 50 ? '...' : ''}</p>
+                            <div class="level-meta">
+                                <span class="status-badge ${level.active ? 'status-active' : 'status-inactive'}">
+                                    ${level.active ? 'Active' : 'Inactive'}
+                                </span>
+                            </div>
                         </div>
                     </div>
                     <div class="level-actions">
@@ -260,29 +262,33 @@
             document.getElementById('levelTitle').value = '';
             document.getElementById('levelQuestion').value = '';
             document.getElementById('levelAnswer').value = '';
-            document.getElementById('levelHint').value = '';
         }
 
         async function createLevel() {
-            const levelData = {
-                number: parseInt(document.getElementById('levelNumber').value),
-                title: document.getElementById('levelTitle').value.trim(),
-                question: document.getElementById('levelQuestion').value.trim(),
-                answer: document.getElementById('levelAnswer').value.trim(),
-                hint: document.getElementById('levelHint').value.trim()
-            };
+            const levelNumber = document.getElementById('levelNumber').value;
+            const levelTitle = document.getElementById('levelTitle').value.trim();
+            const levelQuestion = document.getElementById('levelQuestion').value.trim();
+            const levelAnswer = document.getElementById('levelAnswer').value.trim();
 
             // Validation
-            if (!levelData.number || !levelData.title || !levelData.question || !levelData.answer) {
+            if (!levelNumber || !levelTitle || !levelQuestion || !levelAnswer) {
                 showNotification('Please fill in all required fields.', 'error');
                 return;
             }
 
+            // Create form data to match backend expectations
+            const formData = new FormData();
+            formData.append('level_number', levelNumber);
+            formData.append('markdown', levelQuestion); // Backend expects markdown field
+            formData.append('source_hint', levelQuestion); // Question IS the hint
+            formData.append('console_hint', levelQuestion); // Question IS the hint
+            formData.append('answer', levelAnswer);
+            formData.append('active', 'true');
+
             try {
                 const response = await fetch('/api/admin/levels', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(levelData)
+                    body: formData
                 });
 
                 if (response.ok) {
@@ -409,8 +415,87 @@
 
         // User Management
         async function loadUsers() {
-            // Implementation for loading users
-            // For now, just show placeholder
+            const container = document.getElementById('usersContainer');
+            
+            try {
+                container.innerHTML = '<div class="loading-state">Loading users...</div>';
+                
+                const response = await fetch('/api/admin/users');
+                if (response.ok) {
+                    users = await response.json();
+                    renderUsers();
+                } else {
+                    throw new Error('Failed to load users');
+                }
+            } catch (error) {
+                console.error('Failed to load users:', error);
+                container.innerHTML = '<div class="error-state">Failed to load users</div>';
+            }
+        }
+
+        function renderUsers() {
+            const container = document.getElementById('usersContainer');
+            
+            if (users.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">Users</div>
+                        <p>No users found.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = `
+                <div class="user-list">
+                    ${users.map(user => `
+                        <div class="user-item">
+                            <div class="user-info">
+                                <div class="user-details">
+                                    <h4 class="user-name">${user.Gmail}</h4>
+                                    <p class="user-email">${user.Gmail}</p>
+                                    <p class="user-level">Current Level: ${user.On}</p>
+                                    <p class="user-status ${user.Verified ? 'verified' : 'unverified'}">
+                                        ${user.Verified ? 'Verified' : 'Unverified'}
+                                    </p>
+                                    ${isAdminEmail(user.Gmail) ? '<p class="user-admin">Admin</p>' : ''}
+                                </div>
+                            </div>
+                            <div class="user-actions">
+                                ${!isAdminEmail(user.Gmail) ? `<button class="btn-danger" onclick="deleteUser('${user.Gmail}')">Delete</button>` : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function isAdminEmail(email) {
+            const adminEmails = ['admin@intrasudo.com', 'lead@intrasudo.com', 'organizer@intrasudo.com'];
+            return adminEmails.includes(email.toLowerCase());
+        }
+
+        async function deleteUser(email) {
+            if (!confirm(`Are you sure you want to delete user ${email}? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/users/${encodeURIComponent(email)}`, {
+                    method: 'DELETE'
+                });
+
+                if (response.ok) {
+                    showNotification('User deleted successfully!', 'success');
+                    loadUsers();
+                    loadStats();
+                } else {
+                    throw new Error('Failed to delete user');
+                }
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                showNotification('Failed to delete user. Please try again.', 'error');
+            }
         }
 
         async function refreshUsers() {
@@ -423,17 +508,28 @@
             const notification = document.createElement('div');
             notification.className = `notification ${type}`;
             notification.textContent = message;
+            
+            // Enhanced styling to match dark theme
+            const bgColor = type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#2977f5';
+            const borderColor = type === 'success' ? 'rgba(34, 197, 94, 0.3)' : type === 'error' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(41, 119, 245, 0.3)';
+            
             notification.style.cssText = `
                 position: fixed;
                 top: 80px;
                 right: 20px;
                 padding: 1rem 1.5rem;
-                border-radius: 0.5rem;
+                border-radius: 0.75rem;
                 color: white;
                 z-index: 1001;
-                background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#007bff'};
-                box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                background: ${bgColor};
+                border: 1px solid ${borderColor};
+                box-shadow: 0 8px 25px rgba(0,0,0,0.4);
                 animation: slideInRight 0.3s ease-out;
+                font-weight: 500;
+                font-size: 0.9rem;
+                min-width: 200px;
+                max-width: 300px;
+                backdrop-filter: blur(10px);
             `;
             
             document.body.appendChild(notification);
@@ -446,7 +542,7 @@
 
         async function handleLogout() {
             try {
-                await fetch('/api/auth/logout', { method: 'POST' });
+                await fetch('/enter/logout', { method: 'POST' });
                 window.location.href = 'auth.html';
             } catch (error) {
                 console.error('Logout failed:', error);
@@ -478,6 +574,274 @@
             to {
                 opacity: 0;
                 transform: translateX(100%);
+            }
+        }
+
+        /* Admin Dashboard Styles */
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .admin-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .admin-title {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .admin-subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .admin-section {
+            background: rgba(13, 14, 17, 0.8) !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin: 0;
+            color: #333;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            color: white;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .add-level-form {
+            display: none;
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            border: 2px dashed #ddd;
+        }
+
+        .add-level-form.show {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .btn-primary, .btn-secondary, .btn-danger {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .level-list, .user-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .level-item, .user-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+
+        .level-info, .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex: 1;
+        }
+
+        .level-number {
+            background: #007bff;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 50%;
+            font-weight: bold;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .level-title, .user-name {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+        }
+
+        .level-description {
+            margin: 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .level-meta {
+            margin-top: 0.5rem;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .level-actions, .user-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .loading-state, .empty-state, .error-state {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .user-details p {
+            margin: 0.25rem 0;
+            font-size: 0.9rem;
+        }
+
+        .user-status.verified {
+            color: #28a745;
+        }
+
+        .user-status.unverified {
+            color: #dc3545;
+        }
+
+        .user-admin {
+            color: #ffc107;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .level-item, .user-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .level-actions, .user-actions {
+                width: 100%;
+                justify-content: flex-end;
             }
         }
     </style>

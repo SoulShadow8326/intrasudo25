@@ -25,7 +25,7 @@
                     </div>
                     
                     <div class="landing-actions">
-                        <a href="auth.html" class="landing-button">Get Started</a>
+                        <a href="/home" class="landing-button">Get Started</a>
                     </div>
                 </div>
             </div>
@@ -33,22 +33,7 @@
     </div>
     
     <script>
-        async function checkExistingSession() {
-            try {
-                const response = await fetch('/api/user/session');
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.userId) {
-                        window.location.href = 'index.html';
-                        return;
-                    }
-                }
-            } catch (error) {
-                console.log('No existing session found');
-            }
-        }
-        
-        document.addEventListener('DOMContentLoaded', checkExistingSession);
+        console.log('Landing page loaded - accessible to all users');
     </script>
 </body>
 </html>

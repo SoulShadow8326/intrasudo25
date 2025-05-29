@@ -8,76 +8,139 @@ import (
 )
 
 func CreateLvlHandler(w http.ResponseWriter, r *http.Request) {
-	var newLvl database.Level
-	if err := json.NewDecoder(r.Body).Decode(&newLvl); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	_, err := database.CreateLevel(newLvl)
+	// Check admin access
+	user, err := GetUserFromSession(r)
+	if err != nil || user == nil || !isAdminEmail(user.Gmail) {
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
+	r.ParseForm()
+
+	levelNumber := r.FormValue("level_number")
+	markdown := r.FormValue("markdown")
+	sourceHint := r.FormValue("source_hint")
+	consoleHint := r.FormValue("console_hint")
+	answer := r.FormValue("answer")
+	active := r.FormValue("active") == "true"
+
+	if levelNumber == "" || markdown == "" || answer == "" {
+		http.Redirect(w, r, "/admin/levels/new?error=Required fields missing", http.StatusSeeOther)
+		return
+	}
+
+	levelNum, err := strconv.Atoi(levelNumber)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to create lvl"})
+		http.Redirect(w, r, "/admin/levels/new?error=Invalid level number", http.StatusSeeOther)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message": "Lvl created successfully",
-		"lvl":     newLvl,
-	})
+	newLvl := database.AdminLevel{
+		LevelNumber: levelNum,
+		Markdown:    markdown,
+		SourceHint:  sourceHint,
+		ConsoleHint: consoleHint,
+		Answer:      answer,
+		Active:      active,
+	}
+
+	err = database.Create("level", newLvl)
+	if err != nil {
+		http.Redirect(w, r, "/admin/levels/new?error=Failed to create level", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/admin?success=Level created successfully", http.StatusSeeOther)
 }
 
 func UpdateLvlHandler(w http.ResponseWriter, r *http.Request, id string) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Check admin access
+	user, err := GetUserFromSession(r)
+	if err != nil || user == nil || !isAdminEmail(user.Gmail) {
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid lvl ID"})
+		http.Redirect(w, r, "/admin?error=Invalid level ID", http.StatusSeeOther)
 		return
 	}
 
-	var updatedLvl database.Level
-	if err := json.NewDecoder(r.Body).Decode(&updatedLvl); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+	r.ParseForm()
+
+	levelNumber := r.FormValue("level_number")
+	markdown := r.FormValue("markdown")
+	sourceHint := r.FormValue("source_hint")
+	consoleHint := r.FormValue("console_hint")
+	answer := r.FormValue("answer")
+	active := r.FormValue("active") == "true"
+
+	if levelNumber == "" || markdown == "" || answer == "" {
+		http.Redirect(w, r, "/admin/levels/"+id+"/edit?error=Required fields missing", http.StatusSeeOther)
 		return
 	}
 
-	err = database.UpdateLevel(idInt, updatedLvl)
+	levelNum, err := strconv.Atoi(levelNumber)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to update lvl"})
+		http.Redirect(w, r, "/admin/levels/"+id+"/edit?error=Invalid level number", http.StatusSeeOther)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"message": "Lvl updated successfully",
-		"lvl":     updatedLvl,
-	})
+	updatedLvl := database.AdminLevel{
+		LevelNumber: levelNum,
+		Markdown:    markdown,
+		SourceHint:  sourceHint,
+		ConsoleHint: consoleHint,
+		Answer:      answer,
+		Active:      active,
+	}
+
+	err = database.Update("level", map[string]interface{}{"number": idInt}, updatedLvl)
+	if err != nil {
+		http.Redirect(w, r, "/admin/levels/"+id+"/edit?error=Failed to update level", http.StatusSeeOther)
+		return
+	}
+
+	http.Redirect(w, r, "/admin?success=Level updated successfully", http.StatusSeeOther)
 }
 
 func DeleteLvlHandler(w http.ResponseWriter, r *http.Request, id string) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Check admin access
+	user, err := GetUserFromSession(r)
+	if err != nil || user == nil || !isAdminEmail(user.Gmail) {
+		http.Error(w, "Access denied", http.StatusForbidden)
+		return
+	}
+
 	idInt, err := strconv.Atoi(id)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid lvl ID"})
+		http.Redirect(w, r, "/admin?error=Invalid level ID", http.StatusSeeOther)
 		return
 	}
 
-	err = database.DeleteLevel(idInt)
+	err = database.Delete("level", map[string]interface{}{"number": idInt})
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to delete lvl"})
+		http.Redirect(w, r, "/admin?error=Failed to delete level", http.StatusSeeOther)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"message": "Lvl deleted successfully",
-	})
+	http.Redirect(w, r, "/admin?success=Level deleted successfully", http.StatusSeeOther)
 }
 
 func AdminPanelHandler(w http.ResponseWriter, r *http.Request) {
@@ -94,16 +157,87 @@ func AdminPanelHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetAllLevelsHandler(w http.ResponseWriter, r *http.Request) {
-	levels, err := database.GetLevels()
+	result, err := database.Get("level", map[string]interface{}{"all": true})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to retrieve levels"})
 		return
 	}
+	levels := result.([]database.AdminLevel)
+
+	levelList := make([]map[string]interface{}, len(levels))
+	for i, level := range levels {
+		levelList[i] = map[string]interface{}{
+			"id":       level.LevelNumber,
+			"number":   level.LevelNumber,
+			"title":    "Level " + strconv.Itoa(level.LevelNumber),
+			"question": level.Markdown,
+			"answer":   level.Answer,
+			"hint":     level.SourceHint,
+			"active":   level.Active,
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(levelList)
+}
+
+func GetStatsHandler(w http.ResponseWriter, r *http.Request) {
+	result, err := database.Get("level", map[string]interface{}{"all": true})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to retrieve stats"})
+		return
+	}
+	levels := result.([]database.AdminLevel)
+
+	result, err = database.Get("leaderboard", map[string]interface{}{"limit": 0})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to retrieve stats"})
+		return
+	}
+	leaderboard := result.([]database.Sucker)
+
+	activeUsers := 0
+	for _, user := range leaderboard {
+		if user.Score > 0 {
+			activeUsers++
+		}
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"levels": levels,
-		"count":  len(levels),
+		"totalUsers":  len(leaderboard),
+		"totalLevels": len(levels),
+		"activeUsers": activeUsers,
 	})
+}
+
+func GetAllUsersHandler(w http.ResponseWriter, r *http.Request) {
+	result, err := database.Get("login", map[string]interface{}{"all": true})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to retrieve users"})
+		return
+	}
+	users := result.([]database.Login)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"users": users,
+		"count": len(users),
+	})
+}
+
+func DeleteUserHandler(w http.ResponseWriter, r *http.Request, email string) {
+	err := database.Delete("login", map[string]interface{}{"gmail": email})
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to delete user"})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "User deleted successfully"})
 }
