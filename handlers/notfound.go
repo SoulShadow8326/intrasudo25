@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 )
 
@@ -33,7 +33,7 @@ func SessionExpiredHandler(w http.ResponseWriter, r *http.Request) {
 
 func serveErrorPage(w http.ResponseWriter, r *http.Request, statusCode int, errorType string, customMessage string) {
 	// Read the 404.html template
-	content, err := ioutil.ReadFile(filepath.Join("frontend", "404.html"))
+	content, err := os.ReadFile(filepath.Join("frontend", "404.html"))
 	if err != nil {
 		// Fallback to plain text if template is missing
 		w.WriteHeader(statusCode)

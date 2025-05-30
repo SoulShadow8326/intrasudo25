@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"intrasudo25/config"
 	"intrasudo25/database"
 	"intrasudo25/handlers"
 	"net/http"
@@ -46,12 +47,12 @@ func RegisterRoutes() *CustomHandler {
 	mux.HandleFunc("/hints", handlers.RequireAuth(handlers.HintsHandler))
 	mux.HandleFunc("/chat", handlers.RequireAuth(handlers.ChatPageHandler))
 
-	// Use handlers.AdminEmails for all admin routes
-	mux.HandleFunc("/admin", handlers.RequireAdmin(handlers.AdminEmails)(handlers.AdminDashboardHandler))
-	mux.HandleFunc("/admin/levels/new", handlers.RequireAdmin(handlers.AdminEmails)(handlers.NewLevelFormHandler))
-	mux.HandleFunc("/submit", handlers.RequireAuth(handlers.SubmitAnswerHandler))
-	mux.HandleFunc("/admin/levels/create", handlers.RequireAdmin(handlers.AdminEmails)(handlers.CreateLvlHandler))
-	mux.HandleFunc("/admin/levels/", handlers.RequireAdmin(handlers.AdminEmails)(func(w http.ResponseWriter, r *http.Request) {
+	// Use config.GetAdminEmails() for all admin routes
+	mux.HandleFunc("/admin", handlers.RequireAdmin(config.GetAdminEmails())(handlers.AdminDashboardHandler))
+	mux.HandleFunc("/admin/levels/new", handlers.RequireAdmin(config.GetAdminEmails())(handlers.NewLevelFormHandler))
+	mux.HandleFunc("/submit", handlers.RequireAuth(handlers.SubmitAnswerFormHandler))
+	mux.HandleFunc("/admin/levels/create", handlers.RequireAdmin(config.GetAdminEmails())(handlers.CreateLvlHandler))
+	mux.HandleFunc("/admin/levels/", handlers.RequireAdmin(config.GetAdminEmails())(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		if strings.HasSuffix(path, "/edit") {
 			handlers.EditLevelFormHandler(w, r)
@@ -66,7 +67,7 @@ func RegisterRoutes() *CustomHandler {
 		}
 	}))
 
-	mux.HandleFunc("/admin/users/", handlers.RequireAdmin(handlers.AdminEmails)(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/admin/users/", handlers.RequireAdmin(config.GetAdminEmails())(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		if strings.HasSuffix(path, "/delete") {
 			userEmail := strings.TrimSuffix(strings.TrimPrefix(path, "/admin/users/"), "/delete")
@@ -103,13 +104,12 @@ func RegisterRoutes() *CustomHandler {
 	mux.HandleFunc("/enter", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/enter/New", http.StatusPermanentRedirect)
 	})
-	mux.HandleFunc("/enter/verify", handlers.Verify)
-	mux.HandleFunc("/enter/login", handlers.LoginF)
-	mux.HandleFunc("/api/auth/logout", handlers.Logout)
+	mux.HandleFunc("/enter/verify", handlers.CORS(handlers.Verify))
+	mux.HandleFunc("/enter/login", handlers.CORS(handlers.LoginF))
+	mux.HandleFunc("/api/auth/logout", handlers.CORS(handlers.Logout))
 
-	// Email-only authentication (simplified)
-	mux.HandleFunc("/enter/email", handlers.EmailOnly)
-	mux.HandleFunc("/enter/email-verify", handlers.EmailVerify)
+	mux.HandleFunc("/enter/email", handlers.CORS(handlers.EmailOnly))
+	mux.HandleFunc("/enter/email-verify", handlers.CORS(handlers.EmailVerify))
 
 	// Legacy API endpoints (for backward compatibility)
 	mux.HandleFunc("/api/question", handlers.GetQuestionHandler)
@@ -118,11 +118,15 @@ func RegisterRoutes() *CustomHandler {
 
 	// User session API
 	mux.HandleFunc("/api/user/session", handlers.UserSessionHandler)
+	mux.HandleFunc("/api/user/current-level", handlers.RequireAuth(handlers.GetCurrentLevelHandler))
+
+	// Game API endpoints
+	mux.HandleFunc("/api/submit-answer", handlers.RequireAuth(handlers.SubmitAnswerHandler))
+	mux.HandleFunc("/api/notifications/unread-count", handlers.RequireAuth(handlers.GetNotificationCountHandler))
 
 	// Admin API endpoints
 	mux.HandleFunc("/api/admin/", func(w http.ResponseWriter, r *http.Request) {
-		adminEmails := []string{"admin@intrasudo.com", "lead@intrasudo.com", "organizer@intrasudo.com"}
-		if !handlers.AdminAuth(w, r, adminEmails) {
+		if !handlers.AdminAuth(w, r, config.GetAdminEmails()) {
 			return
 		}
 
@@ -145,12 +149,25 @@ func RegisterRoutes() *CustomHandler {
 				} else if r.Method == "POST" {
 					handlers.CreateLvlHandler(w, r)
 				}
+			} else if levelPath == "/bulk-state" {
+				if r.Method == "PATCH" {
+					handlers.ToggleAllLevelsStateHandler(w, r)
+				}
 			} else {
-				id := strings.TrimPrefix(levelPath, "/")
-				if r.Method == "PUT" {
-					handlers.UpdateLvlHandler(w, r, id)
-				} else if r.Method == "DELETE" {
-					handlers.DeleteLvlHandler(w, r, id)
+				parts := strings.Split(strings.TrimPrefix(levelPath, "/"), "/")
+				if len(parts) >= 1 {
+					id := parts[0]
+					if len(parts) >= 2 && parts[1] == "state" {
+						if r.Method == "PATCH" {
+							handlers.ToggleLevelStateHandler(w, r, id)
+						}
+					} else {
+						if r.Method == "POST" {
+							handlers.UpdateLvlHandler(w, r, id)
+						} else if r.Method == "DELETE" {
+							handlers.DeleteLvlHandler(w, r, id)
+						}
+					}
 				}
 			}
 		}
@@ -170,10 +187,14 @@ func RegisterRoutes() *CustomHandler {
 		}
 	})
 
+	// API endpoints
+	mux.HandleFunc("/api/secret", handlers.CORS(handlers.GetSecretHandler))
+
 	// Static file serving
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./frontend/"))))
 	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./frontend/assets/"))))
 	mux.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("./frontend/css/"))))
+	mux.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("./frontend/js/"))))
 	mux.HandleFunc("/styles.css", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./frontend/styles.css")
 	})

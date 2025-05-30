@@ -15,7 +15,8 @@
 .nav-left {
     flex: 1;
     display: flex;
-    justify-content: flex-start;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .nav-center {
@@ -103,4 +104,142 @@
 
 .navbar .nav-left .logo-link:hover .nav-brand {
     color: #2977f5 !important;
+}
+
+/* Mobile Navigation */
+.mobile-menu-toggle {
+    display: none; /* Hide by default (on desktop) */
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--foreground);
+    transition: all 0.2s ease;
+    width: 40px;
+    height: 40px;
+    position: absolute;
+    right: 20px;
+    top: 10px;
+}
+
+.mobile-menu-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+    opacity: 0.8;
+}
+
+.mobile-menu-toggle:hover .mobile-menu-icon {
+    transform: scale(1.1);
+    opacity: 1;
+}
+
+.mobile-menu-toggle.active .mobile-menu-icon {
+    transform: rotate(180deg);
+    opacity: 1;
+}
+
+.mobile-menu-toggle:hover {
+    background: rgba(41, 119, 245, 0.2);
+    transform: translateY(-1px);
+}
+
+/* We replaced span elements with the logo image */
+
+.mobile-nav-menu {
+    display: none;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    width: 100%;
+    background: rgba(13, 14, 17, 0.95);
+    border-bottom: 1px solid rgba(41, 119, 245, 0.2);
+    padding: 1rem 0;
+    z-index: 999;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.mobile-nav-menu.active {
+    display: block;
+}
+
+.mobile-nav-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0 2%;
+}
+
+.mobile-nav-links .nav-link {
+    padding: 1rem 1.25rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s ease;
+    display: block;
+    text-align: left;
+    font-size: 1.1rem;
+    border-left: 3px solid transparent;
+    margin: 0.25rem 0.75rem;
+}
+
+.mobile-nav-links .nav-link:hover {
+    background: rgba(41, 119, 245, 0.1);
+    transform: none;
+    border-left: 3px solid rgba(41, 119, 245, 0.5);
+}
+
+.mobile-nav-links .nav-link.active {
+    background: rgba(41, 119, 245, 0.15);
+    border-left: 3px solid #2977f5;
+    font-weight: 600;
+}
+
+/* Mobile Responsive */
+@media screen and (max-width: 768px) {
+    .nav-center,
+    .nav-right {
+        display: none;
+    }
+    
+    .nav-left {
+        flex: 1;
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+    }
+    
+    .mobile-menu-toggle {
+        display: flex;
+    }
+    
+    /* Prevent body scroll when mobile menu is open */
+    body.mobile-menu-open {
+        overflow: hidden;
+    }
+    
+    /* Improve mobile navigation padding */
+    .navbar {
+        padding: 0 4%;
+    }
+    
+    .mobile-nav-menu {
+        backdrop-filter: blur(10px);
+    }
+    
+    .mobile-nav-links .nav-link {
+        font-size: 1.1rem;
+        padding: 1rem 1.5rem;
+    }
+}
+
+/* Ensure it's hidden on desktop/larger screens */
+@media screen and (min-width: 769px) {
+    .mobile-menu-toggle,
+    .mobile-nav-menu {
+        display: none !important;
+    }
 }

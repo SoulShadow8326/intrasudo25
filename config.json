@@ -1,0 +1,11 @@
+{
+  "note": "Configuration has been moved to environment variables (.env file)",
+  "see": "config.example.json for structure reference",
+  "email": {
+    "from": "See EMAIL_FROM in .env",
+    "password": "See EMAIL_PASSWORD in .env",
+    "smtp_host": "See EMAIL_SMTP_HOST in .env",
+    "smtp_port": "See EMAIL_SMTP_PORT in .env"
+  },
+  "admin_emails": ["See ADMIN_EMAILS in .env"]
+}

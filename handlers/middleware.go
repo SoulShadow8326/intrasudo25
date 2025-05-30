@@ -3,13 +3,19 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"intrasudo25/config"
 	"intrasudo25/database"
 	"net/http"
 	"strings"
 )
 
-func checkIfAdmin(userEmail string, _ []string) bool {
-	for _, adminEmail := range AdminEmails {
+func checkIfAdmin(userEmail string, adminEmails []string) bool {
+	emailsToCheck := adminEmails
+	if emailsToCheck == nil {
+		emailsToCheck = config.GetAdminEmails()
+	}
+
+	for _, adminEmail := range emailsToCheck {
 		if strings.EqualFold(userEmail, adminEmail) {
 			return true
 		}
@@ -42,7 +48,7 @@ func Authorize(r *http.Request) (bool, *database.Login) {
 	return true, acc
 }
 
-func AdminAuth(w http.ResponseWriter, r *http.Request, _ []string) bool {
+func AdminAuth(w http.ResponseWriter, r *http.Request, adminEmails []string) bool {
 	isAuth, user := Authorize(r)
 
 	if !isAuth || user == nil {
@@ -55,7 +61,7 @@ func AdminAuth(w http.ResponseWriter, r *http.Request, _ []string) bool {
 		UnauthorizedHandler(w, r)
 		return false
 	}
-	allowed := checkIfAdmin(user.Gmail, nil)
+	allowed := checkIfAdmin(user.Gmail, adminEmails)
 	if !allowed {
 		if strings.HasPrefix(r.URL.Path, "/api/") {
 			w.Header().Set("Content-Type", "application/json")
@@ -141,7 +147,7 @@ func UserSessionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	isAdmin := false
-	for _, adminEmail := range AdminEmails {
+	for _, adminEmail := range config.GetAdminEmails() {
 		if strings.EqualFold(user.Gmail, adminEmail) {
 			isAdmin = true
 			break
@@ -149,7 +155,25 @@ func UserSessionHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"userId":  user.Gmail,
-		"isAdmin": isAdmin,
+		"userId":    user.Gmail,
+		"isAdmin":   isAdmin,
+		"csrfToken": user.CSRFtok,
 	})
+}
+
+func CORS(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-secret, X-CSRF-Token, Accept")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+		w.Header().Set("Access-Control-Max-Age", "86400")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	}
 }

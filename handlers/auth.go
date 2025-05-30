@@ -8,12 +8,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/smtp"
-	"os"
 	"sync"
 	"time"
 
-	//"strings"
-
+	"intrasudo25/config"
 	"intrasudo25/database"
 
 	"golang.org/x/crypto/bcrypt"
@@ -30,32 +28,6 @@ var codeCooldown = &CodeCooldown{
 
 type Login = database.Login
 type Sucker = database.Sucker
-
-type EmailConfig struct {
-	Email struct {
-		From     string `json:"from"`
-		Password string `json:"password"`
-		SMTPHost string `json:"smtp_host"`
-		SMTPPort string `json:"smtp_port"`
-	} `json:"email"`
-}
-
-func loadEmailConfig() (*EmailConfig, error) {
-	file, err := os.Open("config.json")
-	if err != nil {
-		return nil, fmt.Errorf("could not open config.json: %v", err)
-	}
-	defer file.Close()
-
-	var config EmailConfig
-	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&config)
-	if err != nil {
-		return nil, fmt.Errorf("could not decode config.json: %v", err)
-	}
-
-	return &config, nil
-}
 
 func New(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
@@ -117,26 +89,19 @@ func hash(pass string) (string, error) {
 }
 
 func sendVerificationEmail(email string, codeToSend string) error {
-	// if !strings.HasSuffix(email, "@dpsrkp.net") {
-	//     return fmt.Errorf("email must end with @dpsrkp.net")
-	// }
+	emailConfig := config.GetEmailConfig()
 
-	config, err := loadEmailConfig()
-	if err != nil {
-		return fmt.Errorf("failed to load email config: %v", err)
-	}
-
-	from := config.Email.From
-	pass := config.Email.Password
-	smtpHost := config.Email.SMTPHost + ":" + config.Email.SMTPPort
+	from := emailConfig.From
+	pass := emailConfig.Password
+	smtpHost := emailConfig.SMTPHost + ":" + emailConfig.SMTPPort
 
 	msg := []byte("To: " + email + "\r\n" +
 		"Subject: Exun Elite - Verification Code\r\n" +
 		"\r\n" +
 		"Your verification code (last 4 digits) is: " + codeToSend + "\r\n")
 
-	err = smtp.SendMail(smtpHost,
-		smtp.PlainAuth("", from, pass, config.Email.SMTPHost),
+	err := smtp.SendMail(smtpHost,
+		smtp.PlainAuth("", from, pass, emailConfig.SMTPHost),
 		from, []string{email}, msg)
 
 	if err != nil {
@@ -148,14 +113,16 @@ func sendVerificationEmail(email string, codeToSend string) error {
 }
 
 func sendLoginCodeEmail(email string, name string, loginCode string) error {
-	config, err := loadEmailConfig()
-	if err != nil {
-		return fmt.Errorf("failed to load email config: %v", err)
+	userName := name
+	if userName == "" {
+		userName = "user"
 	}
 
-	from := config.Email.From
-	pass := config.Email.Password
-	smtpHost := config.Email.SMTPHost + ":" + config.Email.SMTPPort
+	emailConfig := config.GetEmailConfig()
+
+	from := emailConfig.From
+	pass := emailConfig.Password
+	smtpHost := emailConfig.SMTPHost + ":" + emailConfig.SMTPPort
 
 	greeting := "Hello,"
 	if name != "" {
@@ -174,18 +141,14 @@ func sendLoginCodeEmail(email string, name string, loginCode string) error {
 		"Good luck with the challenge!\r\n" +
 		"- Exun Team\r\n")
 
-	err = smtp.SendMail(smtpHost,
-		smtp.PlainAuth("", from, pass, config.Email.SMTPHost),
+	err := smtp.SendMail(smtpHost,
+		smtp.PlainAuth("", from, pass, emailConfig.SMTPHost),
 		from, []string{email}, msg)
 
 	if err != nil {
 		return err
 	}
 
-	userName := name
-	if userName == "" {
-		userName = "user"
-	}
 	fmt.Println("Sent login code:", loginCode, "to:", email, "for user:", userName)
 	return nil
 }
@@ -321,17 +284,15 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func EmailOnly(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
 	if r.Method != "POST" {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(map[string]string{"error": "please use POST"})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Method not allowed"})
 		return
 	}
 
-	err := r.ParseMultipartForm(10 << 20) // 10 MB max
-	if err != nil {
-		// Try regular form parsing as fallback
-		r.ParseForm()
-	}
+	r.ParseForm()
 	gmail := r.FormValue("gmail")
 
 	if gmail == "" {
@@ -354,7 +315,7 @@ func EmailOnly(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = database.Get("login", map[string]interface{}{"gmail": gmail})
+	_, err := database.Get("login", map[string]interface{}{"gmail": gmail})
 	if err != nil {
 		salt := generateSalt(16)
 		codeSource := gmail + salt
@@ -363,7 +324,6 @@ func EmailOnly(w http.ResponseWriter, r *http.Request) {
 		fullHash := fmt.Sprintf("%x", h.Sum(nil))
 		permanentLoginCode := fullHash[len(fullHash)-4:]
 
-		// Create a default password hash (user will login via email verification only)
 		hashedPass, err := hash("email_verified_user")
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -378,7 +338,6 @@ func EmailOnly(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Update cooldown tracker
 		codeCooldown.mu.Lock()
 		codeCooldown.lastSent[gmail] = time.Now()
 		codeCooldown.mu.Unlock()
@@ -392,7 +351,7 @@ func EmailOnly(w http.ResponseWriter, r *http.Request) {
 			Verified:           false,
 			VerificationNumber: fullHash,
 			LoginCode:          permanentLoginCode,
-			On:                 1, // Start at level 1
+			On:                 1,
 		})
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -403,7 +362,6 @@ func EmailOnly(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{"message": "Account created! Check your email for your permanent 4-digit login code."})
 	} else {
-		// User exists - don't send another email, just tell them to use existing code
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{
 			"message":       "Account found! Use your existing 4-digit login code.",

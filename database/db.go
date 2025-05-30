@@ -59,11 +59,177 @@ type ChatParticipant struct {
 	IsAdmin  bool   `json:"isAdmin"`
 }
 
+// AdminStats represents admin dashboard statistics
+type AdminStats struct {
+	TotalUsers  int `json:"totalUsers"`
+	TotalLevels int `json:"totalLevels"`
+	ActiveUsers int `json:"activeUsers"`
+}
+
+// GetAdminStats returns comprehensive admin statistics
+func GetAdminStats() (*AdminStats, error) {
+	stats := &AdminStats{}
+
+	// Get total users
+	err := db.QueryRow("SELECT COUNT(*) FROM logins").Scan(&stats.TotalUsers)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get total levels
+	err = db.QueryRow("SELECT COUNT(*) FROM levels").Scan(&stats.TotalLevels)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get active users (verified users)
+	err = db.QueryRow("SELECT COUNT(*) FROM logins WHERE verified = 1").Scan(&stats.ActiveUsers)
+	if err != nil {
+		return nil, err
+	}
+
+	return stats, nil
+}
+
+// AdminLevelResponse represents a level with admin fields for frontend
+type AdminLevelResponse struct {
+	ID       int    `json:"id"`
+	Number   int    `json:"number"`
+	Title    string `json:"title"`
+	Question string `json:"question"`
+	Answer   string `json:"answer"`
+	Active   bool   `json:"active"`
+	Enabled  bool   `json:"enabled"`
+}
+
+// GetAllLevelsForAdmin returns all levels with admin-specific data
+func GetAllLevelsForAdmin() ([]AdminLevelResponse, error) {
+	rows, err := db.Query("SELECT level_number, markdown, src_hint, console_hint, answer, active FROM levels ORDER BY level_number")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var levels []AdminLevelResponse
+	for rows.Next() {
+		var level AdminLevelResponse
+		var srcHint, consoleHint string
+
+		err := rows.Scan(&level.Number, &level.Question, &srcHint, &consoleHint, &level.Answer, &level.Active)
+		if err != nil {
+			continue
+		}
+
+		level.ID = level.Number // Use number as ID for frontend compatibility
+		level.Title = fmt.Sprintf("Level %d", level.Number)
+		level.Enabled = level.Active // Set enabled same as active for frontend
+
+		levels = append(levels, level)
+	}
+
+	return levels, nil
+}
+
+// AdminUserResponse represents a user with admin-specific data
+type AdminUserResponse struct {
+	Gmail    string `json:"Gmail"`
+	Name     string `json:"Name"`
+	On       uint   `json:"On"`
+	Verified bool   `json:"Verified"`
+	IsAdmin  bool   `json:"IsAdmin"`
+}
+
+// GetAllUsersForAdmin returns all users with admin-specific data
+func GetAllUsersForAdmin() ([]AdminUserResponse, error) {
+	rows, err := db.Query("SELECT gmail, name, \"on\", verified FROM logins ORDER BY gmail")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []AdminUserResponse
+	adminEmails := []string{"siddhantd@utexas.edu", "admin@intrasudo.com"} // Add your admin emails here
+
+	for rows.Next() {
+		var user AdminUserResponse
+		var name sql.NullString
+
+		err := rows.Scan(&user.Gmail, &name, &user.On, &user.Verified)
+		if err != nil {
+			continue
+		}
+
+		if name.Valid {
+			user.Name = name.String
+		} else {
+			user.Name = user.Gmail
+		}
+
+		// Check if user is admin
+		for _, adminEmail := range adminEmails {
+			if user.Gmail == adminEmail {
+				user.IsAdmin = true
+				break
+			}
+		}
+
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
+// CreateLevelSimple creates a level with minimal validation (backend handles logic)
+func CreateLevelSimple(levelNum int, question, answer string, active bool) error {
+	level := AdminLevel{
+		LevelNumber: levelNum,
+		Markdown:    question,
+		SourceHint:  question,
+		ConsoleHint: question,
+		Answer:      answer,
+		Active:      active,
+	}
+	return Create("level", level)
+}
+
+// UpdateLevelSimple updates a level with minimal validation (backend handles logic)
+func UpdateLevelSimple(levelNum int, question, answer string, active bool) error {
+	level := AdminLevel{
+		LevelNumber: levelNum,
+		Markdown:    question,
+		SourceHint:  question,
+		ConsoleHint: question,
+		Answer:      answer,
+		Active:      active,
+	}
+	return Update("level", map[string]interface{}{"number": levelNum}, level)
+}
+
+// DeleteLevelSimple deletes a level by number
+func DeleteLevelSimple(levelNum int) error {
+	return Delete("level", map[string]interface{}{"number": levelNum})
+}
+
+// DeleteUserSimple deletes a user by email
+func DeleteUserSimple(email string) error {
+	return Delete("login", map[string]interface{}{"gmail": email})
+}
+
+// ToggleLevelState toggles the active state of a specific level
+func ToggleLevelState(levelNum int, enabled bool) error {
+	return Update("level_state", map[string]interface{}{"number": levelNum}, enabled)
+}
+
+// ToggleAllLevelsState toggles the active state of all levels
+func ToggleAllLevelsState(enabled bool) error {
+	return Update("bulk_level_state", map[string]interface{}{}, enabled)
+}
+
 var db *sql.DB
 
 func InitDB() {
 	var err error
-	db, err = sql.Open("sqlite3", "./data/logins.db")
+	db, err = sql.Open("sqlite3", "./data/data.db")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -108,6 +274,14 @@ func createTables() {
 			last_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
 			is_admin BOOLEAN DEFAULT FALSE
 		);`,
+		`CREATE TABLE IF NOT EXISTS notifications (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_email TEXT NOT NULL,
+			message TEXT NOT NULL,
+			type TEXT DEFAULT 'info',
+			read BOOLEAN DEFAULT FALSE,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		);`,
 	}
 
 	for _, table := range tables {
@@ -148,7 +322,7 @@ func Get(entity string, params map[string]interface{}) (interface{}, error) {
 			return &l, nil
 		}
 		if params["all"] == true {
-			rows, err := db.Query("SELECT gmail, hashed, seshTok, CSRFtok, verified, verificationNumber, \"on\" FROM logins")
+			rows, err := db.Query("SELECT gmail, hashed, seshTok, CSRFtok, name, verified, verificationNumber, \"on\" FROM logins")
 			if err != nil {
 				return nil, err
 			}
@@ -156,7 +330,7 @@ func Get(entity string, params map[string]interface{}) (interface{}, error) {
 			var logins []Login
 			for rows.Next() {
 				var l Login
-				if err := rows.Scan(&l.Gmail, &l.Hashed, &l.SeshTok, &l.CSRFtok, &l.Verified, &l.VerificationNumber, &l.On); err != nil {
+				if err := rows.Scan(&l.Gmail, &l.Hashed, &l.SeshTok, &l.CSRFtok, &l.Name, &l.Verified, &l.VerificationNumber, &l.On); err != nil {
 					return nil, err
 				}
 				logins = append(logins, l)
@@ -291,6 +465,46 @@ func Get(entity string, params map[string]interface{}) (interface{}, error) {
 				return strings.TrimSpace(strings.ToLower(answer)) == strings.TrimSpace(strings.ToLower(correctAnswer)), nil
 			}
 		}
+	case "notification_count":
+		if gmail, ok := params["gmail"].(string); ok {
+			var count int
+			err := db.QueryRow("SELECT COUNT(*) FROM notifications WHERE user_email = ? AND read = 0", gmail).Scan(&count)
+			if err != nil {
+				return 0, err
+			}
+			return count, nil
+		}
+	case "level_hints":
+		if number, ok := params["number"].(int); ok {
+			var l Level
+			err := db.QueryRow("SELECT level_number, src_hint, console_hint FROM levels WHERE level_number = ? AND active = 1", number).
+				Scan(&l.LevelNumber, &l.SourceHint, &l.ConsoleHint)
+			if err != nil {
+				return nil, err
+			}
+			return &l, nil
+		}
+	case "user_current_level_data":
+		if gmail, ok := params["gmail"].(string); ok {
+			var userLevel int
+			err := db.QueryRow("SELECT \"on\" FROM logins WHERE gmail = ?", gmail).Scan(&userLevel)
+			if err != nil {
+				return nil, err
+			}
+			var l Level
+			err = db.QueryRow("SELECT level_number, markdown, src_hint, console_hint FROM levels WHERE level_number = ? AND active = 1", userLevel).
+				Scan(&l.LevelNumber, &l.Markdown, &l.SourceHint, &l.ConsoleHint)
+			if err != nil {
+				return nil, err
+			}
+			return map[string]interface{}{
+				"id":          l.LevelNumber,
+				"number":      l.LevelNumber,
+				"description": l.Markdown,
+				"sourceHint":  l.SourceHint,
+				"consoleHint": l.ConsoleHint,
+			}, nil
+		}
 	}
 	return nil, fmt.Errorf("invalid get request")
 }
@@ -322,6 +536,14 @@ func Create(entity string, data interface{}) error {
 			_, err := db.Exec("INSERT INTO chat_messages (user_email, message, is_admin) VALUES (?, ?, ?)", email, message, isAdmin)
 			return err
 		}
+	case "notification":
+		if params, ok := data.(map[string]interface{}); ok {
+			userEmail := params["userEmail"].(string)
+			message := params["message"].(string)
+			notifType := params["type"].(string)
+			_, err := db.Exec("INSERT INTO notifications (user_email, message, type, read) VALUES (?, ?, ?, 0)", userEmail, message, notifType)
+			return err
+		}
 	}
 	return fmt.Errorf("invalid create request")
 }
@@ -350,8 +572,8 @@ func Update(entity string, params map[string]interface{}, data interface{}) erro
 	case "level":
 		if number, ok := params["number"].(int); ok {
 			if level, ok := data.(AdminLevel); ok {
-				_, err := db.Exec(`UPDATE levels SET markdown = ?, src_hint = ?, console_hint = ?, answer = ?, active = ? WHERE level_number = ?`,
-					level.Markdown, level.SourceHint, level.ConsoleHint, level.Answer, level.Active, number)
+				_, err := db.Exec(`UPDATE levels SET level_number = ?, markdown = ?, src_hint = ?, console_hint = ?, answer = ?, active = ? WHERE level_number = ?`,
+					level.LevelNumber, level.Markdown, level.SourceHint, level.ConsoleHint, level.Answer, level.Active, number)
 				return err
 			}
 		}
@@ -372,6 +594,27 @@ func Update(entity string, params map[string]interface{}, data interface{}) erro
 				email, isOnline, isAdmin)
 			return err
 		}
+	case "level_state":
+		if number, ok := params["number"].(int); ok {
+			if state, ok := data.(bool); ok {
+				_, err := db.Exec("UPDATE levels SET active = ? WHERE level_number = ?", state, number)
+				return err
+			}
+		}
+	case "bulk_level_state":
+		if state, ok := data.(bool); ok {
+			_, err := db.Exec("UPDATE levels SET active = ?", state)
+			return err
+		}
+	case "notification_read":
+		if id, ok := params["id"].(int); ok {
+			_, err := db.Exec("UPDATE notifications SET read = 1 WHERE id = ?", id)
+			return err
+		}
+		if gmail, ok := params["gmail"].(string); ok {
+			_, err := db.Exec("UPDATE notifications SET read = 1 WHERE user_email = ?", gmail)
+			return err
+		}
 	}
 	return fmt.Errorf("invalid update request")
 }
@@ -390,4 +633,104 @@ func Delete(entity string, params map[string]interface{}) error {
 		}
 	}
 	return fmt.Errorf("invalid delete request")
+}
+
+// GameLevel represents a level for the game interface
+type GameLevel struct {
+	ID          int    `json:"id"`
+	Number      int    `json:"number"`
+	Description string `json:"description"`
+	MediaURL    string `json:"mediaUrl,omitempty"`
+	MediaType   string `json:"mediaType,omitempty"`
+}
+
+// GetCurrentLevelForUser returns the current level data for a user
+func GetCurrentLevelForUser(userEmail string) (*GameLevel, error) {
+	var user Login
+	err := db.QueryRow("SELECT \"on\" FROM logins WHERE gmail = ?", userEmail).Scan(&user.On)
+	if err != nil {
+		return nil, err
+	}
+
+	var level AdminLevel
+	err = db.QueryRow("SELECT level_number, markdown FROM levels WHERE level_number = ? AND active = 1", user.On).Scan(&level.LevelNumber, &level.Markdown)
+	if err != nil {
+		return nil, err
+	}
+
+	gameLevel := &GameLevel{
+		ID:          level.LevelNumber,
+		Number:      level.LevelNumber,
+		Description: level.Markdown,
+	}
+
+	return gameLevel, nil
+}
+
+// SubmitAnswerResult represents the result of an answer submission
+type SubmitAnswerResult struct {
+	Correct bool   `json:"correct"`
+	Message string `json:"message"`
+}
+
+// CheckAnswer validates a user's answer and updates their progress
+func CheckAnswer(userEmail string, levelID int, answer string) (*SubmitAnswerResult, error) {
+	// Get current user level
+	var currentLevel uint
+	err := db.QueryRow("SELECT \"on\" FROM logins WHERE gmail = ?", userEmail).Scan(&currentLevel)
+	if err != nil {
+		return nil, err
+	}
+
+	// Verify user is on the correct level
+	if int(currentLevel) != levelID {
+		return &SubmitAnswerResult{
+			Correct: false,
+			Message: "You're not on this level",
+		}, nil
+	}
+
+	// Get correct answer
+	var correctAnswer string
+	err = db.QueryRow("SELECT answer FROM levels WHERE level_number = ? AND active = 1", levelID).Scan(&correctAnswer)
+	if err != nil {
+		return &SubmitAnswerResult{
+			Correct: false,
+			Message: "Level not found",
+		}, nil
+	}
+
+	// Check if answer is correct (case-insensitive)
+	if strings.EqualFold(strings.TrimSpace(answer), strings.TrimSpace(correctAnswer)) {
+		// Update user progress
+		_, err = db.Exec("UPDATE logins SET \"on\" = \"on\" + 1 WHERE gmail = ?", userEmail)
+		if err != nil {
+			return nil, err
+		}
+
+		// Create notification for level completion
+		notification := map[string]interface{}{
+			"user_email": userEmail,
+			"message":    fmt.Sprintf("Congratulations! You completed Level %d", levelID),
+			"type":       "success",
+		}
+		Create("notification", notification)
+
+		return &SubmitAnswerResult{
+			Correct: true,
+			Message: "Correct! Moving to next level...",
+		}, nil
+	}
+
+	return &SubmitAnswerResult{
+		Correct: false,
+		Message: "Incorrect answer. Try again!",
+	}, nil
+}
+
+// GetUnreadNotificationCount returns the count of unread notifications for a user
+func GetUnreadNotificationCount(userEmail string) (int, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM notifications WHERE user_email = ? AND read = 0", userEmail).Scan(&count)
+	return count, err
 }

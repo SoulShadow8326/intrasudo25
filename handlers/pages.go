@@ -3,9 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"html/template"
+	"intrasudo25/config"
 	"intrasudo25/database"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -39,36 +39,10 @@ type AdminStats struct {
 	ActiveUsers int
 }
 
-type Config struct {
-	Email struct {
-		From     string `json:"from"`
-		Password string `json:"password"`
-		SMTPHost string `json:"smtp_host"`
-		SMTPPort string `json:"smtp_port"`
-	} `json:"email"`
-	AdminEmails []string `json:"admin_emails"`
-}
-
-var AdminEmails = []string{"dsiddhant460@gmail.com", "lead@intrasudo.com", "organizer@intrasudo.com"}
-
-func loadConfig() (*Config, error) {
-	file, err := os.Open("config.json")
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-	var config Config
-	decoder := json.NewDecoder(file)
-	err = decoder.Decode(&config)
-	if err != nil {
-		return nil, err
-	}
-	return &config, nil
-}
-
 func isAdminEmail(email string) bool {
+	adminEmails := config.GetAdminEmails()
 	email = strings.ToLower(email)
-	for _, adminEmail := range AdminEmails {
+	for _, adminEmail := range adminEmails {
 		if email == strings.ToLower(adminEmail) {
 			return true
 		}
@@ -244,7 +218,7 @@ func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	usersData, err := database.Get("all_logins", map[string]interface{}{})
+	usersData, err := database.Get("login", map[string]interface{}{"all": true})
 	var users []database.Login
 	if err != nil {
 		users = []database.Login{}
@@ -385,7 +359,7 @@ func renderAdminTemplate(w http.ResponseWriter, templateName string, data AdminP
 	}
 }
 
-func SubmitAnswerHandler(w http.ResponseWriter, r *http.Request) {
+func SubmitAnswerFormHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -471,11 +445,8 @@ func ChatPageHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "./frontend/chat.html")
 }
 
-func init() {
-	config, err := loadConfig()
-	if err == nil {
-		AdminEmails = config.AdminEmails
-	} else {
-		AdminEmails = []string{"admin@intrasudo.com", "lead@intrasudo.com", "organizer@intrasudo.com"}
-	}
+func GetSecretHandler(w http.ResponseWriter, r *http.Request) {
+	secret := config.GetXSecretValue()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"secret": secret})
 }
