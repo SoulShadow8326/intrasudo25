@@ -29,7 +29,7 @@ switch (errorType) {
 
 async function checkAdminAccess() {
     try {
-        const secret = await getSecret();
+        const secret = await getSecret('GET');
         const response = await fetch('/api/user/session', {
             headers: {
                 'X-secret': secret
@@ -52,7 +52,7 @@ async function checkAdminAccess() {
 
 async function checkAuthAndUpdateButtons() {
     try {
-        const secret = await getSecret();
+        const secret = await getSecret('GET');
         const response = await fetch('/api/user/session', {
             headers: {
                 'X-secret': secret

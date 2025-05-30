@@ -1,4 +1,4 @@
-// Simplified Admin Dashboard JavaScript
+// Admin Dashboard JavaScript
 let userSession = null;
 
 // Initialize admin dashboard
@@ -143,6 +143,7 @@ async function createLevel() {
 
     const requestData = {
         level_number: levelNumber,
+        title: `Level ${levelNumber}`,
         markdown: levelQuestion,
         answer: levelAnswer,
         active: "true"
@@ -177,32 +178,34 @@ async function createLevel() {
 
 // Simple delete level function
 async function deleteLevel(levelId) {
-    if (!confirm('Are you sure you want to delete this level? This action cannot be undone.')) {
-        return;
-    }
+    showConfirmModal(
+        'Delete Level', 
+        'Are you sure you want to delete this level? This action cannot be undone.',
+        async function() {
+            try {
+                const secret = await getSecret('DELETE');
+                const response = await fetch(`/api/admin/levels/${levelId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || '',
+                        'X-secret': secret
+                    }
+                });
 
-    try {
-        const secret = await getSecret('DELETE');
-        const response = await fetch(`/api/admin/levels/${levelId}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || '',
-                'X-secret': secret
+                if (response.ok) {
+                    showNotification('Level deleted successfully!', 'success');
+                    loadLevels();
+                    loadStats();
+                } else {
+                    throw new Error('Failed to delete level');
+                }
+            } catch (error) {
+                console.error('Error deleting level:', error);
+                showNotification('Failed to delete level. Please try again.', 'error');
             }
-        });
-
-        if (response.ok) {
-            showNotification('Level deleted successfully!', 'success');
-            loadLevels();
-            loadStats();
-        } else {
-            throw new Error('Failed to delete level');
         }
-    } catch (error) {
-        console.error('Error deleting level:', error);
-        showNotification('Failed to delete level. Please try again.', 'error');
-    }
+    );
 }
 
 // Simple edit level function
@@ -323,31 +326,33 @@ function renderUsers(users) {
 
 // Simple delete user function
 async function deleteUser(email) {
-    if (!confirm(`Are you sure you want to delete user ${email}? This action cannot be undone.`)) {
-        return;
-    }
+    showConfirmModal(
+        'Delete User', 
+        `Are you sure you want to delete user ${email}? This action cannot be undone.`,
+        async function() {
+            try {
+                const secret = await getSecret('DELETE');
+                const response = await fetch(`/api/admin/users/${encodeURIComponent(email)}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
+                        'X-secret': secret
+                    }
+                });
 
-    try {
-        const secret = await getSecret('DELETE');
-        const response = await fetch(`/api/admin/users/${encodeURIComponent(email)}`, {
-            method: 'DELETE',
-            headers: {
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
-                'X-secret': secret
+                if (response.ok) {
+                    showNotification('User deleted successfully!', 'success');
+                    loadUsers();
+                    loadStats();
+                } else {
+                    throw new Error('Failed to delete user');
+                }
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                showNotification('Failed to delete user. Please try again.', 'error');
             }
-        });
-
-        if (response.ok) {
-            showNotification('User deleted successfully!', 'success');
-            loadUsers();
-            loadStats();
-        } else {
-            throw new Error('Failed to delete user');
         }
-    } catch (error) {
-        console.error('Error deleting user:', error);
-        showNotification('Failed to delete user. Please try again.', 'error');
-    }
+    );
 }
 
 // Question state management
@@ -386,6 +391,7 @@ async function toggleQuestionState(levelId, enabled) {
             method: 'PATCH',
             headers: { 
                 'Content-Type': 'application/json',
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || '',
                 'X-secret': secret
             },
             body: JSON.stringify({ enabled })
@@ -393,6 +399,7 @@ async function toggleQuestionState(levelId, enabled) {
 
         if (response.ok) {
             showNotification(`Question ${enabled ? 'enabled' : 'disabled'} successfully!`, 'success');
+            loadLevels(); // Reload to show updated states
         } else {
             throw new Error('Failed to update question state');
         }
@@ -405,35 +412,35 @@ async function toggleQuestionState(levelId, enabled) {
 
 // Simple toggle all questions
 async function toggleAllQuestions(enabled) {
+    const confirmTitle = enabled ? 'Enable All Questions' : 'Disable All Questions';
     const confirmMessage = enabled ? 
         'Are you sure you want to enable all questions?' : 
         'Are you sure you want to disable all questions?';
     
-    if (!confirm(confirmMessage)) {
-        return;
-    }
+    showConfirmModal(confirmTitle, confirmMessage, async function() {
+        try {
+            const secret = await getSecret('PATCH');
+            const response = await fetch('/api/admin/levels/bulk-state', {
+                method: 'PATCH',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || '',
+                    'X-secret': secret
+                },
+                body: JSON.stringify({ enabled })
+            });
 
-    try {
-        const secret = await getSecret('PATCH');
-        const response = await fetch('/api/admin/levels/bulk-state', {
-            method: 'PATCH',
-            headers: { 
-                'Content-Type': 'application/json',
-                'X-secret': secret
-            },
-            body: JSON.stringify({ enabled })
-        });
-
-        if (response.ok) {
-            showNotification(`All questions ${enabled ? 'enabled' : 'disabled'} successfully!`, 'success');
-            loadLevels(); // Reload to show updated states
-        } else {
-            throw new Error('Failed to update question states');
+            if (response.ok) {
+                showNotification(`All questions ${enabled ? 'enabled' : 'disabled'} successfully!`, 'success');
+                loadLevels(); // Reload to show updated states
+            } else {
+                throw new Error('Failed to update question states');
+            }
+        } catch (error) {
+            console.error('Error updating question states:', error);
+            showNotification('Failed to update question states. Please try again.', 'error');
         }
-    } catch (error) {
-        console.error('Error updating question states:', error);
-        showNotification('Failed to update question states. Please try again.', 'error');
-    }
+    });
 }
 
 // UI helper functions
@@ -457,7 +464,6 @@ function cancelAddLevel() {
 
 function clearAddLevelForm() {
     document.getElementById('levelNumber').value = '';
-    document.getElementById('levelTitle').value = '';
     document.getElementById('levelQuestion').value = '';
     document.getElementById('levelAnswer').value = '';
 }
@@ -543,6 +549,48 @@ function showNotification(message, type = 'info') {
         notification.style.animation = 'slideOutRight 0.3s ease-in';
         setTimeout(() => notification.remove(), 300);
     }, 4000);
+}
+
+// Confirmation modal functions
+let confirmCallback = null;
+
+function showConfirmModal(title, message, confirmAction) {
+    const modal = document.getElementById('confirmModal');
+    const titleEl = document.getElementById('confirmTitle');
+    const messageEl = document.getElementById('confirmMessage');
+    const confirmBtn = document.getElementById('confirmActionBtn');
+    
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+    confirmCallback = confirmAction;
+    
+    modal.classList.add('show');
+    document.body.style.overflow = 'hidden';
+    
+    setTimeout(() => confirmBtn.focus(), 100);
+    document.addEventListener('keydown', handleEscKey);
+}
+
+function closeConfirmModal() {
+    const modal = document.getElementById('confirmModal');
+    modal.classList.remove('show');
+    document.body.style.overflow = '';
+    confirmCallback = null;
+    
+    document.removeEventListener('keydown', handleEscKey);
+}
+
+function handleEscKey(event) {
+    if (event.key === 'Escape') {
+        closeConfirmModal();
+    }
+}
+
+function confirmAction() {
+    if (typeof confirmCallback === 'function') {
+        confirmCallback();
+    }
+    closeConfirmModal();
 }
 
 // Initialize when DOM is loaded

@@ -12,7 +12,7 @@ let isAdmin = false;
 
 async function initializeChat() {
     try {
-        const secret = await getSecret();
+        const secret = await getSecret('GET');
         const sessionResponse = await fetch('/api/user/session', {
             headers: {
                 'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
@@ -40,7 +40,7 @@ async function initializeChat() {
 
 async function loadChatHistory() {
     try {
-        const secret = await getSecret();
+        const secret = await getSecret('GET');
         const response = await fetch('/api/chat/messages', {
             headers: {
                 'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
@@ -129,7 +129,7 @@ async function handleChatSubmit(event) {
     if (!message) return;
     
     try {
-        const secret = await getSecret();
+        const secret = await getSecret('POST');
         const response = await fetch('/api/chat/send', {
             method: 'POST',
             headers: {
@@ -175,7 +175,7 @@ function showError(message) {
 
 async function checkAdminStatus() {
     try {
-        const secret = await getSecret();
+        const secret = await getSecret('GET');
         const response = await fetch('/api/user/session', {
             headers: {
                 'CSRFtok': getCookie('X-CSRF_COOKIE') || '',

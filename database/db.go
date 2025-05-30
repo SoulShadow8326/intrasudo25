@@ -6,6 +6,7 @@ import (
 	"log"
 	"strings"
 
+	"intrasudo25/config"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -70,8 +71,24 @@ type AdminStats struct {
 func GetAdminStats() (*AdminStats, error) {
 	stats := &AdminStats{}
 
-	// Get total users
-	err := db.QueryRow("SELECT COUNT(*) FROM logins").Scan(&stats.TotalUsers)
+	// Get admin emails from config
+	adminEmails := config.GetAdminEmails()
+
+	// Build WHERE clause to exclude admin emails
+	whereClause := ""
+	args := []interface{}{}
+	if len(adminEmails) > 0 {
+		placeholders := make([]string, len(adminEmails))
+		for i, email := range adminEmails {
+			placeholders[i] = "?"
+			args = append(args, email)
+		}
+		whereClause = " WHERE gmail NOT IN (" + strings.Join(placeholders, ",") + ")"
+	}
+
+	// Get total non-admin users
+	totalQuery := "SELECT COUNT(*) FROM logins" + whereClause
+	err := db.QueryRow(totalQuery, args...).Scan(&stats.TotalUsers)
 	if err != nil {
 		return nil, err
 	}
@@ -82,8 +99,14 @@ func GetAdminStats() (*AdminStats, error) {
 		return nil, err
 	}
 
-	// Get active users (verified users)
-	err = db.QueryRow("SELECT COUNT(*) FROM logins WHERE verified = 1").Scan(&stats.ActiveUsers)
+	// Get active non-admin users (verified users excluding admins)
+	activeQuery := "SELECT COUNT(*) FROM logins" + whereClause
+	if whereClause != "" {
+		activeQuery += " AND verified = 1"
+	} else {
+		activeQuery += " WHERE verified = 1"
+	}
+	err = db.QueryRow(activeQuery, args...).Scan(&stats.ActiveUsers)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +171,7 @@ func GetAllUsersForAdmin() ([]AdminUserResponse, error) {
 	defer rows.Close()
 
 	var users []AdminUserResponse
-	adminEmails := []string{"siddhantd@utexas.edu", "admin@intrasudo.com"} // Add your admin emails here
+	adminEmails := config.GetAdminEmails() // Use config instead of hardcoded emails
 
 	for rows.Next() {
 		var user AdminUserResponse
@@ -167,7 +190,7 @@ func GetAllUsersForAdmin() ([]AdminUserResponse, error) {
 
 		// Check if user is admin
 		for _, adminEmail := range adminEmails {
-			if user.Gmail == adminEmail {
+			if strings.EqualFold(user.Gmail, adminEmail) {
 				user.IsAdmin = true
 				break
 			}
@@ -646,17 +669,77 @@ type GameLevel struct {
 
 // GetCurrentLevelForUser returns the current level data for a user
 func GetCurrentLevelForUser(userEmail string) (*GameLevel, error) {
-	var user Login
-	err := db.QueryRow("SELECT \"on\" FROM logins WHERE gmail = ?", userEmail).Scan(&user.On)
+	// First, check if level 1 exists and is active - this is required for the game to work
+	var level1Exists bool
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM levels WHERE level_number = 1 AND active = 1)").Scan(&level1Exists)
 	if err != nil {
-		return nil, err
+		log.Printf("ERROR: Failed to check if level 1 exists: %v", err)
+		return nil, fmt.Errorf("database error checking level 1")
 	}
 
+	if !level1Exists {
+		log.Printf("ERROR: Level 1 does not exist or is not active")
+		return nil, fmt.Errorf("level 1 must exist and be active for the game to function")
+	}
+
+	// Get user's current level
+	var user Login
+	err = db.QueryRow("SELECT \"on\" FROM logins WHERE gmail = ?", userEmail).Scan(&user.On)
+	if err != nil {
+		log.Printf("ERROR: Failed to get user level for %s: %v", userEmail, err)
+		return nil, fmt.Errorf("user not found or no level assigned")
+	}
+
+	log.Printf("DEBUG: User %s is on level %d", userEmail, user.On)
+
+	// Ensure progressive access: user can only be on level N if they've completed levels 1 through N-1
+	// But if user is on level 1, they should always be able to access it
+	if user.On > 1 {
+		// Check that all previous levels exist and are active
+		var allPreviousExist bool
+		err = db.QueryRow("SELECT COUNT(*) = ? FROM levels WHERE level_number BETWEEN 1 AND ? AND active = 1", user.On-1, user.On-1).Scan(&allPreviousExist)
+		if err != nil {
+			log.Printf("ERROR: Failed to check previous levels for user %s: %v", userEmail, err)
+			return nil, fmt.Errorf("database error checking level progression")
+		}
+
+		if !allPreviousExist {
+			log.Printf("ERROR: User %s is on level %d but not all previous levels (1-%d) exist or are active", userEmail, user.On, user.On-1)
+			// Reset user to level 1 since progression is broken
+			_, err = db.Exec("UPDATE logins SET \"on\" = 1 WHERE gmail = ?", userEmail)
+			if err != nil {
+				log.Printf("ERROR: Failed to reset user %s to level 1: %v", userEmail, err)
+			}
+			user.On = 1
+			log.Printf("INFO: Reset user %s to level 1 due to broken progression", userEmail)
+		}
+	}
+
+	// Now get the level data for the user's current level
 	var level AdminLevel
 	err = db.QueryRow("SELECT level_number, markdown FROM levels WHERE level_number = ? AND active = 1", user.On).Scan(&level.LevelNumber, &level.Markdown)
 	if err != nil {
-		return nil, err
+		log.Printf("ERROR: Failed to get level %d for user %s: %v", user.On, userEmail, err)
+		// If the user's current level doesn't exist, reset them to level 1
+		if user.On > 1 {
+			_, resetErr := db.Exec("UPDATE logins SET \"on\" = 1 WHERE gmail = ?", userEmail)
+			if resetErr != nil {
+				log.Printf("ERROR: Failed to reset user %s to level 1: %v", userEmail, resetErr)
+			} else {
+				log.Printf("INFO: Reset user %s to level 1 because level %d doesn't exist", userEmail, user.On)
+				// Try to get level 1
+				err = db.QueryRow("SELECT level_number, markdown FROM levels WHERE level_number = 1 AND active = 1").Scan(&level.LevelNumber, &level.Markdown)
+				if err != nil {
+					log.Printf("ERROR: Failed to get level 1 after reset: %v", err)
+					return nil, fmt.Errorf("level 1 not found after reset")
+				}
+			}
+		} else {
+			return nil, fmt.Errorf("level not found or not active")
+		}
 	}
+
+	log.Printf("DEBUG: Found level %d for user %s: %s", level.LevelNumber, userEmail, level.Markdown)
 
 	gameLevel := &GameLevel{
 		ID:          level.LevelNumber,

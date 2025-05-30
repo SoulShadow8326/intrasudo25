@@ -7,37 +7,35 @@ function getCookie(name) {
 
 async function loadHints() {
     try {
-        const secret = await getSecret();
-        const response = await fetch('/api/hints', {
+        const secret = await getSecret('GET');
+        const response = await fetch('/api/question', {
             headers: {
                 'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
                 'X-secret': secret
             }
         });
-        const hints = await response.json();
-        const container = document.getElementById('hintsContainer');
-        
-        if (hints.length === 0) {
-            container.innerHTML = '<div class="hint-item" style="text-align: center; color: rgba(255, 255, 255, 0.7);">No hints available yet</div>';
+        if (!response.ok) {
+            document.getElementById('hintsContainer').innerHTML = '<div class="hint-item" style="text-align: center; color: rgba(255, 255, 255, 0.7);">No question available yet</div>';
             return;
         }
-        
-        container.innerHTML = hints.map(hint => `
-            <div class="hint-item">
-                <h3 class="hint-title">${hint.title}</h3>
-                <p class="hint-text">${hint.content}</p>
-            </div>
-        `).join('');
+        const data = await response.json();
+        const container = document.getElementById('hintsContainer');
+        if (data && data.question) {
+            const q = data.question;
+            if ((q.levelNumber !== undefined && q.markdown !== undefined && q.markdown !== null && q.markdown !== "")) {
+                container.innerHTML = `<div class="hint-item"><h3 class="hint-title">Level ${q.levelNumber}</h3><p class="hint-text">${q.markdown}</p></div>`;
+                return;
+            }
+        }
+        document.getElementById('hintsContainer').innerHTML = '<div class="hint-item" style="text-align: center; color: rgba(255, 255, 255, 0.7);">No question available yet</div>';
     } catch (error) {
-        console.error('Failed to load hints:', error);
-        document.getElementById('hintsContainer').innerHTML = 
-            '<div class="hint-item" style="text-align: center; color: #dc3545;">Failed to load hints</div>';
+        document.getElementById('hintsContainer').innerHTML = '<div class="hint-item" style="text-align: center; color: #dc3545;">Failed to load hints</div>';
     }
 }
 
 async function checkNotifications() {
     try {
-        const secret = await getSecret();
+        const secret = await getSecret('GET');
         const response = await fetch('/api/notifications/unread-count', {
             headers: {
                 'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
@@ -46,20 +44,17 @@ async function checkNotifications() {
         });
         const data = await response.json();
         const notificationDot = document.getElementById('notificationDot');
-        
         if (data.count > 0) {
             notificationDot.classList.add('show');
         } else {
             notificationDot.classList.remove('show');
         }
-    } catch (error) {
-        console.error('Failed to check notifications:', error);
-    }
+    } catch (error) {}
 }
 
 async function checkAdminAccess() {
     try {
-        const secret = await getSecret();
+        const secret = await getSecret('GET');
         const response = await fetch('/api/user/session', {
             headers: {
                 'CSRFtok': getCookie('X-CSRF_COOKIE') || '',

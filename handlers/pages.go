@@ -75,80 +75,15 @@ func renderTemplate(w http.ResponseWriter, templateName string, data PageData) {
 }
 
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
-	user, err := GetUserFromSession(r)
+	_, err := GetUserFromSession(r)
 	if err != nil {
 		http.Redirect(w, r, "/auth", http.StatusSeeOther)
 		return
 	}
 
-	if isAdminEmail(user.Gmail) {
-		// Admins can always access the page, even if they have no level/data
-		// Try to get a level, but don't block if missing
-		var level *database.Level
-		loginData, err := database.Get("login", map[string]interface{}{"gmail": user.Gmail})
-		if err == nil {
-			if login, ok := loginData.(*database.Login); ok {
-				levelData, err := database.Get("levels", map[string]interface{}{"level_number": login.On})
-				if err == nil {
-					if l, ok := levelData.(*database.Level); ok {
-						level = l
-					}
-				}
-			}
-		}
-		// Get error/success messages from URL parameters
-		errorMsg := r.URL.Query().Get("error")
-		successMsg := r.URL.Query().Get("success")
-		data := PageData{
-			User:           user,
-			Level:          level,
-			IsAdmin:        true,
-			ErrorMessage:   errorMsg,
-			SuccessMessage: successMsg,
-		}
-		renderTemplate(w, "index.html", data)
-		return
-	}
-
-	// Get current user level
-	loginData, err := database.Get("login", map[string]interface{}{"gmail": user.Gmail})
-	if err != nil {
-		http.Error(w, "Error getting user data", http.StatusInternalServerError)
-		return
-	}
-	login, ok := loginData.(*database.Login)
-	if !ok {
-		http.Error(w, "Error parsing user data", http.StatusInternalServerError)
-		return
-	}
-	currentLevelNum := login.On
-
-	// Get level data
-	levelData, err := database.Get("levels", map[string]interface{}{"level_number": currentLevelNum})
-	if err != nil {
-		// If level doesn't exist, redirect to 404 page with level_not_found error
-		LevelNotFoundHandler(w, r)
-		return
-	}
-	level, ok := levelData.(*database.Level)
-	if !ok {
-		http.Error(w, "Error parsing level data", http.StatusInternalServerError)
-		return
-	}
-
-	// Get error/success messages from URL parameters
-	errorMsg := r.URL.Query().Get("error")
-	successMsg := r.URL.Query().Get("success")
-
-	data := PageData{
-		User:           user,
-		Level:          level,
-		IsAdmin:        isAdminEmail(user.Gmail),
-		ErrorMessage:   errorMsg,
-		SuccessMessage: successMsg,
-	}
-
-	renderTemplate(w, "index.html", data)
+	// Simply serve the index.html file for authenticated users
+	// The JavaScript will handle loading level data via API calls
+	http.ServeFile(w, r, "./frontend/index.html")
 }
 
 func HintsHandler(w http.ResponseWriter, r *http.Request) {

@@ -176,6 +176,23 @@
     <script src="js/utils.js"></script>
     <script src="js/admin.js"></script>
 
+    <!-- Confirmation Modal -->
+    <div class="confirm-modal" id="confirmModal">
+        <div class="confirm-modal-content">
+            <div class="confirm-modal-header">
+                <h3 id="confirmTitle">Confirmation</h3>
+                <button class="confirm-close-btn" onclick="closeConfirmModal()">&times;</button>
+            </div>
+            <div class="confirm-modal-body">
+                <p id="confirmMessage">Are you sure you want to perform this action?</p>
+            </div>
+            <div class="confirm-modal-footer">
+                <button class="btn-secondary confirm-btn" onclick="closeConfirmModal()">Cancel</button>
+                <button class="btn-primary confirm-btn" id="confirmActionBtn" onclick="confirmAction()">Confirm</button>
+            </div>
+        </div>
+    </div>
+
     <style>
         @keyframes slideInRight {
             from {
@@ -464,6 +481,79 @@
                 width: 100%;
                 justify-content: flex-end;
             }
+        }
+
+        /* Confirmation Modal Styles */
+        .confirm-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .confirm-modal.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .confirm-modal-content {
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            width: 90%;
+            max-width: 500px;
+            animation: slideInRight 0.3s forwards;
+        }
+
+        .confirm-modal-header {
+            background: #007bff;
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .confirm-modal-body {
+            padding: 1.5rem;
+        }
+
+        .confirm-modal-footer {
+            padding: 1rem;
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        .confirm-close-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .confirm-btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .confirm-btn:hover {
+            opacity: 0.9;
         }
     </style>
 </body>
