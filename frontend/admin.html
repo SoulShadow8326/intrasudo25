@@ -13,19 +13,20 @@
 <body>
     <nav class="navbar">
         <div class="nav-left">
-            <a href="index.html" class="logo-link">
+            <a href="/home" class="logo-link">
                 <img class="logo-img" src="assets/logo-blue.png" alt="Sudocrypt" />
                 <span class="nav-brand">Intra Sudo vX.X</span>
             </a>
         </div>
         <div class="nav-center">
-            <a href="index.html" class="nav-link">Home</a>
-            <a href="leaderboard.html" class="nav-link">Leaderboard</a>
-            <a href="hints.html" class="nav-link">Hints</a>
+            <a href="/home" class="nav-link">Home</a>
+            <a href="/leaderboard" class="nav-link">Leaderboard</a>
+            <a href="/hints" class="nav-link">Hints</a>
         </div>
         <div class="nav-right">
-            <a href="admin.html" class="nav-link active">Admin</a>
-            <a href="#" class="nav-link" onclick="handleLogout()">Log Out</a>
+            <a href="/admin" class="nav-link active" id="adminLink">
+                Admin
+            </a>
         </div>
     </nav>
 
@@ -142,6 +143,7 @@
         let levels = [];
         let users = [];
         let stats = {};
+        let isAdmin = false;
 
         // Initialize admin dashboard
         async function initializeAdmin() {
@@ -458,21 +460,16 @@
                                     <p class="user-status ${user.Verified ? 'verified' : 'unverified'}">
                                         ${user.Verified ? 'Verified' : 'Unverified'}
                                     </p>
-                                    ${isAdminEmail(user.Gmail) ? '<p class="user-admin">Admin</p>' : ''}
+                                    ${(user.IsAdmin || false) ? '<p class="user-admin">Admin</p>' : ''}
                                 </div>
                             </div>
                             <div class="user-actions">
-                                ${!isAdminEmail(user.Gmail) ? `<button class="btn-danger" onclick="deleteUser('${user.Gmail}')">Delete</button>` : ''}
+                                ${!(user.IsAdmin || false) ? `<button class="btn-danger" onclick="deleteUser('${user.Gmail}')">Delete</button>` : ''}
                             </div>
                         </div>
                     `).join('')}
                 </div>
             `;
-        }
-
-        function isAdminEmail(email) {
-            const adminEmails = ['admin@intrasudo.com', 'lead@intrasudo.com', 'organizer@intrasudo.com'];
-            return adminEmails.includes(email.toLowerCase());
         }
 
         async function deleteUser(email) {
@@ -501,6 +498,31 @@
         async function refreshUsers() {
             await loadUsers();
             showNotification('Users refreshed!', 'success');
+        }
+
+        // Admin status check
+        async function checkAdminStatus() {
+            try {
+                const response = await fetch('/api/user/session');
+                if (response.ok) {
+                    const userData = await response.json();
+                    isAdmin = !!userData.isAdmin;
+                    // Show admin link in navbar if admin
+                    if (isAdmin && document.getElementById('adminLink')) {
+                        document.getElementById('adminLink').style.display = 'inline-block';
+                    }
+                } else {
+                    isAdmin = false;
+                    if (document.getElementById('adminLink')) {
+                        document.getElementById('adminLink').style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                isAdmin = false;
+                if (document.getElementById('adminLink')) {
+                    document.getElementById('adminLink').style.display = 'none';
+                }
+            }
         }
 
         // Utility Functions
@@ -540,18 +562,10 @@
             }, 4000);
         }
 
-        async function handleLogout() {
-            try {
-                await fetch('/enter/logout', { method: 'POST' });
-                window.location.href = 'auth.html';
-            } catch (error) {
-                console.error('Logout failed:', error);
-                window.location.href = 'auth.html';
-            }
-        }
-
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', initializeAdmin);
+        document.addEventListener('DOMContentLoaded', async function() {
+            await checkAdminStatus();
+            initializeAdmin();
+        });
     </script>
 
     <style>

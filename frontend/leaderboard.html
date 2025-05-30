@@ -2,8 +2,28 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#0D0E11">
+    <meta name="viewport" content="width=device-width, initial-scal        // Always show admin link if user is admin
+        async function checkAdminAccess() {
+            try {
+                const response = await fetch('/api/user/session', {
+                    headers: {
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+                    }
+                });
+                if (response.ok) {
+                    const userData = await response.json();
+                    if (userData.isAdmin) {
+                        document.getElementById('adminLink').style.display = 'inline-block';
+                    } else {
+                        document.getElementById('adminLink').style.display = 'none';
+                    }
+                } else {
+                    document.getElementById('adminLink').style.display = 'none';
+                }
+            } catch (error) {
+                document.getElementById('adminLink').style.display = 'none';
+            }
+        }me="theme-color" content="#0D0E11">
     <meta name="description" content="Website for Exun Intra Sudo 2025">
     <title>Intra Sudo 2025 - Leaderboard</title>
     <link rel="stylesheet" href="styles.css">
@@ -12,18 +32,18 @@
 <body>
     <nav class="navbar">
         <div class="nav-left">
-            <a href="index.html" class="logo-link">
+            <a href="/home" class="logo-link">
                 <img class="logo-img" src="assets/logo-blue.png" alt="Sudocrypt" />
                 <span class="nav-brand">Intra Sudo vX.X</span>
             </a>
         </div>
         <div class="nav-center">
-            <a href="index.html" class="nav-link">Home</a>
-            <a href="leaderboard.html" class="nav-link active">Leaderboard</a>
-            <a href="hints.html" class="nav-link">Hints</a>
+            <a href="/home" class="nav-link">Home</a>
+            <a href="/leaderboard" class="nav-link active">Leaderboard</a>
+            <a href="/hints" class="nav-link">Hints</a>
         </div>
         <div class="nav-right">
-            <a href="admin.html" class="nav-link" id="adminLink" style="display: none;">Admin</a>
+            <a href="/admin" class="nav-link" id="adminLink" style="display: none;">Admin</a>
             <a href="#" class="nav-link" onclick="handleLogout()">Log Out</a>
         </div>
     </nav>
@@ -47,16 +67,28 @@
     </main>
 
     <div class="chat-button">
-        <a href="chat.html" class="chat-link">
+        <a href="/chat" class="chat-link">
             <img src="assets/logo_nobg.png" alt="Chat" class="chat-logo">
             <div class="notification-dot" id="notificationDot"></div>
         </a>
     </div>
 
     <script>
+        // Utility function to get cookies
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+
         async function loadLeaderboard() {
             try {
-                const response = await fetch('/api/leaderboard');
+                const response = await fetch('/api/leaderboard', {
+                    headers: {
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+                    }
+                });
                 const leaderboard = await response.json();
                 const listContainer = document.getElementById('leaderboardList');
                 
@@ -87,17 +119,26 @@
 
         async function handleLogout() {
             try {
-                await fetch('/api/auth/logout', { method: 'POST' });
-                window.location.href = 'auth.html';
+                await fetch('/api/auth/logout', { 
+                    method: 'POST',
+                    headers: {
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+                    }
+                });
+                window.location.href = '/auth';
             } catch (error) {
                 console.error('Logout failed:', error);
-                window.location.href = 'auth.html';
+                window.location.href = '/auth';
             }
         }
 
         async function checkNotifications() {
             try {
-                const response = await fetch('/api/notifications/unread-count');
+                const response = await fetch('/api/notifications/unread-count', {
+                    headers: {
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+                    }
+                });
                 const data = await response.json();
                 const notificationDot = document.getElementById('notificationDot');
                 
@@ -111,6 +152,29 @@
             }
         }
 
+        // Always show admin link if user is admin
+        async function checkAdminAccess() {
+            try {
+                const response = await fetch('/api/user/session', {
+                    headers: {
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+                    }
+                });
+                if (response.ok) {
+                    const userData = await response.json();
+                    if (userData.isAdmin) {
+                        document.getElementById('adminLink').style.display = 'block';
+                    } else {
+                        document.getElementById('adminLink').style.display = 'none';
+                    }
+                } else {
+                    document.getElementById('adminLink').style.display = 'none';
+                }
+            } catch (error) {
+                document.getElementById('adminLink').style.display = 'none';
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             checkAdminAccess();
             loadLeaderboard();
@@ -118,22 +182,6 @@
             setInterval(loadLeaderboard, 30000);
             setInterval(checkNotifications, 30000);
         });
-
-        async function checkAdminAccess() {
-            try {
-                const response = await fetch('/api/user/session');
-                if (response.ok) {
-                    const userData = await response.json();
-                    const adminEmails = ['admin@intrasudo.com', 'organizer@intrasudo.com'];
-                    
-                    if (adminEmails.includes(userData.email)) {
-                        document.getElementById('adminLink').style.display = 'block';
-                    }
-                }
-            } catch (error) {
-                console.error('Failed to check admin access:', error);
-            }
-        }
     </script>
 </body>
 </html>

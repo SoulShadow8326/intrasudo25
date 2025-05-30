@@ -2,13 +2,14 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"intrasudo25/database"
 	"net/http"
 	"strings"
 )
 
-func checkIfAdmin(userEmail string, adminEmails []string) bool {
-	for _, adminEmail := range adminEmails {
+func checkIfAdmin(userEmail string, _ []string) bool {
+	for _, adminEmail := range AdminEmails {
 		if strings.EqualFold(userEmail, adminEmail) {
 			return true
 		}
@@ -21,67 +22,63 @@ func Authorize(r *http.Request) (bool, *database.Login) {
 	if err != nil || cookie.Value == "" {
 		return false, nil
 	}
-	result, err := database.Get("login", map[string]interface{}{"cookie": cookie.Value})
+	result, err := database.Get("login", map[string]interface{}{"seshTok": cookie.Value})
 	if err != nil || result == nil {
 		return false, nil
 	}
 	acc := result.(*database.Login)
-	csrf := r.Header.Get("CSRFtok")
 
-	if csrf == "" || csrf != acc.CSRFtok {
+	if acc.SeshTok == "" || acc.SeshTok != cookie.Value {
 		return false, nil
+	}
+
+	if r.Method != "GET" {
+		csrf := r.Header.Get("CSRFtok")
+		if csrf == "" || csrf != acc.CSRFtok {
+			return false, nil
+		}
 	}
 
 	return true, acc
 }
 
-func AdminAuth(w http.ResponseWriter, r *http.Request, users []string) bool {
+func AdminAuth(w http.ResponseWriter, r *http.Request, _ []string) bool {
 	isAuth, user := Authorize(r)
 
 	if !isAuth || user == nil {
-		// Check if this is an API request
 		if strings.HasPrefix(r.URL.Path, "/api/") {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusForbidden)
 			json.NewEncoder(w).Encode(map[string]string{"error": "Forbidden"})
 			return false
 		}
-		// Redirect to appropriate error page for HTML requests
 		UnauthorizedHandler(w, r)
 		return false
 	}
-
-	allowed := checkIfAdmin(user.Gmail, users)
-
+	allowed := checkIfAdmin(user.Gmail, nil)
 	if !allowed {
-		// Check if this is an API request
 		if strings.HasPrefix(r.URL.Path, "/api/") {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusForbidden)
 			json.NewEncoder(w).Encode(map[string]string{"error": "Forbidden"})
 			return false
 		}
-		// Redirect to admin required error page for HTML requests
 		AdminRequiredHandler(w, r)
 		return false
 	}
-
 	return true
 }
 
-// RequireAuth middleware to check if user is authenticated
 func RequireAuth(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		isAuth, user := Authorize(r)
 		if !isAuth || user == nil {
-			// Check if this is an API request
 			if strings.HasPrefix(r.URL.Path, "/api/") {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusUnauthorized)
 				json.NewEncoder(w).Encode(map[string]string{"error": "Authentication required"})
 				return
 			}
-			// Redirect to auth page for HTML requests
 			http.Redirect(w, r, "/auth", http.StatusSeeOther)
 			return
 		}
@@ -89,7 +86,6 @@ func RequireAuth(next http.HandlerFunc) http.HandlerFunc {
 	})
 }
 
-// RequireAdmin middleware to check if user is admin
 func RequireAdmin(adminEmails []string) func(http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -104,9 +100,7 @@ func RequireAdmin(adminEmails []string) func(http.HandlerFunc) http.HandlerFunc 
 				UnauthorizedHandler(w, r)
 				return
 			}
-
 			isAdmin := checkIfAdmin(user.Gmail, adminEmails)
-
 			if !isAdmin {
 				if strings.HasPrefix(r.URL.Path, "/api/") {
 					w.Header().Set("Content-Type", "application/json")
@@ -117,42 +111,45 @@ func RequireAdmin(adminEmails []string) func(http.HandlerFunc) http.HandlerFunc 
 				AdminRequiredHandler(w, r)
 				return
 			}
-
 			next.ServeHTTP(w, r)
 		})
 	}
 }
 
-// GetUserFromSession extracts user from session cookie
 func GetUserFromSession(r *http.Request) (*database.Login, error) {
 	cookie, err := r.Cookie("exun_sesh_cookie")
-	if err != nil {
+	if err != nil || cookie.Value == "" {
 		return nil, err
 	}
-
-	result, err := database.Get("login", map[string]interface{}{"cookie": cookie.Value})
+	result, err := database.Get("login", map[string]interface{}{"seshTok": cookie.Value})
 	if err != nil || result == nil {
 		return nil, err
 	}
-	user := result.(*database.Login)
-
-	return user, nil
+	acc := result.(*database.Login)
+	if acc.SeshTok == "" || acc.SeshTok != cookie.Value {
+		return nil, fmt.Errorf("invalid session")
+	}
+	return acc, nil
 }
 
-// UserSessionHandler provides user session information for frontend
 func UserSessionHandler(w http.ResponseWriter, r *http.Request) {
-	user, err := GetUserFromSession(r)
-	if err != nil {
+	isAuth, user := Authorize(r)
+	if !isAuth || user == nil {
+		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{"error": "No active session"})
+		json.NewEncoder(w).Encode(map[string]interface{}{"isAdmin": false})
 		return
 	}
-
+	isAdmin := false
+	for _, adminEmail := range AdminEmails {
+		if strings.EqualFold(user.Gmail, adminEmail) {
+			isAdmin = true
+			break
+		}
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"userId":   user.Gmail,
-		"email":    user.Gmail,
-		"level":    user.On,
-		"verified": user.Verified,
+		"userId":  user.Gmail,
+		"isAdmin": isAdmin,
 	})
 }

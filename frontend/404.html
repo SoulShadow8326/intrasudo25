@@ -17,13 +17,11 @@
                     <div class="error-icon">
                         <span class="error-number">404</span>
                     </div>
-                    
                     <div class="error-info">
                         <h1 class="error-title" id="errorTitle">Page Not Found</h1>
                         <p class="error-message" id="errorMessage">
                             The page you're looking for doesn't exist or has been moved.
                         </p>
-                        
                         <div class="error-actions">
                             <a href="/home" class="btn-primary error-btn">
                                 <span>Go Home</span>
@@ -31,14 +29,12 @@
                         </div>
                     </div>
                 </div>
-                
                 <div class="error-footer">
                     <p class="error-nav-text">404 error</p>
                 </div>
             </div>
         </main>
     </div>
-
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const errorType = urlParams.get('type');
@@ -48,31 +44,42 @@
                 document.getElementById('errorTitle').textContent = 'Access Denied';
                 document.getElementById('errorMessage').textContent = 'You don\'t have permission to access this page. Please sign in with appropriate credentials.';
                 break;
-                
             case 'unauthorized':
                 document.getElementById('errorTitle').textContent = 'Authorization Required';
                 document.getElementById('errorMessage').textContent = 'You need to be signed in to access this page.';
                 break;
-                
             case 'admin_required':
                 document.getElementById('errorTitle').textContent = 'Admin Access Required';
                 document.getElementById('errorMessage').textContent = 'This page requires administrator privileges. Contact the organizing team if you believe this is an error.';
                 break;
-                
             case 'level_not_found':
                 document.getElementById('errorTitle').textContent = 'Level Not Found';
                 document.getElementById('errorMessage').textContent = 'The requested level doesn\'t exist or isn\'t available yet.';
                 break;
-                
             case 'session_expired':
                 document.getElementById('errorTitle').textContent = 'Session Expired';
                 document.getElementById('errorMessage').textContent = 'Your session has expired. Please sign in again to continue.';
                 break;
-                
             default:
                 break;
         }
-        
+        async function checkAdminAccess() {
+            try {
+                const response = await fetch('/api/user/session');
+                if (response.ok) {
+                    const userData = await response.json();
+                    if (userData.isAdmin) {
+                        document.getElementById('adminLink').style.display = 'inline-block';
+                    } else {
+                        document.getElementById('adminLink').style.display = 'none';
+                    }
+                } else {
+                    document.getElementById('adminLink').style.display = 'none';
+                }
+            } catch (error) {
+                document.getElementById('adminLink').style.display = 'none';
+            }
+        }
         async function checkAuthAndUpdateButtons() {
             try {
                 const response = await fetch('/api/user/session');
@@ -84,15 +91,19 @@
                             signInBtn.style.display = 'none';
                         }
                     }
+                    if (userData.isAdmin && document.getElementById('adminLink')) {
+                        document.getElementById('adminLink').style.display = 'inline-block';
+                    }
                 }
             } catch (error) {
                 console.log('User not authenticated');
             }
         }
-        
-        document.addEventListener('DOMContentLoaded', checkAuthAndUpdateButtons);
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAdminAccess();
+            checkAuthAndUpdateButtons();
+        });
     </script>
-    
     <style>
         .error-card {
             max-width: 600px;
@@ -100,14 +111,12 @@
             text-align: center;
             padding: 3rem 2rem;
         }
-        
         .error-content {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 2rem;
         }
-        
         .error-icon {
             display: flex;
             justify-content: center;
@@ -119,39 +128,33 @@
             border-radius: 50%;
             margin-bottom: 1rem;
         }
-        
         .error-number {
             font-size: 3rem;
             font-weight: 700;
             color: #2977f5;
             line-height: 1;
         }
-        
         .error-info {
             max-width: 500px;
         }
-        
         .error-title {
             font-size: 2rem;
             font-weight: 700;
             color: var(--foreground);
             margin: 0 0 1rem 0;
         }
-        
         .error-message {
             font-size: 1.1rem;
             color: var(--text-secondary);
             line-height: 1.6;
             margin: 0 0 2rem 0;
         }
-        
         .error-actions {
             display: flex;
             gap: 1rem;
             justify-content: center;
             flex-wrap: wrap;
         }
-        
         .error-btn {
             display: inline-flex;
             align-items: center;
@@ -162,45 +165,38 @@
             transition: all 0.2s ease;
             min-width: 120px;
         }
-        
         .btn-primary.error-btn {
             background: #2977f5;
             color: white;
             border: 2px solid #2977f5;
         }
-        
         .btn-primary.error-btn:hover {
             background: #1e5fd9;
             border-color: #1e5fd9;
             transform: translateY(-2px);
             box-shadow: 0 4px 15px rgba(41, 119, 245, 0.3);
         }
-        
         .btn-secondary.error-btn {
             background: transparent;
             color: var(--foreground);
             border: 2px solid rgba(255, 255, 255, 0.2);
         }
-        
         .btn-secondary.error-btn:hover {
             background: rgba(255, 255, 255, 0.1);
             border-color: rgba(255, 255, 255, 0.3);
             transform: translateY(-2px);
         }
-        
         .error-footer {
             margin-top: 3rem;
             padding-top: 2rem;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
             text-align: center;
         }
-        
         .error-nav-text {
             color: var(--text-secondary);
             font-size: 0.9rem;
             margin: 0 0 0.5rem 0;
         }
-        
         .error-nav-links {
             text-align: center;
             display: flex;
@@ -208,52 +204,42 @@
             align-items: center;
             gap: 0.5rem;
         }
-        
         .nav-separator {
             color: var(--text-secondary);
             margin: 0 0.25rem;
         }
-        
         .error-footer p {
             color: var(--text-secondary);
             font-size: 0.9rem;
             margin: 0;
         }
-        
         .error-link {
             color: #2977f5;
             text-decoration: none;
             transition: color 0.2s ease;
         }
-        
         .error-link:hover {
             color: #1e5fd9;
             text-decoration: underline;
         }
-        
         @media (max-width: 768px) {
             .error-card {
                 padding: 2rem 1rem;
             }
-            
             .error-icon {
                 width: 100px;
                 height: 100px;
             }
-            
             .error-number {
                 font-size: 2.5rem;
             }
-            
             .error-title {
                 font-size: 1.5rem;
             }
-            
             .error-actions {
                 flex-direction: column;
                 align-items: center;
             }
-            
             .error-btn {
                 width: 100%;
                 max-width: 200px;

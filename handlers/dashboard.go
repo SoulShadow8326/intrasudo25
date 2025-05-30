@@ -34,7 +34,7 @@ func GetQuestionHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := database.Get("level", map[string]interface{}{"number": int(id), "admin": false})
+	result, err := database.Get("levels", map[string]interface{}{"number": int(id), "admin": false})
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Question not found"})

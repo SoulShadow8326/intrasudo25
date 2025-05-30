@@ -12,17 +12,18 @@
 <body>
     <nav class="navbar">
         <div class="nav-left">
-            <a href="index.html" class="logo-link">
+            <a href="/home" class="logo-link">
                 <img class="logo-img" src="assets/logo-blue.png" alt="Sudocrypt" />
                 <span class="nav-brand">Intra Sudo vX.X</span>
             </a>
         </div>
         <div class="nav-center">
-            <a href="index.html" class="nav-link">Home</a>
-            <a href="leaderboard.html" class="nav-link">Leaderboard</a>
-            <a href="hints.html" class="nav-link">Hints</a>
+            <a href="/home" class="nav-link">Home</a>
+            <a href="/leaderboard" class="nav-link">Leaderboard</a>
+            <a href="/hints" class="nav-link">Hints</a>
         </div>
         <div class="nav-right">
+            <a href="/admin" class="nav-link" id="adminLink" style="display:none;">Admin</a>
             <a href="#" class="nav-link" onclick="handleLogout()">Log Out</a>
         </div>
     </nav>
@@ -52,13 +53,26 @@
     </main>
 
     <script>
+        // Utility function to get cookies
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+
         let chatSocket = null;
         let userId = null;
         let userRole = null;
+        let isAdmin = false;
 
         async function initializeChat() {
             try {
-                const sessionResponse = await fetch('/api/user/session');
+                const sessionResponse = await fetch('/api/user/session', {
+                    headers: {
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+                    }
+                });
                 if (!sessionResponse.ok) {
                     window.location.href = 'auth.html';
                     return;
@@ -80,7 +94,11 @@
 
         async function loadChatHistory() {
             try {
-                const response = await fetch('/api/chat/messages');
+                const response = await fetch('/api/chat/messages', {
+                    headers: {
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+                    }
+                });
                 if (!response.ok) throw new Error('Failed to load chat history');
                 
                 const messages = await response.json();
@@ -167,6 +185,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
                     },
                     body: JSON.stringify({
                         content: message,
@@ -206,15 +225,51 @@
 
         async function handleLogout() {
             try {
-                await fetch('/api/auth/logout', { method: 'POST' });
-                window.location.href = 'auth.html';
+                await fetch('/api/auth/logout', { 
+                    method: 'POST',
+                    headers: {
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+                    }
+                });
+                window.location.href = '/auth';
             } catch (error) {
                 console.error('Logout failed:', error);
-                window.location.href = 'auth.html';
+                window.location.href = '/auth';
             }
         }
 
-        document.addEventListener('DOMContentLoaded', initializeChat);
+        async function checkAdminStatus() {
+            try {
+                const response = await fetch('/api/user/session', {
+                    headers: {
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+                    }
+                });
+                if (response.ok) {
+                    const userData = await response.json();
+                    isAdmin = !!userData.isAdmin;
+                    // Show admin link in navbar if admin
+                    if (isAdmin && document.getElementById('adminLink')) {
+                        document.getElementById('adminLink').style.display = 'inline-block';
+                    }
+                } else {
+                    isAdmin = false;
+                    if (document.getElementById('adminLink')) {
+                        document.getElementById('adminLink').style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                isAdmin = false;
+                if (document.getElementById('adminLink')) {
+                    document.getElementById('adminLink').style.display = 'none';
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            await checkAdminStatus();
+            initializeChat();
+        });
     </script>
 </body>
 </html>

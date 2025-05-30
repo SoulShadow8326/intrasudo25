@@ -49,7 +49,7 @@ type Config struct {
 	AdminEmails []string `json:"admin_emails"`
 }
 
-var adminEmails []string
+var AdminEmails = []string{"dsiddhant460@gmail.com", "lead@intrasudo.com", "organizer@intrasudo.com"}
 
 func loadConfig() (*Config, error) {
 	file, err := os.Open("config.json")
@@ -68,7 +68,7 @@ func loadConfig() (*Config, error) {
 
 func isAdminEmail(email string) bool {
 	email = strings.ToLower(email)
-	for _, adminEmail := range adminEmails {
+	for _, adminEmail := range AdminEmails {
 		if email == strings.ToLower(adminEmail) {
 			return true
 		}
@@ -100,7 +100,6 @@ func renderTemplate(w http.ResponseWriter, templateName string, data PageData) {
 	}
 }
 
-// IndexHandler serves the main game page with current level
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := GetUserFromSession(r)
 	if err != nil {
@@ -109,9 +108,29 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if isAdminEmail(user.Gmail) {
+		// Admins can always access the page, even if they have no level/data
+		// Try to get a level, but don't block if missing
+		var level *database.Level
+		loginData, err := database.Get("login", map[string]interface{}{"gmail": user.Gmail})
+		if err == nil {
+			if login, ok := loginData.(*database.Login); ok {
+				levelData, err := database.Get("levels", map[string]interface{}{"level_number": login.On})
+				if err == nil {
+					if l, ok := levelData.(*database.Level); ok {
+						level = l
+					}
+				}
+			}
+		}
+		// Get error/success messages from URL parameters
+		errorMsg := r.URL.Query().Get("error")
+		successMsg := r.URL.Query().Get("success")
 		data := PageData{
-			User:    user,
-			IsAdmin: true,
+			User:           user,
+			Level:          level,
+			IsAdmin:        true,
+			ErrorMessage:   errorMsg,
+			SuccessMessage: successMsg,
 		}
 		renderTemplate(w, "index.html", data)
 		return
@@ -131,7 +150,7 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	currentLevelNum := login.On
 
 	// Get level data
-	levelData, err := database.Get("level", map[string]interface{}{"level_number": currentLevelNum})
+	levelData, err := database.Get("levels", map[string]interface{}{"level_number": currentLevelNum})
 	if err != nil {
 		// If level doesn't exist, redirect to 404 page with level_not_found error
 		LevelNotFoundHandler(w, r)
@@ -158,97 +177,14 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "index.html", data)
 }
 
-// HintsHandler serves the hints page
 func HintsHandler(w http.ResponseWriter, r *http.Request) {
-	user, err := GetUserFromSession(r)
-	if err != nil {
-		http.Redirect(w, r, "/auth", http.StatusSeeOther)
-		return
-	}
-
-	if isAdminEmail(user.Gmail) {
-		data := PageData{
-			User:    user,
-			IsAdmin: true,
-		}
-		renderTemplate(w, "hints.html", data)
-		return
-	}
-
-	// Get current user level
-	loginData, err := database.Get("login", map[string]interface{}{"gmail": user.Gmail})
-	if err != nil {
-		http.Error(w, "Error getting user data", http.StatusInternalServerError)
-		return
-	}
-	login, ok := loginData.(*database.Login)
-	if !ok {
-		http.Error(w, "Error parsing user data", http.StatusInternalServerError)
-		return
-	}
-	currentLevelNum := login.On
-
-	// Get level data
-	levelData, err := database.Get("level", map[string]interface{}{"level_number": currentLevelNum})
-	if err != nil {
-		LevelNotFoundHandler(w, r)
-		return
-	}
-	level, ok := levelData.(*database.Level)
-	if !ok {
-		http.Error(w, "Error parsing level data", http.StatusInternalServerError)
-		return
-	}
-
-	data := PageData{
-		User:    user,
-		Level:   level,
-		IsAdmin: isAdminEmail(user.Gmail),
-	}
-
-	renderTemplate(w, "hints.html", data)
+	http.ServeFile(w, r, "./frontend/hints.html")
 }
 
-// LeaderboardHandler serves the leaderboard page
 func LeaderboardHandler(w http.ResponseWriter, r *http.Request) {
-	user, err := GetUserFromSession(r)
-	if err != nil {
-		http.Redirect(w, r, "/auth", http.StatusSeeOther)
-		return
-	}
-
-	if isAdminEmail(user.Gmail) {
-		data := PageData{
-			User:    user,
-			IsAdmin: true,
-		}
-		renderTemplate(w, "leaderboard.html", data)
-		return
-	}
-
-	// Get leaderboard data
-	var leaderboard []database.Sucker
-	leaderboardData, err := database.Get("leaderboard", map[string]interface{}{"limit": 0})
-	if err != nil {
-		leaderboard = []database.Sucker{} // Empty leaderboard on error
-	} else {
-		if lb, ok := leaderboardData.([]database.Sucker); ok {
-			leaderboard = lb
-		} else {
-			leaderboard = []database.Sucker{} // Empty leaderboard on parsing error
-		}
-	}
-
-	data := PageData{
-		User:        user,
-		Leaderboard: leaderboard,
-		IsAdmin:     isAdminEmail(user.Gmail),
-	}
-
-	renderTemplate(w, "leaderboard.html", data)
+	http.ServeFile(w, r, "./frontend/leaderboard.html")
 }
 
-// AdminHandler serves the admin page
 func AdminHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := GetUserFromSession(r)
 	if err != nil {
@@ -262,7 +198,7 @@ func AdminHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get admin levels
-	levelsData, err := database.Get("admin_levels", map[string]interface{}{})
+	levelsData, err := database.Get("levels", map[string]interface{}{})
 	var levels []database.AdminLevel
 	if err != nil {
 		levels = []database.AdminLevel{}
@@ -283,7 +219,6 @@ func AdminHandler(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "admin.html", data)
 }
 
-// AdminDashboardHandler serves the admin dashboard page
 func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := GetUserFromSession(r)
 	if err != nil || user == nil {
@@ -297,7 +232,7 @@ func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Load admin data
-	levelsData, err := database.Get("admin_levels", map[string]interface{}{})
+	levelsData, err := database.Get("levels", map[string]interface{}{})
 	var levels []database.AdminLevel
 	if err != nil {
 		levels = []database.AdminLevel{}
@@ -344,7 +279,6 @@ func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 	renderAdminTemplate(w, "admin.html", data)
 }
 
-// NewLevelFormHandler serves the new level creation form
 func NewLevelFormHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := GetUserFromSession(r)
 	if err != nil || user == nil || !isAdminEmail(user.Gmail) {
@@ -364,7 +298,6 @@ func NewLevelFormHandler(w http.ResponseWriter, r *http.Request) {
 	renderAdminTemplate(w, "admin_new_level.html", data)
 }
 
-// EditLevelFormHandler serves the level editing form
 func EditLevelFormHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := GetUserFromSession(r)
 	if err != nil || user == nil || !isAdminEmail(user.Gmail) {
@@ -381,7 +314,7 @@ func EditLevelFormHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	levelData, err := database.Get("admin_level", map[string]interface{}{"level_number": levelNumber})
+	levelData, err := database.Get("levels", map[string]interface{}{"level_number": levelNumber})
 	if err != nil {
 		LevelNotFoundHandler(w, r)
 		return
@@ -452,7 +385,6 @@ func renderAdminTemplate(w http.ResponseWriter, templateName string, data AdminP
 	}
 }
 
-// SubmitAnswerHandler handles answer submissions
 func SubmitAnswerHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -485,7 +417,7 @@ func SubmitAnswerHandler(w http.ResponseWriter, r *http.Request) {
 	currentLevelNum := login.On
 
 	// Check answer using AdminLevel to get the answer field
-	levelData, err := database.Get("admin_level", map[string]interface{}{"level_number": currentLevelNum})
+	levelData, err := database.Get("levels", map[string]interface{}{"level_number": currentLevelNum})
 	if err != nil {
 		http.Redirect(w, r, "/?error=check_error", http.StatusSeeOther)
 		return
@@ -524,7 +456,6 @@ func SubmitAnswerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// AuthPageHandler serves the authentication page
 func AuthPageHandler(w http.ResponseWriter, r *http.Request) {
 	// If user is already logged in, redirect to main page
 	if _, err := GetUserFromSession(r); err == nil {
@@ -536,36 +467,15 @@ func AuthPageHandler(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "auth.html", data)
 }
 
-// ChatPageHandler serves the chat page
 func ChatPageHandler(w http.ResponseWriter, r *http.Request) {
-	user, err := GetUserFromSession(r)
-	if err != nil {
-		http.Redirect(w, r, "/auth", http.StatusSeeOther)
-		return
-	}
-
-	if isAdminEmail(user.Gmail) {
-		data := PageData{
-			User:    user,
-			IsAdmin: true,
-		}
-		renderTemplate(w, "chat.html", data)
-		return
-	}
-
-	data := PageData{
-		User:    user,
-		IsAdmin: isAdminEmail(user.Gmail),
-	}
-
-	renderTemplate(w, "chat.html", data)
+	http.ServeFile(w, r, "./frontend/chat.html")
 }
 
 func init() {
 	config, err := loadConfig()
 	if err == nil {
-		adminEmails = config.AdminEmails
+		AdminEmails = config.AdminEmails
 	} else {
-		adminEmails = []string{"admin@intrasudo.com", "lead@intrasudo.com", "organizer@intrasudo.com"}
+		AdminEmails = []string{"admin@intrasudo.com", "lead@intrasudo.com", "organizer@intrasudo.com"}
 	}
 }

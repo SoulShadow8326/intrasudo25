@@ -49,7 +49,7 @@ func CreateLvlHandler(w http.ResponseWriter, r *http.Request) {
 		Active:      active,
 	}
 
-	err = database.Create("level", newLvl)
+	err = database.Create("levels", newLvl)
 	if err != nil {
 		http.Redirect(w, r, "/admin/levels/new?error=Failed to create level", http.StatusSeeOther)
 		return
@@ -157,7 +157,7 @@ func AdminPanelHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetAllLevelsHandler(w http.ResponseWriter, r *http.Request) {
-	result, err := database.Get("level", map[string]interface{}{"all": true})
+	result, err := database.Get("levels", map[string]interface{}{"all": true})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to retrieve levels"})
@@ -183,7 +183,7 @@ func GetAllLevelsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetStatsHandler(w http.ResponseWriter, r *http.Request) {
-	result, err := database.Get("level", map[string]interface{}{"all": true})
+	result, err := database.Get("levels", map[string]interface{}{"all": true})
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to retrieve stats"})

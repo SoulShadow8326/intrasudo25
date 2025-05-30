@@ -9,7 +9,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// Database structures - exported for use by other packages
 type Level struct {
 	LevelNumber int    `json:"levelNumber"`
 	Markdown    string `json:"markdown"`
@@ -34,7 +33,7 @@ type Login struct {
 	Name               string
 	Verified           bool
 	VerificationNumber string
-	LoginCode          string // Permanent 4-digit login code
+	LoginCode          string
 	On                 uint
 }
 
@@ -62,7 +61,6 @@ type ChatParticipant struct {
 
 var db *sql.DB
 
-// Initialize database
 func InitDB() {
 	var err error
 	db, err = sql.Open("sqlite3", "./data/logins.db")
@@ -119,7 +117,6 @@ func createTables() {
 	}
 }
 
-// GET - Retrieve data from database
 func Get(entity string, params map[string]interface{}) (interface{}, error) {
 	switch entity {
 	case "login":
@@ -135,6 +132,15 @@ func Get(entity string, params map[string]interface{}) (interface{}, error) {
 		if cookie, ok := params["cookie"].(string); ok {
 			var l Login
 			err := db.QueryRow("SELECT gmail, hashed, seshTok, CSRFtok, name, verified, verificationNumber, loginCode, \"on\" FROM logins WHERE seshTok = ?", cookie).
+				Scan(&l.Gmail, &l.Hashed, &l.SeshTok, &l.CSRFtok, &l.Name, &l.Verified, &l.VerificationNumber, &l.LoginCode, &l.On)
+			if err != nil {
+				return nil, err
+			}
+			return &l, nil
+		}
+		if seshTok, ok := params["seshTok"].(string); ok {
+			var l Login
+			err := db.QueryRow("SELECT gmail, hashed, seshTok, CSRFtok, name, verified, verificationNumber, loginCode, \"on\" FROM logins WHERE seshTok = ?", seshTok).
 				Scan(&l.Gmail, &l.Hashed, &l.SeshTok, &l.CSRFtok, &l.Name, &l.Verified, &l.VerificationNumber, &l.LoginCode, &l.On)
 			if err != nil {
 				return nil, err
@@ -237,7 +243,6 @@ func Get(entity string, params map[string]interface{}) (interface{}, error) {
 			}
 			messages = append(messages, msg)
 		}
-		// Reverse to get chronological order
 		for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
 			messages[i], messages[j] = messages[j], messages[i]
 		}
@@ -290,7 +295,6 @@ func Get(entity string, params map[string]interface{}) (interface{}, error) {
 	return nil, fmt.Errorf("invalid get request")
 }
 
-// CREATE - Insert new data into database
 func Create(entity string, data interface{}) error {
 	switch entity {
 	case "login":
@@ -322,14 +326,24 @@ func Create(entity string, data interface{}) error {
 	return fmt.Errorf("invalid create request")
 }
 
-// UPDATE - Update existing data in database
 func Update(entity string, params map[string]interface{}, data interface{}) error {
 	switch entity {
 	case "login_field":
 		if gmail, ok := params["gmail"].(string); ok {
 			if field, ok := params["field"].(string); ok {
+				if field == "on" {
+					field = `"on"`
+				}
 				query := fmt.Sprintf("UPDATE logins SET %s = ? WHERE gmail = ?", field)
 				_, err := db.Exec(query, data, gmail)
+				return err
+			}
+		}
+	case "login":
+		if seshTok, ok := params["seshTok"].(string); ok {
+			if updateData, ok := data.(map[string]interface{}); ok {
+				_, err := db.Exec("UPDATE logins SET seshTok = ?, CSRFtok = ? WHERE seshTok = ?",
+					updateData["seshTok"], updateData["CSRFtok"], seshTok)
 				return err
 			}
 		}
@@ -362,7 +376,6 @@ func Update(entity string, params map[string]interface{}, data interface{}) erro
 	return fmt.Errorf("invalid update request")
 }
 
-// DELETE - Remove data from database
 func Delete(entity string, params map[string]interface{}) error {
 	switch entity {
 	case "login":

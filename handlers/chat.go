@@ -7,13 +7,11 @@ import (
 	"strings"
 )
 
-// ChatHandler serves the chat page
 func ChatHandler(w http.ResponseWriter, r *http.Request) {
 	// This is handled by ChatPageHandler in pages.go for serving HTML
 	http.Redirect(w, r, "/chat", http.StatusSeeOther)
 }
 
-// ChatAPIHandler handles chat API endpoints
 func ChatAPIHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := GetUserFromSession(r)
 	if err != nil {
@@ -107,7 +105,6 @@ func handleSendMessage(w http.ResponseWriter, r *http.Request, user *database.Lo
 	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
 }
 
-// ChatLeaveHandler handles when users leave chat
 func ChatLeaveHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

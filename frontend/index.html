@@ -56,28 +56,61 @@
         let currentLevel = null;
         let userSession = null;
 
+        // Utility function to get cookies
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+
         async function loadUserSession() {
             try {
-                const response = await fetch('/api/user/session');
+                const response = await fetch('/api/user/session', {
+                    headers: {
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+                    }
+                });
                 userSession = await response.json();
                 checkAdminAccess();
                 loadCurrentLevel();
             } catch (error) {
                 console.error('Failed to load user session:', error);
+                checkAdminAccess();
                 loadCurrentLevel();
             }
         }
 
-        function checkAdminAccess() {
-            const adminEmails = ['admin@intrasudo.com', 'lead@intrasudo.com', 'organizer@intrasudo.com'];
-            if (userSession && userSession.email && adminEmails.includes(userSession.email.toLowerCase())) {
-                document.getElementById('adminLink').style.display = 'inline-block';
+        // Always show admin link if user is admin
+        async function checkAdminAccess() {
+            try {
+                const response = await fetch('/api/user/session', {
+                    headers: {
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+                    }
+                });
+                if (response.ok) {
+                    const userData = await response.json();
+                    if (userData.isAdmin) {
+                        document.getElementById('adminLink').style.display = 'inline-block';
+                    } else {
+                        document.getElementById('adminLink').style.display = 'none';
+                    }
+                } else {
+                    document.getElementById('adminLink').style.display = 'none';
+                }
+            } catch (error) {
+                document.getElementById('adminLink').style.display = 'none';
             }
         }
 
         async function loadCurrentLevel() {
             try {
-                const response = await fetch('/api/user/current-level');
+                const response = await fetch('/api/user/current-level', {
+                    headers: {
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+                    }
+                });
                 currentLevel = await response.json();
                 
                 document.getElementById('levelTitle').textContent = `Level ${currentLevel.number}`;
@@ -110,6 +143,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
                     },
                     body: JSON.stringify({
                         levelId: currentLevel.id,
@@ -145,17 +179,26 @@
 
         async function handleLogout() {
             try {
-                await fetch('/api/auth/logout', { method: 'POST' });
-                window.location.href = 'auth.html';
+                await fetch('/api/auth/logout', { 
+                    method: 'POST',
+                    headers: {
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+                    }
+                });
+                window.location.href = '/auth';
             } catch (error) {
                 console.error('Logout failed:', error);
-                window.location.href = 'auth.html';
+                window.location.href = '/auth';
             }
         }
 
         async function checkNotifications() {
             try {
-                const response = await fetch('/api/notifications/unread-count');
+                const response = await fetch('/api/notifications/unread-count', {
+                    headers: {
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+                    }
+                });
                 const data = await response.json();
                 const notificationDot = document.getElementById('notificationDot');
                 

@@ -19,7 +19,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// CodeCooldown tracks when codes were last sent to prevent spam
 type CodeCooldown struct {
 	mu       sync.RWMutex
 	lastSent map[string]time.Time
@@ -293,20 +292,34 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	cookie, err := r.Cookie("exun_sesh_cookie")
+	if err == nil && cookie.Value != "" {
+		database.Update("login", map[string]interface{}{"seshTok": cookie.Value}, map[string]interface{}{
+			"seshTok": "",
+			"CSRFtok": "",
+		})
+	}
+
 	http.SetCookie(w, &http.Cookie{
-		Name:     "session",
+		Name:     "exun_sesh_cookie",
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1,
 		HttpOnly: true,
 		Secure:   false,
 	})
+	http.SetCookie(w, &http.Cookie{
+		Name:     "X-CSRF_COOKIE",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: false,
+	})
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"message": "logged out successfully"})
 }
 
-// EmailOnly handles email-only registration/login
 func EmailOnly(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -327,7 +340,6 @@ func EmailOnly(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check cooldown - prevent duplicate requests within 60 seconds
 	codeCooldown.mu.RLock()
 	lastSent, exists := codeCooldown.lastSent[gmail]
 	codeCooldown.mu.RUnlock()
@@ -342,11 +354,8 @@ func EmailOnly(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if user exists
 	_, err = database.Get("login", map[string]interface{}{"gmail": gmail})
 	if err != nil {
-		// User doesn't exist, create new user
-		// Generate permanent 4-digit login code
 		salt := generateSalt(16)
 		codeSource := gmail + salt
 		h := sha256.New()
@@ -403,7 +412,6 @@ func EmailOnly(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// EmailVerify handles verification and automatic login
 func EmailVerify(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(10 << 20) // 10 MB max
 	if err != nil {

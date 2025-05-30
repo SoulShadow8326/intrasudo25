@@ -27,8 +27,8 @@ func (h *CustomHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func RegisterRoutes() *CustomHandler {
 	mux := http.NewServeMux()
 
-	// Admin emails for middleware
-	adminEmails := []string{"admin@intrasudo.com", "lead@intrasudo.com", "organizer@intrasudo.com"}
+	// Use dynamic adminEmails from handlers package
+	// Remove hardcoded adminEmails
 
 	mux.HandleFunc("/landing", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./frontend/landing.html")
@@ -38,91 +38,61 @@ func RegisterRoutes() *CustomHandler {
 		http.Redirect(w, r, "/landing", http.StatusSeeOther)
 	})
 	mux.HandleFunc("/auth", handlers.AuthPageHandler)
-
-	// Add direct 404 route
 	mux.HandleFunc("/404", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./frontend/404.html")
 	})
 
-	// Protected routes requiring authentication
 	mux.HandleFunc("/leaderboard", handlers.RequireAuth(handlers.LeaderboardHandler))
 	mux.HandleFunc("/hints", handlers.RequireAuth(handlers.HintsHandler))
 	mux.HandleFunc("/chat", handlers.RequireAuth(handlers.ChatPageHandler))
 
-	// Admin-only routes
-	mux.HandleFunc("/admin", handlers.RequireAdmin(adminEmails)(handlers.AdminDashboardHandler))
-	mux.HandleFunc("/admin/levels/new", handlers.RequireAdmin(adminEmails)(handlers.NewLevelFormHandler))
-
-	// Form submission handlers (protected)
+	// Use handlers.AdminEmails for all admin routes
+	mux.HandleFunc("/admin", handlers.RequireAdmin(handlers.AdminEmails)(handlers.AdminDashboardHandler))
+	mux.HandleFunc("/admin/levels/new", handlers.RequireAdmin(handlers.AdminEmails)(handlers.NewLevelFormHandler))
 	mux.HandleFunc("/submit", handlers.RequireAuth(handlers.SubmitAnswerHandler))
-
-	// Admin form submission handlers
-	mux.HandleFunc("/admin/levels/create", handlers.RequireAdmin(adminEmails)(handlers.CreateLvlHandler))
-	mux.HandleFunc("/admin/levels/", handlers.RequireAdmin(adminEmails)(func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/admin/levels/create", handlers.RequireAdmin(handlers.AdminEmails)(handlers.CreateLvlHandler))
+	mux.HandleFunc("/admin/levels/", handlers.RequireAdmin(handlers.AdminEmails)(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		if strings.HasSuffix(path, "/edit") {
-			// Handle GET request for edit form
 			handlers.EditLevelFormHandler(w, r)
 		} else if strings.HasSuffix(path, "/update") {
-			// Handle POST request for update
 			levelID := strings.TrimSuffix(strings.TrimPrefix(path, "/admin/levels/"), "/update")
 			handlers.UpdateLvlHandler(w, r, levelID)
 		} else if strings.HasSuffix(path, "/delete") {
-			// Handle POST request for delete
 			levelID := strings.TrimSuffix(strings.TrimPrefix(path, "/admin/levels/"), "/delete")
 			handlers.DeleteLvlHandler(w, r, levelID)
 		} else {
-			// Default to edit form handler
-			handlers.EditLevelFormHandler(w, r)
+			handlers.AdminHandler(w, r)
 		}
 	}))
 
-	// Admin user management handlers
-	mux.HandleFunc("/admin/users/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/admin/users/", handlers.RequireAdmin(handlers.AdminEmails)(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		if strings.HasSuffix(path, "/delete") {
-			// Handle POST request for user delete
 			userEmail := strings.TrimSuffix(strings.TrimPrefix(path, "/admin/users/"), "/delete")
 			if r.Method == http.MethodPost {
-				// Check admin access
 				user, err := handlers.GetUserFromSession(r)
 				if err != nil || user == nil {
 					http.Error(w, "Access denied", http.StatusForbidden)
 					return
 				}
-
-				// Check if user is admin
-				adminEmails := []string{"admin@intrasudo.com", "lead@intrasudo.com", "organizer@intrasudo.com"}
-				isAdmin := false
-				for _, adminEmail := range adminEmails {
-					if strings.ToLower(user.Gmail) == adminEmail {
-						isAdmin = true
-						break
-					}
-				}
-				if !isAdmin {
-					http.Error(w, "Access denied", http.StatusForbidden)
-					return
-				}
-
-				// Prevent admin from deleting themselves
 				if user.Gmail == userEmail {
 					http.Redirect(w, r, "/admin?error=Cannot delete your own account", http.StatusSeeOther)
 					return
 				}
-
 				err = database.Delete("login", map[string]interface{}{"gmail": userEmail})
 				if err != nil {
 					http.Redirect(w, r, "/admin?error=Failed to delete user", http.StatusSeeOther)
 					return
 				}
-
 				http.Redirect(w, r, "/admin?success=User deleted successfully", http.StatusSeeOther)
-			} else {
-				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+				return
 			}
 		}
-	})
+		// fallback
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("Not found"))
+	}))
 
 	// Chat API endpoints
 	mux.HandleFunc("/api/chat", handlers.ChatAPIHandler)
@@ -135,7 +105,7 @@ func RegisterRoutes() *CustomHandler {
 	})
 	mux.HandleFunc("/enter/verify", handlers.Verify)
 	mux.HandleFunc("/enter/login", handlers.LoginF)
-	mux.HandleFunc("/enter/logout", handlers.Logout)
+	mux.HandleFunc("/api/auth/logout", handlers.Logout)
 
 	// Email-only authentication (simplified)
 	mux.HandleFunc("/enter/email", handlers.EmailOnly)

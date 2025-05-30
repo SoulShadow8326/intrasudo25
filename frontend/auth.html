@@ -171,9 +171,7 @@
                 
                 if (response.ok) {
                     // Verification successful, user is automatically logged in
-                    showPopup('success', 'Welcome!', 'Successfully logged in. Redirecting...', () => {
-                        window.location.href = '/home';
-                    });
+                    window.location.href = '/home';
                 } else {
                     showError('codeError', data.error || 'Invalid verification code');
                 }
