@@ -19,7 +19,7 @@ func init() {
 func main() {
 	database.InitDB()
 
-	mux := routes.RegisterRoutes()
+	handler := routes.RegisterRoutes()
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -28,5 +28,5 @@ func main() {
 
 	address := fmt.Sprintf(":%s", port)
 	log.Printf("Server running on %s", address)
-	log.Fatal(http.ListenAndServe(address, mux))
+	log.Fatal(http.ListenAndServe(address, handler))
 }

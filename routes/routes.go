@@ -8,44 +8,36 @@ import (
 	"strings"
 )
 
-type CustomHandler struct {
-	mux *http.ServeMux
-}
 
-func (h *CustomHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	_, pattern := h.mux.Handler(r)
-	if pattern == "" {
-		handlers.NotFoundHandler(w, r)
-		return
-	}
 
-	h.mux.ServeHTTP(w, r)
-}
+type CustomHandler = handlers.CustomHandler;
 
-func RegisterRoutes() *CustomHandler {
-	mux := http.NewServeMux()
 
-	mux.HandleFunc("/landing", func(w http.ResponseWriter, r *http.Request) {
+
+func RegisterRoutes() http.Handler {
+	Mux := http.NewServeMux()
+
+	Mux.HandleFunc("/landing", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./frontend/landing.html")
 	})
-	mux.HandleFunc("/home", handlers.IndexHandler)
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	Mux.HandleFunc("/home", handlers.IndexHandler)
+	Mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/landing", http.StatusSeeOther)
 	})
-	mux.HandleFunc("/auth", handlers.AuthPageHandler)
-	mux.HandleFunc("/404", func(w http.ResponseWriter, r *http.Request) {
+	Mux.HandleFunc("/auth", handlers.AuthPageHandler)
+	Mux.HandleFunc("/404", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./frontend/404.html")
 	})
 
-	mux.HandleFunc("/leaderboard", handlers.RequireAuth(handlers.LeaderboardHandler))
-	mux.HandleFunc("/hints", handlers.RequireAuth(handlers.HintsHandler))
-	mux.HandleFunc("/chat", handlers.RequireAuth(handlers.ChatPageHandler))
+	Mux.HandleFunc("/leaderboard", handlers.RequireAuth(handlers.LeaderboardHandler))
+	Mux.HandleFunc("/hints", handlers.RequireAuth(handlers.HintsHandler))
+	Mux.HandleFunc("/chat", handlers.RequireAuth(handlers.ChatPageHandler))
 
-	mux.HandleFunc("/admin", handlers.RequireAdmin(config.GetAdminEmails())(handlers.AdminDashboardHandler))
-	mux.HandleFunc("/admin/levels/new", handlers.RequireAdmin(config.GetAdminEmails())(handlers.NewLevelFormHandler))
-	mux.HandleFunc("/submit", handlers.RequireAuth(handlers.SubmitAnswerFormHandler))
-	mux.HandleFunc("/admin/levels/create", handlers.RequireAdmin(config.GetAdminEmails())(handlers.CreateLvlHandler))
-	mux.HandleFunc("/admin/levels/", handlers.RequireAdmin(config.GetAdminEmails())(func(w http.ResponseWriter, r *http.Request) {
+	Mux.HandleFunc("/admin", handlers.RequireAdmin(config.GetAdminEmails())(handlers.AdminDashboardHandler))
+	Mux.HandleFunc("/admin/levels/new", handlers.RequireAdmin(config.GetAdminEmails())(handlers.NewLevelFormHandler))
+	Mux.HandleFunc("/submit", handlers.RequireAuth(handlers.SubmitAnswerFormHandler))
+	Mux.HandleFunc("/admin/levels/create", handlers.RequireAdmin(config.GetAdminEmails())(handlers.CreateLvlHandler))
+	Mux.HandleFunc("/admin/levels/", handlers.RequireAdmin(config.GetAdminEmails())(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		if strings.HasSuffix(path, "/edit") {
 			handlers.EditLevelFormHandler(w, r)
@@ -60,7 +52,7 @@ func RegisterRoutes() *CustomHandler {
 		}
 	}))
 
-	mux.HandleFunc("/admin/users/", handlers.RequireAdmin(config.GetAdminEmails())(func(w http.ResponseWriter, r *http.Request) {
+	Mux.HandleFunc("/admin/users/", handlers.RequireAdmin(config.GetAdminEmails())(func(w http.ResponseWriter, r *http.Request) {
 		path := r.URL.Path
 		if strings.HasSuffix(path, "/delete") {
 			userEmail := strings.TrimSuffix(strings.TrimPrefix(path, "/admin/users/"), "/delete")
@@ -87,32 +79,32 @@ func RegisterRoutes() *CustomHandler {
 		w.Write([]byte("Not found"))
 	}))
 
-	mux.HandleFunc("/api/chat", handlers.ChatAPIHandler)
-	mux.HandleFunc("/api/chat/leave", handlers.ChatLeaveHandler)
+	Mux.HandleFunc("/api/chat", handlers.ChatAPIHandler)
+	Mux.HandleFunc("/api/chat/leave", handlers.ChatLeaveHandler)
 
-	mux.HandleFunc("/enter/New", handlers.New)
-	mux.HandleFunc("/enter", func(w http.ResponseWriter, r *http.Request) {
+	Mux.HandleFunc("/enter/New", handlers.New)
+	Mux.HandleFunc("/enter", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/enter/New", http.StatusPermanentRedirect)
 	})
-	mux.HandleFunc("/enter/verify", handlers.CORS(handlers.Verify))
-	mux.HandleFunc("/enter/login", handlers.CORS(handlers.LoginF))
-	mux.HandleFunc("/api/auth/logout", handlers.CORS(handlers.Logout))
+	Mux.HandleFunc("/enter/verify", handlers.CORS(handlers.Verify))
+	Mux.HandleFunc("/enter/login", handlers.CORS(handlers.LoginF))
+	Mux.HandleFunc("/api/auth/logout", handlers.CORS(handlers.Logout))
 
-	mux.HandleFunc("/enter/email", handlers.CORS(handlers.EmailOnly))
-	mux.HandleFunc("/enter/email-verify", handlers.CORS(handlers.EmailVerify))
+	Mux.HandleFunc("/enter/email", handlers.CORS(handlers.EmailOnly))
+	Mux.HandleFunc("/enter/email-verify", handlers.CORS(handlers.EmailVerify))
 
-	mux.HandleFunc("/api/question", handlers.GetQuestionHandler)
-	mux.HandleFunc("/api/submit", handlers.SubmitAnswer)
-	mux.HandleFunc("/dashboard", handlers.DashboardPage)
+	Mux.HandleFunc("/api/question", handlers.GetQuestionHandler)
+	Mux.HandleFunc("/api/submit", handlers.SubmitAnswer)
+	Mux.HandleFunc("/dashboard", handlers.DashboardPage)
 
-	mux.HandleFunc("/api/user/session", handlers.UserSessionHandler)
-	mux.HandleFunc("/api/user/current-level", handlers.RequireAuth(handlers.GetCurrentLevelHandler))
+	Mux.HandleFunc("/api/user/session", handlers.UserSessionHandler)
+	Mux.HandleFunc("/api/user/current-level", handlers.RequireAuth(handlers.GetCurrentLevelHandler))
 
-	mux.HandleFunc("/api/submit-answer", handlers.RequireAuth(handlers.SubmitAnswerHandler))
-	mux.HandleFunc("/api/notifications/unread-count", handlers.RequireAuth(handlers.GetNotificationCountHandler))
-	mux.HandleFunc("/api/leaderboard", handlers.RequireAuth(handlers.LeaderboardPage))
+	Mux.HandleFunc("/api/submit-answer", handlers.RequireAuth(handlers.SubmitAnswerHandler))
+	Mux.HandleFunc("/api/notifications/unread-count", handlers.RequireAuth(handlers.GetNotificationCountHandler))
+	Mux.HandleFunc("/api/leaderboard", handlers.RequireAuth(handlers.LeaderboardPage))
 
-	mux.HandleFunc("/api/admin/", func(w http.ResponseWriter, r *http.Request) {
+	Mux.HandleFunc("/api/admin/", func(w http.ResponseWriter, r *http.Request) {
 		if !handlers.AdminAuth(w, r, config.GetAdminEmails()) {
 			return
 		}
@@ -174,15 +166,16 @@ func RegisterRoutes() *CustomHandler {
 		}
 	})
 
-	mux.HandleFunc("/api/secret", handlers.CORS(handlers.GetSecretHandler))
+	Mux.HandleFunc("/api/secret", handlers.CORS(handlers.GetSecretHandler))
 
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./frontend/"))))
-	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./frontend/assets/"))))
-	mux.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("./frontend/css/"))))
-	mux.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("./frontend/js/"))))
-	mux.HandleFunc("/styles.css", func(w http.ResponseWriter, r *http.Request) {
+	Mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./frontend/"))))
+	Mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./frontend/assets/"))))
+	Mux.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("./frontend/css/"))))
+	Mux.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("./frontend/js/"))))
+	Mux.HandleFunc("/styles.css", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./frontend/styles.css")
 	})
 
-	return &CustomHandler{mux: mux}
+	ret_h := &CustomHandler{Mux: Mux};
+	return handlers.CheckHeadersMiddleware(ret_h)
 }

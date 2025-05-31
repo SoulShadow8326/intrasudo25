@@ -1,20 +1,26 @@
-async function getSecret(method = 'GET') {
-    try {
-        const response = await fetch('/api/auth/secret', {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        if (response.ok) {
-            const data = await response.json();
-            return data.secret;
-        }
-        throw new Error('Failed to get secret');
-    } catch (error) {
-        console.error('Failed to get secret:', error);
-        throw error;
-    }
+async function getSecret(message) {
+    const secret = "pizza";
+    // Encode secret and message to Uint8Array
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(secret);
+    const msgData = encoder.encode(message);
+
+    // Import the key for HMAC-SHA256
+    const key = await crypto.subtle.importKey(
+      "raw",
+      keyData,
+      { name: "HMAC", hash: { name: "SHA-256" } },
+      false,
+      ["sign"]
+    );
+
+    const signature = await crypto.subtle.sign("HMAC", key, msgData);
+
+    const bytes = new Uint8Array(signature);
+    let binary = '';
+    for (let b of bytes) binary += String.fromCharCode(b);
+    console.log("secret => " + btoa(binary));
+    return btoa(binary);
 }
 
 function getCookie(name) {
