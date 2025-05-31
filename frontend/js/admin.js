@@ -1,7 +1,5 @@
-// Admin Dashboard JavaScript
 let userSession = null;
 
-// Initialize admin dashboard
 async function initializeAdmin() {
     try {
         await getUserSession();
@@ -16,7 +14,6 @@ async function initializeAdmin() {
     }
 }
 
-// Get user session for CSRF token
 async function getUserSession() {
     try {
         const secret = await getSecret('GET');
@@ -33,7 +30,6 @@ async function getUserSession() {
     }
 }
 
-// Load dashboard statistics
 async function loadStats() {
     try {
         const secret = await getSecret('GET');
@@ -54,14 +50,12 @@ async function loadStats() {
     }
 }
 
-// Update stats display
 function updateStatsDisplay(stats) {
     document.getElementById('totalUsers').textContent = stats.totalUsers || 0;
     document.getElementById('totalLevels').textContent = stats.totalLevels || 0;
     document.getElementById('activeUsers').textContent = stats.activeUsers || 0;
 }
 
-// Load levels from backend
 async function loadLevels() {
     const container = document.getElementById('levelsContainer');
     const loading = document.getElementById('levelsLoading');
@@ -105,7 +99,6 @@ async function loadLevels() {
     }
 }
 
-// Render levels list
 function renderLevels(levels) {
     const list = document.getElementById('levelsList');
     list.innerHTML = levels.map(level => `
@@ -130,7 +123,6 @@ function renderLevels(levels) {
     `).join('');
 }
 
-// Simple create level function
 async function createLevel() {
     const levelNumber = document.getElementById('levelNumber').value;
     const levelQuestion = document.getElementById('levelQuestion').value.trim();
@@ -176,7 +168,6 @@ async function createLevel() {
     }
 }
 
-// Simple delete level function
 async function deleteLevel(levelId) {
     showConfirmModal(
         'Delete Level', 
@@ -208,7 +199,6 @@ async function deleteLevel(levelId) {
     );
 }
 
-// Simple edit level function
 function editLevel(levelId, question, answer, active) {
     document.getElementById('editLevelNumber').value = levelId;
     document.getElementById('editLevelQuestion').value = question;
@@ -219,7 +209,6 @@ function editLevel(levelId, question, answer, active) {
     document.getElementById('editLevelForm').style.display = 'block';
 }
 
-// Simple update level function
 async function updateLevel() {
     const levelId = document.getElementById('editLevelForm').dataset.levelId;
     const levelQuestion = document.getElementById('editLevelQuestion').value.trim();
@@ -264,7 +253,6 @@ async function updateLevel() {
     }
 }
 
-// Load users from backend
 async function loadUsers() {
     const container = document.getElementById('usersContainer');
     
@@ -291,7 +279,6 @@ async function loadUsers() {
     }
 }
 
-// Render users list
 function renderUsers(users) {
     const container = document.getElementById('usersContainer');
     
@@ -324,7 +311,6 @@ function renderUsers(users) {
     `;
 }
 
-// Simple delete user function
 async function deleteUser(email) {
     showConfirmModal(
         'Delete User', 
@@ -355,7 +341,6 @@ async function deleteUser(email) {
     );
 }
 
-// Question state management
 function showQuestionStateSection() {
     document.getElementById('questionStateSection').style.display = 'block';
 }
@@ -383,7 +368,6 @@ function renderQuestionStates(levels) {
     `).join('');
 }
 
-// Simple toggle question state
 async function toggleQuestionState(levelId, enabled) {
     try {
         const secret = await getSecret('PATCH');
@@ -399,18 +383,17 @@ async function toggleQuestionState(levelId, enabled) {
 
         if (response.ok) {
             showNotification(`Question ${enabled ? 'enabled' : 'disabled'} successfully!`, 'success');
-            loadLevels(); // Reload to show updated states
+            loadLevels();
         } else {
             throw new Error('Failed to update question state');
         }
     } catch (error) {
         console.error('Error updating question state:', error);
         showNotification('Failed to update question state. Please try again.', 'error');
-        loadLevels(); // Reload to reset state
+        loadLevels();
     }
 }
 
-// Simple toggle all questions
 async function toggleAllQuestions(enabled) {
     const confirmTitle = enabled ? 'Enable All Questions' : 'Disable All Questions';
     const confirmMessage = enabled ? 
@@ -432,7 +415,7 @@ async function toggleAllQuestions(enabled) {
 
             if (response.ok) {
                 showNotification(`All questions ${enabled ? 'enabled' : 'disabled'} successfully!`, 'success');
-                loadLevels(); // Reload to show updated states
+                loadLevels();
             } else {
                 throw new Error('Failed to update question states');
             }
@@ -443,7 +426,6 @@ async function toggleAllQuestions(enabled) {
     });
 }
 
-// UI helper functions
 function toggleAddLevelForm() {
     const form = document.getElementById('addLevelForm');
     const isVisible = form.classList.contains('show');
@@ -486,7 +468,6 @@ async function refreshUsers() {
     showNotification('Users refreshed!', 'success');
 }
 
-// Logout function
 async function handleLogout() {
     try {
         const secret = await getSecret('POST');
@@ -504,12 +485,10 @@ async function handleLogout() {
         }
     } catch (error) {
         console.error('Error during logout:', error);
-        // Redirect anyway on error
         window.location.href = '/auth';
     }
 }
 
-// Utility functions
 function getCookie(name) {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
@@ -551,7 +530,6 @@ function showNotification(message, type = 'info') {
     }, 4000);
 }
 
-// Confirmation modal functions
 let confirmCallback = null;
 
 function showConfirmModal(title, message, confirmAction) {
@@ -593,7 +571,6 @@ function confirmAction() {
     closeConfirmModal();
 }
 
-// Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     initializeAdmin();
 });

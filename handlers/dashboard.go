@@ -25,16 +25,14 @@ func DashboardPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetQuestionHandler(w http.ResponseWriter, r *http.Request) {
-	var id uint
-	if is_there, login := Authorize(r); is_there {
-		id = login.On
-	} else {
+	user, err := GetUserFromSession(r)
+	if err != nil || user == nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Login pending..."})
 		return
 	}
 
-	result, err := database.Get("levels", map[string]interface{}{"number": int(id), "admin": false})
+	result, err := database.Get("level", map[string]interface{}{"number": int(user.On), "admin": false})
 	if err != nil {
 		w.WriteHeader(http.StatusNotFound)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Question not found"})

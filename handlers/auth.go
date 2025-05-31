@@ -371,9 +371,8 @@ func EmailOnly(w http.ResponseWriter, r *http.Request) {
 }
 
 func EmailVerify(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseMultipartForm(10 << 20) // 10 MB max
+	err := r.ParseMultipartForm(10 << 20)
 	if err != nil {
-		// Try regular form parsing as fallback
 		r.ParseForm()
 	}
 	gmail := r.FormValue("gmail")
@@ -387,23 +386,19 @@ func EmailVerify(w http.ResponseWriter, r *http.Request) {
 	}
 	acc := result.(*database.Login)
 
-	// Check against permanent login code
 	if acc.LoginCode != userProvidedCode {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Incorrect login code"})
 		return
 	}
 
-	// Mark as verified
 	database.Update("login_field", map[string]interface{}{"gmail": gmail, "field": "verified"}, true)
 
-	// Add to leaderboard if new user
 	leaderboardResult, _ := database.Get("leaderboard", map[string]interface{}{"gmail": gmail})
 	if leaderboardResult == nil {
 		database.Create("leaderboard", Sucker{Gmail: gmail, Score: 0})
 	}
 
-	// Automatically log them in
 	seshT := generateTok(32)
 	csrf := generateTok(32)
 	http.SetCookie(w, &http.Cookie{

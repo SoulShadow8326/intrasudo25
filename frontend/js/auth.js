@@ -1,7 +1,5 @@
-// Complete Auth Frontend Implementation
 let userEmail = '';
 
-// Email form submission handler
 async function handleEmailSubmit(event) {
     event.preventDefault();
     
@@ -68,7 +66,6 @@ async function handleEmailSubmit(event) {
     }
 }
 
-// Code verification handler
 async function handleCodeSubmit(event) {
     event.preventDefault();
     
@@ -117,7 +114,6 @@ async function handleCodeSubmit(event) {
     }
 }
 
-// Form navigation functions
 function showCodeForm() {
     document.getElementById('email-form').style.display = 'none';
     document.getElementById('code-form').style.display = 'block';
@@ -133,7 +129,6 @@ function showEmailForm() {
     document.getElementById('email').focus();
 }
 
-// Loading state functions
 function setEmailLoading(loading) {
     const emailButton = document.getElementById('emailButton');
     const emailButtonText = document.getElementById('emailButtonText');
@@ -164,7 +159,6 @@ function setCodeLoading(loading) {
     }
 }
 
-// Error and success display functions
 function showError(elementId, message) {
     const errorElement = document.getElementById(elementId);
     errorElement.textContent = message;
@@ -177,13 +171,11 @@ function hideError(elementId) {
     errorElement.style.display = 'none';
 }
 
-// Email validation
 function validateEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
 }
 
-// Modal popup functions
 function showPopup(type, title, message, callback = null) {
     const modal = document.getElementById('authModal');
     const titleEl = document.getElementById('authModalTitle');
@@ -208,7 +200,6 @@ function hidePopup() {
     modal.classList.remove('show');
 }
 
-// Check for existing session
 async function checkExistingSession() {
     try {
         const response = await fetch('/api/user/session', {
@@ -228,37 +219,31 @@ async function checkExistingSession() {
     }
 }
 
-// Initialize form handlers when DOM loads
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Auth page loaded, setting up form handlers');
     
-    // Email form handler
     const emailForm = document.getElementById('email-form');
     if (emailForm) {
         emailForm.addEventListener('submit', handleEmailSubmit);
         console.log('Email form handler attached');
     }
     
-    // Code form handler
     const codeForm = document.getElementById('code-form');
     if (codeForm) {
         codeForm.addEventListener('submit', handleCodeSubmit);
         console.log('Code form handler attached');
     }
     
-    // Back button handler
     const backButton = document.getElementById('backButton');
     if (backButton) {
         backButton.addEventListener('click', showEmailForm);
         console.log('Back button handler attached');
     }
     
-    // Focus on email input
     const emailInput = document.getElementById('email');
     if (emailInput) {
         emailInput.focus();
     }
     
-    // Check for existing session
     checkExistingSession();
 });

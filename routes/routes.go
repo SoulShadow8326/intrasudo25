@@ -13,23 +13,17 @@ type CustomHandler struct {
 }
 
 func (h *CustomHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Check if the request path has a registered handler
 	_, pattern := h.mux.Handler(r)
 	if pattern == "" {
-		// No handler found, serve 404 page
 		handlers.NotFoundHandler(w, r)
 		return
 	}
 
-	// Serve the request normally
 	h.mux.ServeHTTP(w, r)
 }
 
 func RegisterRoutes() *CustomHandler {
 	mux := http.NewServeMux()
-
-	// Use dynamic adminEmails from handlers package
-	// Remove hardcoded adminEmails
 
 	mux.HandleFunc("/landing", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./frontend/landing.html")
@@ -47,7 +41,6 @@ func RegisterRoutes() *CustomHandler {
 	mux.HandleFunc("/hints", handlers.RequireAuth(handlers.HintsHandler))
 	mux.HandleFunc("/chat", handlers.RequireAuth(handlers.ChatPageHandler))
 
-	// Use config.GetAdminEmails() for all admin routes
 	mux.HandleFunc("/admin", handlers.RequireAdmin(config.GetAdminEmails())(handlers.AdminDashboardHandler))
 	mux.HandleFunc("/admin/levels/new", handlers.RequireAdmin(config.GetAdminEmails())(handlers.NewLevelFormHandler))
 	mux.HandleFunc("/submit", handlers.RequireAuth(handlers.SubmitAnswerFormHandler))
@@ -90,16 +83,13 @@ func RegisterRoutes() *CustomHandler {
 				return
 			}
 		}
-		// fallback
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("Not found"))
 	}))
 
-	// Chat API endpoints
 	mux.HandleFunc("/api/chat", handlers.ChatAPIHandler)
 	mux.HandleFunc("/api/chat/leave", handlers.ChatLeaveHandler)
 
-	// Authentication handlers
 	mux.HandleFunc("/enter/New", handlers.New)
 	mux.HandleFunc("/enter", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/enter/New", http.StatusPermanentRedirect)
@@ -111,20 +101,17 @@ func RegisterRoutes() *CustomHandler {
 	mux.HandleFunc("/enter/email", handlers.CORS(handlers.EmailOnly))
 	mux.HandleFunc("/enter/email-verify", handlers.CORS(handlers.EmailVerify))
 
-	// Legacy API endpoints (for backward compatibility)
 	mux.HandleFunc("/api/question", handlers.GetQuestionHandler)
 	mux.HandleFunc("/api/submit", handlers.SubmitAnswer)
 	mux.HandleFunc("/dashboard", handlers.DashboardPage)
 
-	// User session API
 	mux.HandleFunc("/api/user/session", handlers.UserSessionHandler)
 	mux.HandleFunc("/api/user/current-level", handlers.RequireAuth(handlers.GetCurrentLevelHandler))
 
-	// Game API endpoints
 	mux.HandleFunc("/api/submit-answer", handlers.RequireAuth(handlers.SubmitAnswerHandler))
 	mux.HandleFunc("/api/notifications/unread-count", handlers.RequireAuth(handlers.GetNotificationCountHandler))
+	mux.HandleFunc("/api/leaderboard", handlers.RequireAuth(handlers.LeaderboardPage))
 
-	// Admin API endpoints
 	mux.HandleFunc("/api/admin/", func(w http.ResponseWriter, r *http.Request) {
 		if !handlers.AdminAuth(w, r, config.GetAdminEmails()) {
 			return
@@ -187,10 +174,8 @@ func RegisterRoutes() *CustomHandler {
 		}
 	})
 
-	// API endpoints
 	mux.HandleFunc("/api/secret", handlers.CORS(handlers.GetSecretHandler))
 
-	// Static file serving
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./frontend/"))))
 	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./frontend/assets/"))))
 	mux.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("./frontend/css/"))))

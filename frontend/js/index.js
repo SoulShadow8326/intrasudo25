@@ -1,28 +1,23 @@
 let currentLevel = null;
 let userSession = null;
+let isSubmitting = false;
 
 async function initializePage() {
     try {
-        // First check if user is authenticated
         const sessionData = await loadUserSession();
         if (!sessionData) {
-            // User is not authenticated, redirect to auth page
-            console.log('User not authenticated, redirecting to auth page');
             window.location.href = '/auth';
             return;
         }
 
-        // User is authenticated, proceed with loading the page
         await checkAdminAccess();
         await loadCurrentLevel();
         await checkNotifications();
         
-        // Set up periodic notification checks
         setInterval(checkNotifications, 30000);
         
     } catch (error) {
         console.error('Failed to initialize page:', error);
-        // On any critical error, redirect to auth page
         window.location.href = '/auth';
     }
 }
@@ -39,10 +34,8 @@ async function loadUserSession() {
 
         if (response.ok) {
             userSession = await response.json();
-            console.log('User session loaded successfully:', userSession);
             return userSession;
         } else {
-            console.log('Session API returned non-ok status:', response.status);
             return null;
         }
     } catch (error) {
@@ -88,88 +81,79 @@ async function loadCurrentLevel() {
         }
 
         currentLevel = await response.json();
-        console.log('Current level loaded:', currentLevel);
-        
-        // Update level title
-        const levelTitle = document.getElementById('levelTitle');
-        if (levelTitle) {
-            levelTitle.textContent = `Level ${currentLevel.number}`;
-        }
-        
-        // Update level description (create element if it doesn't exist)
-        let levelDescription = document.getElementById('levelDescription');
-        if (!levelDescription) {
-            levelDescription = document.createElement('div');
-            levelDescription.id = 'levelDescription';
-            levelDescription.style.cssText = 'margin-bottom: 2rem; text-align: center; color: var(--text-color); font-size: 1.1rem; line-height: 1.6;';
-            
-            const levelContent = document.getElementById('levelContent');
-            if (levelContent) {
-                levelContent.insertBefore(levelDescription, levelContent.firstChild);
-            }
-        }
-        levelDescription.textContent = currentLevel.description || '';
-        
-        // Handle media content
-        if (currentLevel.mediaUrl) {
-            const mediaContainer = document.getElementById('levelMedia');
-            if (mediaContainer) {
-                if (currentLevel.mediaType === 'image') {
-                    mediaContainer.innerHTML = `<img src="${currentLevel.mediaUrl}" alt="Level ${currentLevel.number}" style="max-width: 100%; height: auto; margin: 1rem 0; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">`;
-                } else if (currentLevel.mediaType === 'video') {
-                    mediaContainer.innerHTML = `<video controls style="max-width: 100%; height: auto; margin: 1rem 0; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);"><source src="${currentLevel.mediaUrl}" type="video/mp4"></video>`;
-                }
-            }
-        } else {
-            const mediaContainer = document.getElementById('levelMedia');
-            if (mediaContainer) {
-                mediaContainer.innerHTML = '';
-            }
-        }
-        
-        // Clear any previous feedback
-        const feedback = document.getElementById('feedback');
-        if (feedback) {
-            feedback.textContent = '';
-        }
-        
-        // Clear answer input
-        const answerInput = document.getElementById('answerInput');
-        if (answerInput) {
-            answerInput.value = '';
-            answerInput.focus();
-        }
+        updateLevelDisplay();
         
     } catch (error) {
         console.error('Failed to load current level:', error);
-        
-        // Show error message to user
-        const levelTitle = document.getElementById('levelTitle');
-        const levelDescription = document.getElementById('levelDescription');
-        
-        if (levelTitle) {
-            levelTitle.textContent = 'Level Not Found';
-        }
-        
-        if (!levelDescription) {
-            levelDescription = document.createElement('div');
-            levelDescription.id = 'levelDescription';
-            levelDescription.style.cssText = 'margin-bottom: 2rem; text-align: center; color: var(--text-color); font-size: 1.1rem; line-height: 1.6;';
-            
-            const levelContent = document.getElementById('levelContent');
-            if (levelContent) {
-                levelContent.insertBefore(levelDescription, levelContent.firstChild);
+        handleLevelLoadError(error);
+    }
+}
+
+function updateLevelDisplay() {
+    const levelTitle = document.getElementById('levelTitle');
+    if (levelTitle) {
+        levelTitle.textContent = `Level ${currentLevel.number}`;
+    }
+    
+    const existingDescription = document.getElementById('levelDescription');
+    if (existingDescription) {
+        existingDescription.remove();
+    }
+    
+    if (currentLevel.mediaUrl) {
+        const mediaContainer = document.getElementById('levelMedia');
+        if (mediaContainer) {
+            if (currentLevel.mediaType === 'image') {
+                mediaContainer.innerHTML = `<img src="${currentLevel.mediaUrl}" alt="Level ${currentLevel.number}" style="max-width: 100%; height: auto; margin: 1rem 0; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">`;
+            } else if (currentLevel.mediaType === 'video') {
+                mediaContainer.innerHTML = `<video controls style="max-width: 100%; height: auto; margin: 1rem 0; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);"><source src="${currentLevel.mediaUrl}" type="video/mp4"></video>`;
             }
         }
-        
-        if (error.message.includes('401')) {
-            levelDescription.textContent = 'Authentication required. Please log in again.';
-            setTimeout(() => {
-                window.location.href = '/auth';
-            }, 2000);
-        } else {
-            levelDescription.textContent = 'Failed to load level content. Please try refreshing the page.';
+    } else {
+        const mediaContainer = document.getElementById('levelMedia');
+        if (mediaContainer) {
+            mediaContainer.innerHTML = '';
         }
+    }
+    
+    const feedback = document.getElementById('feedback');
+    if (feedback) {
+        feedback.textContent = '';
+    }
+    
+    const answerInput = document.getElementById('answerInput');
+    if (answerInput) {
+        answerInput.value = '';
+        answerInput.focus();
+    }
+}
+
+function handleLevelLoadError(error) {
+    const levelTitle = document.getElementById('levelTitle');
+    const levelDescription = document.getElementById('levelDescription');
+    
+    if (levelTitle) {
+        levelTitle.textContent = 'Level Not Found';
+    }
+        
+    if (!levelDescription) {
+        levelDescription = document.createElement('div');
+        levelDescription.id = 'levelDescription';
+        levelDescription.style.cssText = 'margin-bottom: 2rem; text-align: center; color: var(--text-color); font-size: 1.1rem; line-height: 1.6;';
+        
+        const levelContent = document.getElementById('levelContent');
+        if (levelContent) {
+            levelContent.insertBefore(levelDescription, levelContent.firstChild);
+        }
+    }
+    
+    if (error.message.includes('401')) {
+        levelDescription.textContent = 'Authentication required. Please log in again.';
+        setTimeout(() => {
+            window.location.href = '/auth';
+        }, 2000);
+    } else {
+        levelDescription.textContent = 'Failed to load level content. Please try refreshing the page.';
     }
 }
 
@@ -239,10 +223,8 @@ async function handleSubmit() {
             feedback.textContent = 'Correct! Loading next level...';
             feedback.style.color = '#28a745';
             
-            // Clear the input
             answerInput.value = '';
             
-            // Load next level after a short delay
             setTimeout(async () => {
                 await loadCurrentLevel();
                 feedback.textContent = '';
@@ -252,7 +234,6 @@ async function handleSubmit() {
             feedback.textContent = result.message || 'Incorrect answer. Try again.';
             feedback.style.color = '#dc3545';
             
-            // Clear feedback after delay
             setTimeout(() => {
                 feedback.textContent = '';
                 feedback.style.color = 'var(--primary)';
@@ -289,7 +270,6 @@ async function handleLogout() {
     } catch (error) {
         console.error('Logout failed:', error);
     } finally {
-        // Always redirect to auth page, even if logout fails
         window.location.href = '/auth';
     }
 }
@@ -321,7 +301,6 @@ async function checkNotifications() {
     }
 }
 
-// Initialize page when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Index page loaded, initializing...');
     initializePage();

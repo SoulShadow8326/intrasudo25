@@ -1,4 +1,7 @@
-/* Content Cards and Layout */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
 .content-card {
     background: transparent;
     border: none;
@@ -12,7 +15,6 @@
     min-height: 60vh;
 }
 
-/* Auth card specific override */
 .content-card.auth-card {
     min-height: auto;
     max-height: fit-content;
@@ -42,7 +44,6 @@
     gap: 1rem;
 }
 
-/* Landing Page */
 .landing-description {
     text-align: center;
     margin: 2rem 0;
@@ -84,7 +85,6 @@
     transform: translateY(0);
 }
 
-/* Leaderboard */
 .leaderboard-title {
     font-size: 1.875rem;
     font-weight: bold;
@@ -93,26 +93,84 @@
     text-align: center;
 }
 
+.leaderboard-wrapper {
+    width: 800px;
+    min-width: 800px;
+    max-width: 800px;
+    margin: 0 auto;
+    overflow: hidden;
+    box-sizing: border-box;
+    position: relative;
+}
+
+.leaderboard-container {
+    width: 800px;
+    min-width: 800px;
+    max-width: 800px;
+    margin: 0 auto;
+    height: 70vh;
+    min-height: 500px;
+    max-height: 650px;
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow-x: hidden;
+    overflow-y: auto;
+    box-sizing: border-box;
+    position: relative;
+    padding: 0;
+}
+
 .leaderboard-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.5rem 3rem;
-    margin-bottom: 1.5rem;
-    font-size: 1.1rem;
+    padding: 1.25rem 2.5rem;
+    font-size: 1rem;
     font-weight: 600;
-    color: rgba(255, 255, 255, 0.8);
+    color: rgba(255, 255, 255, 0.7);
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
     width: 100%;
-    max-width: 800px;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 0.75rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    min-height: 70px;
-    margin: 0 auto 1.5rem auto;
+    box-sizing: border-box;
+}
+
+.leaderboard-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(41, 119, 245, 0.5) rgba(255, 255, 255, 0.1);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.leaderboard-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.leaderboard-body::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.leaderboard-body::-webkit-scrollbar-thumb {
+    background: rgba(41, 119, 245, 0.5);
+    border-radius: 4px;
+}
+
+.leaderboard-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(41, 119, 245, 0.7);
 }
 
 .rank-header {
-    width: 80px;
+    width: 70px;
     text-align: center;
     flex-shrink: 0;
 }
@@ -120,12 +178,12 @@
 .name-header {
     flex: 1;
     text-align: left;
-    margin-left: 3rem;
+    margin-left: 2rem;
     margin-right: 2rem;
 }
 
 .level-header {
-    width: 100px;
+    width: 120px;
     text-align: center;
     flex-shrink: 0;
 }
@@ -134,68 +192,196 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    padding: 1rem 1rem 8rem 1rem;
     width: 100%;
-    max-width: 800px;
-    margin: 0 auto;
+    box-sizing: border-box;
 }
 
 .leaderboard-entry {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 2rem 3rem;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 1.5rem 2.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 0.75rem;
-    min-height: 100px;
-    transition: all 0.3s ease;
-    cursor: pointer;
-}
-
-.leaderboard-entry:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(41, 119, 245, 0.3);
-    transform: translateY(-2px);
+    cursor: default;
+    width: 100%;
+    box-sizing: border-box;
+    max-width: 100%;
+    min-width: 0;
+    margin-left: 0;
+    margin-right: 0;
+    flex-wrap: nowrap;
+    overflow: hidden;
 }
 
 .rank {
-    width: 80px;
-    height: 4rem;
+    width: 70px;
+    height: auto;
     text-align: center;
-    font-weight: bold;
+    font-weight: 800;
     color: var(--primary);
-    font-size: 1.6rem;
-    background: rgba(41, 119, 245, 0.15);
-    border-radius: 50%;
+    font-size: 1.4rem;
+    background: none;
+    border: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 2px solid var(--primary);
     flex-shrink: 0;
 }
 
 .name {
-    flex: 1;
+    flex: 0 0 400px;
     text-align: left;
     color: var(--foreground);
-    font-size: 1.4rem;
+    font-size: 1.25rem;
     font-weight: 600;
-    margin-left: 3rem;
+    margin-left: 2rem;
     margin-right: 2rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 400px;
+    min-width: 400px;
+    max-width: 400px;
 }
 
 .level {
-    width: 100px;
-    height: 3rem;
+    width: 120px;
+    height: 42px;
     text-align: center;
     font-weight: bold;
     color: var(--primary);
-    font-size: 1.4rem;
-    background: rgba(41, 119, 245, 0.15);
-    border-radius: 0.5rem;
+    font-size: 1.1rem;
+    background: rgba(41, 119, 245, 0.1);
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid var(--primary);
+    border: 1px solid rgba(41, 119, 245, 0.3);
     flex-shrink: 0;
+}
+
+.leaderboard-entry.top-three {
+    background: rgba(255, 215, 0, 0.08);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.rank-first {
+    color: #FFD700 !important;
+    font-size: 1.8rem !important;
+    font-weight: 900 !important;
+}
+
+.rank-second {
+    color: #C0C0C0 !important;
+    font-size: 1.7rem !important;
+    font-weight: 900 !important;
+}
+
+.rank-third {
+    color: #CD7F32 !important;
+    font-size: 1.6rem !important;
+    font-weight: 900 !important;
+}
+
+@media (max-width: 768px) {
+    .leaderboard-wrapper {
+        width: 100%;
+        min-width: 320px;
+        max-width: 100%;
+        padding: 0;
+        overflow-x: hidden;
+        overflow-y: hidden;
+    }
+    
+    .leaderboard-container {
+        height: 60vh;
+        min-height: 400px;
+        max-height: 500px;
+        margin-bottom: 10rem;
+        width: 100%;
+        min-width: 320px;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+    
+    .leaderboard-header,
+    .leaderboard-entry {
+        padding: 1rem 1.5rem;
+        width: 100%;
+    }
+    
+    .leaderboard-header {
+        font-size: 0.9rem;
+    }
+    
+    .rank-header {
+        width: 50px;
+    }
+    
+    .name-header {
+        margin-left: 1rem;
+        margin-right: 1rem;
+    }
+    
+    .level-header {
+        width: 80px;
+    }
+    
+    .leaderboard-body {
+        padding-bottom: 2rem;
+        width: 100%;
+        overflow-x: hidden;
+    }
+    
+    .leaderboard-list {
+        padding: 1rem 0.5rem 10rem 0.5rem;
+        width: 100%;
+    }
+    
+    .rank {
+        width: 55px;
+        height: auto;
+        font-size: 1.2rem;
+    }
+    
+    .rank-first {
+        font-size: 1.5rem !important;
+        color: #FFD700 !important;
+        font-weight: 900 !important;
+    }
+    
+    .rank-second {
+        font-size: 1.4rem !important;
+        color: #C0C0C0 !important;
+        font-weight: 900 !important;
+    }
+    
+    .rank-third {
+        font-size: 1.3rem !important;
+        color: #CD7F32 !important;
+        font-weight: 900 !important;
+    }
+    
+    .name {
+        font-size: 1.1rem;
+        margin-left: 0.8rem;
+        margin-right: 0.8rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        flex: 1;
+        width: auto;
+        min-width: 0;
+        max-width: none;
+    }
+    
+    .level {
+        width: 85px;
+        height: 38px;
+        font-size: 0.95rem;
+        border-radius: 8px;
+    }
 }

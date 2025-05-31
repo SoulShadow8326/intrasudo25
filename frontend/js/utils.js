@@ -97,7 +97,6 @@ function showNotification(message, type = 'info') {
     }, 4000);
 }
 
-// Mobile menu toggle function
 function toggleMobileMenu() {
     const mobileMenu = document.getElementById('mobileNavMenu');
     const menuToggle = document.querySelector('.mobile-menu-toggle');
@@ -117,7 +116,6 @@ function toggleMobileMenu() {
     }
 }
 
-// Close mobile menu when clicking outside
 document.addEventListener('click', function(event) {
     const mobileMenu = document.getElementById('mobileNavMenu');
     const menuToggle = document.querySelector('.mobile-menu-toggle');
@@ -132,7 +130,6 @@ document.addEventListener('click', function(event) {
     }
 });
 
-// Close mobile menu when a link is clicked
 document.addEventListener('DOMContentLoaded', function() {
     const mobileNavLinks = document.querySelectorAll('.mobile-nav-links .nav-link');
     mobileNavLinks.forEach(link => {
@@ -148,7 +145,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Handle logout functionality
 async function handleLogout() {
     try {
         const secret = await getSecret('POST');

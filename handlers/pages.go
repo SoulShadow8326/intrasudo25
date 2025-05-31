@@ -53,7 +53,6 @@ func isAdminEmail(email string) bool {
 func renderTemplate(w http.ResponseWriter, templateName string, data PageData) {
 	templatePath := filepath.Join("frontend", templateName)
 
-	// Create template with custom functions
 	tmpl := template.New(templateName).Funcs(template.FuncMap{
 		"add": func(a, b int) int {
 			return a + b
@@ -81,8 +80,6 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Simply serve the index.html file for authenticated users
-	// The JavaScript will handle loading level data via API calls
 	http.ServeFile(w, r, "./frontend/index.html")
 }
 
@@ -106,7 +103,6 @@ func AdminHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get admin levels
 	levelsData, err := database.Get("levels", map[string]interface{}{})
 	var levels []database.AdminLevel
 	if err != nil {
@@ -140,7 +136,6 @@ func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Load admin data
 	levelsData, err := database.Get("levels", map[string]interface{}{})
 	var levels []database.AdminLevel
 	if err != nil {
@@ -171,7 +166,6 @@ func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 		ActiveUsers: countActiveUsers(users),
 	}
 
-	// Get error/success messages from query parameters
 	errorMsg := r.URL.Query().Get("error")
 	successMsg := r.URL.Query().Get("success")
 
@@ -195,7 +189,6 @@ func NewLevelFormHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get error messages from query parameters
 	errorMsg := r.URL.Query().Get("error")
 
 	data := AdminPageData{
@@ -234,7 +227,6 @@ func EditLevelFormHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get error messages from query parameters
 	errorMsg := r.URL.Query().Get("error")
 
 	data := AdminPageData{
@@ -248,8 +240,6 @@ func EditLevelFormHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func countActiveUsers(users []database.Login) int {
-	// For now, count all users as active
-	// This could be enhanced to check last login time
 	return len(users)
 }
 
@@ -312,7 +302,6 @@ func SubmitAnswerFormHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get current user level
 	loginData, err := database.Get("login", map[string]interface{}{"gmail": user.Gmail})
 	if err != nil {
 		http.Redirect(w, r, "/?error=level_error", http.StatusSeeOther)
@@ -325,7 +314,6 @@ func SubmitAnswerFormHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	currentLevelNum := login.On
 
-	// Check answer using AdminLevel to get the answer field
 	levelData, err := database.Get("levels", map[string]interface{}{"level_number": currentLevelNum})
 	if err != nil {
 		http.Redirect(w, r, "/?error=check_error", http.StatusSeeOther)
@@ -340,7 +328,6 @@ func SubmitAnswerFormHandler(w http.ResponseWriter, r *http.Request) {
 	correct := (answer == adminLevel.Answer)
 
 	if correct {
-		// Update user's current level
 		newLevel := currentLevelNum + 1
 		err = database.Update("login_field",
 			map[string]interface{}{"gmail": user.Gmail, "field": "on"},
@@ -350,7 +337,6 @@ func SubmitAnswerFormHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Update score (could be level number or points system)
 		err = database.Update("login_field",
 			map[string]interface{}{"gmail": user.Gmail, "field": "score"},
 			map[string]interface{}{"value": newLevel - 1})
@@ -366,7 +352,6 @@ func SubmitAnswerFormHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func AuthPageHandler(w http.ResponseWriter, r *http.Request) {
-	// If user is already logged in, redirect to main page
 	if _, err := GetUserFromSession(r); err == nil {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return

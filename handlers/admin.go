@@ -13,7 +13,6 @@ func CreateLvlHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check admin access
 	user, err := GetUserFromSession(r)
 	if err != nil || user == nil || !isAdminEmail(user.Gmail) {
 		http.Error(w, "Access denied", http.StatusForbidden)
@@ -71,7 +70,6 @@ func UpdateLvlHandler(w http.ResponseWriter, r *http.Request, id string) {
 		return
 	}
 
-	// Check admin access
 	user, err := GetUserFromSession(r)
 	if err != nil || user == nil || !isAdminEmail(user.Gmail) {
 		w.Header().Set("Content-Type", "application/json")
@@ -222,7 +220,6 @@ func DeleteUserHandler(w http.ResponseWriter, r *http.Request, email string) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "User deleted successfully"})
 }
 
-// ToggleLevelStateHandler handles enabling/disabling specific levels
 func ToggleLevelStateHandler(w http.ResponseWriter, r *http.Request, id string) {
 	if r.Method != http.MethodPatch {
 		w.Header().Set("Content-Type", "application/json")
@@ -271,7 +268,6 @@ func ToggleLevelStateHandler(w http.ResponseWriter, r *http.Request, id string) 
 	json.NewEncoder(w).Encode(map[string]string{"message": "Level state updated successfully"})
 }
 
-// ToggleAllLevelsStateHandler handles enabling/disabling all levels
 func ToggleAllLevelsStateHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPatch {
 		w.Header().Set("Content-Type", "application/json")

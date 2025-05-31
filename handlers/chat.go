@@ -8,7 +8,6 @@ import (
 )
 
 func ChatHandler(w http.ResponseWriter, r *http.Request) {
-	// This is handled by ChatPageHandler in pages.go for serving HTML
 	http.Redirect(w, r, "/chat", http.StatusSeeOther)
 }
 
@@ -19,7 +18,6 @@ func ChatAPIHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Update participant status
 	adminEmails := []string{"admin@intrasudo.com", "lead@intrasudo.com", "organizer@intrasudo.com"}
 	isAdmin := false
 	email := strings.ToLower(user.Gmail)
@@ -80,7 +78,6 @@ func handleSendMessage(w http.ResponseWriter, r *http.Request, user *database.Lo
 		return
 	}
 
-	// Check if user is admin
 	adminEmails := []string{"admin@intrasudo.com", "lead@intrasudo.com", "organizer@intrasudo.com"}
 	isAdmin := false
 	email := strings.ToLower(user.Gmail)
@@ -113,10 +110,9 @@ func ChatLeaveHandler(w http.ResponseWriter, r *http.Request) {
 
 	user, err := GetUserFromSession(r)
 	if err != nil {
-		return // User not logged in, nothing to do
+		return
 	}
 
-	// Check if user is admin
 	adminEmails := []string{"admin@intrasudo.com", "lead@intrasudo.com", "organizer@intrasudo.com"}
 	isAdmin := false
 	email := strings.ToLower(user.Gmail)

@@ -30,7 +30,7 @@
     flex: 1;
     display: flex;
     justify-content: flex-end;
-    gap: 2.5rem; /* Increased spacing between nav items */
+    gap: 2.5rem;
 }
 
 .logo-link {
@@ -71,12 +71,12 @@
 }
 
 .nav-link:hover {
-    color: #2977f5 !important; /* Force Exun blue on hover */
+    color: #2977f5 !important;
     transform: translateY(-1px);
 }
 
 .nav-link.active {
-    color: #2977f5 !important; /* Force Exun blue for active */
+    color: #2977f5 !important;
     font-weight: 600;
 }
 
@@ -92,7 +92,7 @@
 }
 
 .logo-link:hover .nav-brand {
-    color: #2977f5 !important; /* Force Exun blue on brand hover */
+    color: #2977f5 !important;
 }
 
 .nav-brand {
@@ -106,9 +106,8 @@
     color: #2977f5 !important;
 }
 
-/* Mobile Navigation */
 .mobile-menu-toggle {
-    display: none; /* Hide by default (on desktop) */
+    display: none;
     justify-content: center;
     align-items: center;
     cursor: pointer;
@@ -146,8 +145,6 @@
     background: rgba(41, 119, 245, 0.2);
     transform: translateY(-1px);
 }
-
-/* We replaced span elements with the logo image */
 
 .mobile-nav-menu {
     display: none;
@@ -198,7 +195,6 @@
     font-weight: 600;
 }
 
-/* Mobile Responsive */
 @media screen and (max-width: 768px) {
     .nav-center,
     .nav-right {
@@ -216,12 +212,10 @@
         display: flex;
     }
     
-    /* Prevent body scroll when mobile menu is open */
     body.mobile-menu-open {
         overflow: hidden;
     }
     
-    /* Improve mobile navigation padding */
     .navbar {
         padding: 0 4%;
     }
@@ -236,7 +230,6 @@
     }
 }
 
-/* Ensure it's hidden on desktop/larger screens */
 @media screen and (min-width: 769px) {
     .mobile-menu-toggle,
     .mobile-nav-menu {

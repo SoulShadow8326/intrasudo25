@@ -41,6 +41,8 @@ body {
     align-items: center;
     gap: 2rem;
     text-align: center;
+    overflow-x: auto;
+    width: 100%;
 }
 
 .page-container {
@@ -64,4 +66,19 @@ body {
     font-weight: bold;
     color: var(--foreground);
     margin: 0;
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        overflow-x: hidden;
+        padding: 0 1rem;
+    }
+    
+    .main-container {
+        padding: 0;
+    }
+    
+    .level-heading {
+        font-size: 2rem;
+    }
 }

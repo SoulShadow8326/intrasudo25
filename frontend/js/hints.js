@@ -8,27 +8,78 @@ function getCookie(name) {
 async function loadHints() {
     try {
         const secret = await getSecret('GET');
+        console.log('Loading hints from /api/question...');
+        
         const response = await fetch('/api/question', {
             headers: {
                 'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
                 'X-secret': secret
             }
         });
+        
+        console.log('Hints API response status:', response.status);
+        
+        const questionContainer = document.getElementById('levelQuestionContainer');
+        const hintsContainer = document.getElementById('hintsContainer');
+        
+        questionContainer.style.display = 'none';
+        
         if (!response.ok) {
-            document.getElementById('hintsContainer').innerHTML = '<div class="hint-item" style="text-align: center; color: rgba(255, 255, 255, 0.7);">No question available yet</div>';
+            console.log('API response not ok, status:', response.status);
+            hintsContainer.innerHTML = '<div class="hint-item" style="text-align: center; color: rgba(255, 255, 255, 0.7);">No hints available yet</div>';
             return;
         }
+        
         const data = await response.json();
-        const container = document.getElementById('hintsContainer');
+        console.log('Hints API response data:', data);
+        
         if (data && data.question) {
             const q = data.question;
-            if ((q.levelNumber !== undefined && q.markdown !== undefined && q.markdown !== null && q.markdown !== "")) {
-                container.innerHTML = `<div class="hint-item"><h3 class="hint-title">Level ${q.levelNumber}</h3><p class="hint-text">${q.markdown}</p></div>`;
+            console.log('Level question data:', q);
+            
+            if (q.sourceHint || q.consoleHint) {
+                console.log('Displaying hints');
+                
+                const hintText = q.sourceHint || q.consoleHint;
+                
+                hintsContainer.innerHTML = `
+                    <div class="hint-item" style="
+                        text-align: center;
+                        padding: 3rem;
+                        margin: 2rem auto;
+                        max-width: 600px;
+                        background: rgba(255, 255, 255, 0.05);
+                        border: 2px solid rgba(255, 255, 255, 0.1);
+                        border-radius: 1rem;
+                        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+                    ">
+                        <p class="hint-text" style="
+                            font-size: 3rem;
+                            font-weight: bold;
+                            color: var(--primary);
+                            margin: 0;
+                            letter-spacing: 0.1em;
+                            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+                        ">${hintText}</p>
+                    </div>
+                `;
                 return;
+            } else {
+                console.log('No specific hints available');
             }
+        } else {
+            console.log('No question data in response');
         }
-        document.getElementById('hintsContainer').innerHTML = '<div class="hint-item" style="text-align: center; color: rgba(255, 255, 255, 0.7);">No question available yet</div>';
+        
+        hintsContainer.innerHTML = `
+            <div class="hint-item">
+                <h3 class="hint-title">General Hint</h3>
+                <p class="hint-text">Study the question carefully. Look for patterns, hidden meanings, or references that might lead you to the answer.</p>
+            </div>
+        `;
     } catch (error) {
+        console.error('Error loading hints:', error);
+        document.getElementById('levelQuestionContainer').style.display = 'none';
         document.getElementById('hintsContainer').innerHTML = '<div class="hint-item" style="text-align: center; color: #dc3545;">Failed to load hints</div>';
     }
 }
