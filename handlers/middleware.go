@@ -204,7 +204,7 @@ func IsSecretValid(r *http.Request) bool {
         fmt.Println("NO SECRET?")
         return false
     }
-    secret := os.Getenv("salt")
+    secret := os.Getenv("X_SECRET_VALUE")
     method := r.Method
 
     mac := hmac.New(sha256.New, []byte(secret))
