@@ -47,9 +47,5 @@ func GetEmailConfig() EmailConfig {
 }
 
 func GetXSecretValue() string {
-	value := os.Getenv("X_SECRET_VALUE")
-	if value == "" {
-		return "pizza"
-	}
-	return value
+	return os.Getenv("X_SECRET_VALUE")
 }
