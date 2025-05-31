@@ -25,6 +25,10 @@ async function initializePage() {
 async function loadUserSession() {
     try {
         const secret = await getSecret('GET');
+        if (!secret) {
+            return null;
+        }
+        
         const response = await fetch('/api/user/session', {
             headers: {
                 'CSRFtok': getCookie('X-CSRF_COOKIE') || '',

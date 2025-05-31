@@ -8,6 +8,10 @@ function getCookie(name) {
 async function loadLeaderboard() {
     try {
         const secret = await getSecret('GET');
+        if (!secret) {
+            throw new Error('Authentication service unavailable');
+        }
+        
         const response = await fetch('/api/leaderboard', {
             headers: {
                 'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
@@ -67,6 +71,8 @@ async function loadLeaderboard() {
 async function checkNotifications() {
     try {
         const secret = await getSecret('GET');
+        if (!secret) return;
+        
         const response = await fetch('/api/notifications/unread-count', {
             headers: {
                 'CSRFtok': getCookie('X-CSRF_COOKIE') || '',

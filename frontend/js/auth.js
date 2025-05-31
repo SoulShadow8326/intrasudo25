@@ -19,6 +19,11 @@ async function handleEmailSubmit(event) {
     hideError('emailError');
     
     try {
+        const secret = await getSecret('POST');
+        if (!secret) {
+            throw new Error('Authentication service unavailable');
+        }
+        
         const params = new URLSearchParams();
         params.append('gmail', email);
         
@@ -28,7 +33,7 @@ async function handleEmailSubmit(event) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'X-secret': 'pizza'
+                'X-secret': secret
             },
             body: params
         });
@@ -80,6 +85,11 @@ async function handleCodeSubmit(event) {
     hideError('codeError');
     
     try {
+        const secret = await getSecret('POST');
+        if (!secret) {
+            throw new Error('Authentication service unavailable');
+        }
+        
         const params = new URLSearchParams();
         params.append('gmail', userEmail);
         params.append('vnum', code);
@@ -90,7 +100,7 @@ async function handleCodeSubmit(event) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
-                'X-secret': 'pizza'
+                'X-secret': secret
             },
             body: params
         });
@@ -202,9 +212,12 @@ function hidePopup() {
 
 async function checkExistingSession() {
     try {
+        const secret = await getSecret('GET');
+        if (!secret) return;
+        
         const response = await fetch('/api/user/session', {
             headers: {
-                'X-secret': 'pizza'
+                'X-secret': secret
             }
         });
         if (response.ok) {

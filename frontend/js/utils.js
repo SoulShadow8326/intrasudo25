@@ -1,5 +1,20 @@
 async function getSecret(method = 'GET') {
-    return 'pizza';
+    try {
+        const response = await fetch('/api/auth/secret', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        if (response.ok) {
+            const data = await response.json();
+            return data.secret;
+        }
+        throw new Error('Failed to get secret');
+    } catch (error) {
+        console.error('Failed to get secret:', error);
+        throw error;
+    }
 }
 
 function getCookie(name) {

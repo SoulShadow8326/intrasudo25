@@ -143,6 +143,10 @@ async function createLevel() {
 
     try {
         const secret = await getSecret('POST');
+        if (!secret) {
+            throw new Error('Authentication service unavailable');
+        }
+        
         const response = await fetch('/api/admin/levels', {
             method: 'POST',
             headers: {

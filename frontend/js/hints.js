@@ -8,6 +8,10 @@ function getCookie(name) {
 async function loadHints() {
     try {
         const secret = await getSecret('GET');
+        if (!secret) {
+            throw new Error('Authentication service unavailable');
+        }
+        
         console.log('Loading hints from /api/question...');
         
         const response = await fetch('/api/question', {

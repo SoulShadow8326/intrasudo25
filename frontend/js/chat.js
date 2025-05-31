@@ -130,6 +130,10 @@ async function handleChatSubmit(event) {
     
     try {
         const secret = await getSecret('POST');
+        if (!secret) {
+            throw new Error('Authentication service unavailable');
+        }
+        
         const response = await fetch('/api/chat/send', {
             method: 'POST',
             headers: {
