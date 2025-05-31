@@ -1,27 +1,4 @@
-async function getSecret(message) {
-    const secret = "pizza";
-    // Encode secret and message to Uint8Array
-    const encoder = new TextEncoder();
-    const keyData = encoder.encode(secret);
-    const msgData = encoder.encode(message);
 
-    // Import the key for HMAC-SHA256
-    const key = await crypto.subtle.importKey(
-      "raw",
-      keyData,
-      { name: "HMAC", hash: { name: "SHA-256" } },
-      false,
-      ["sign"]
-    );
-
-    const signature = await crypto.subtle.sign("HMAC", key, msgData);
-
-    const bytes = new Uint8Array(signature);
-    let binary = '';
-    for (let b of bytes) binary += String.fromCharCode(b);
-    console.log("secret => " + btoa(binary));
-    return btoa(binary);
-}
 
 function getCookie(name) {
     const value = `; ${document.cookie}`;
@@ -32,11 +9,9 @@ function getCookie(name) {
 
 async function checkUserSession() {
     try {
-        const secret = await getSecret('GET');
         const response = await fetch('/api/user/session', {
             headers: {
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
-                'X-secret': secret
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
             }
         });
         if (response.ok) {
@@ -50,11 +25,9 @@ async function checkUserSession() {
 
 async function checkAdminAccess() {
     try {
-        const secret = await getSecret('GET');
         const response = await fetch('/api/user/session', {
             headers: {
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
-                'X-secret': secret
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
             }
         });
         if (response.ok) {
@@ -168,12 +141,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function handleLogout() {
     try {
-        const secret = await getSecret('POST');
         const response = await fetch('/api/auth/logout', {
-            method: 'POST',
-            headers: {
-                'X-secret': secret
-            }
+            method: 'POST'
         });
         
         if (response.ok) {

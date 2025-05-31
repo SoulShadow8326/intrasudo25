@@ -16,12 +16,7 @@ async function initializeAdmin() {
 
 async function getUserSession() {
     try {
-        const secret = await getSecret('GET');
-        const response = await fetch('/api/user/session', {
-            headers: {
-                'X-secret': secret
-            }
-        });
+        const response = await fetch('/api/user/session');
         if (response.ok) {
             userSession = await response.json();
         }
@@ -32,12 +27,7 @@ async function getUserSession() {
 
 async function loadStats() {
     try {
-        const secret = await getSecret('GET');
-        const response = await fetch('/api/admin/stats', {
-            headers: {
-                'X-secret': secret
-            }
-        });
+        const response = await fetch('/api/admin/stats');
         if (response.ok) {
             const stats = await response.json();
             updateStatsDisplay(stats);
@@ -67,12 +57,7 @@ async function loadLevels() {
         list.style.display = 'none';
         empty.style.display = 'none';
 
-        const secret = await getSecret('GET');
-        const response = await fetch('/api/admin/levels', {
-            headers: {
-                'X-secret': secret
-            }
-        });
+        const response = await fetch('/api/admin/levels');
         if (response.ok) {
             const levels = await response.json();
             
@@ -142,17 +127,11 @@ async function createLevel() {
     };
 
     try {
-        const secret = await getSecret('POST');
-        if (!secret) {
-            throw new Error('Authentication service unavailable');
-        }
-        
         const response = await fetch('/api/admin/levels', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || '',
-                'X-secret': secret
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || ''
             },
             body: JSON.stringify(requestData)
         });
@@ -178,13 +157,11 @@ async function deleteLevel(levelId) {
         'Are you sure you want to delete this level? This action cannot be undone.',
         async function() {
             try {
-                const secret = await getSecret('DELETE');
                 const response = await fetch(`/api/admin/levels/${levelId}`, {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json',
-                        'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || '',
-                        'X-secret': secret
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || ''
                     }
                 });
 
@@ -231,13 +208,11 @@ async function updateLevel() {
     };
 
     try {
-        const secret = await getSecret('POST');
         const response = await fetch(`/api/admin/levels/${levelId}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || '',
-                'X-secret': secret
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || ''
             },
             body: JSON.stringify(requestData)
         });
@@ -263,12 +238,7 @@ async function loadUsers() {
     try {
         container.innerHTML = '<div class="loading-state">Loading users...</div>';
         
-        const secret = await getSecret('GET');
-        const response = await fetch('/api/admin/users', {
-            headers: {
-                'X-secret': secret
-            }
-        });
+        const response = await fetch('/api/admin/users');
         if (response.ok) {
             const data = await response.json();
             const users = data.users || data;
@@ -321,12 +291,10 @@ async function deleteUser(email) {
         `Are you sure you want to delete user ${email}? This action cannot be undone.`,
         async function() {
             try {
-                const secret = await getSecret('DELETE');
                 const response = await fetch(`/api/admin/users/${encodeURIComponent(email)}`, {
                     method: 'DELETE',
                     headers: {
-                        'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
-                        'X-secret': secret
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
                     }
                 });
 
@@ -374,13 +342,11 @@ function renderQuestionStates(levels) {
 
 async function toggleQuestionState(levelId, enabled) {
     try {
-        const secret = await getSecret('PATCH');
         const response = await fetch(`/api/admin/levels/${levelId}/state`, {
             method: 'PATCH',
             headers: { 
                 'Content-Type': 'application/json',
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || '',
-                'X-secret': secret
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || ''
             },
             body: JSON.stringify({ enabled })
         });
@@ -406,13 +372,11 @@ async function toggleAllQuestions(enabled) {
     
     showConfirmModal(confirmTitle, confirmMessage, async function() {
         try {
-            const secret = await getSecret('PATCH');
             const response = await fetch('/api/admin/levels/bulk-state', {
                 method: 'PATCH',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || '',
-                    'X-secret': secret
+                    'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || ''
                 },
                 body: JSON.stringify({ enabled })
             });
@@ -474,12 +438,8 @@ async function refreshUsers() {
 
 async function handleLogout() {
     try {
-        const secret = await getSecret('POST');
         const response = await fetch('/api/auth/logout', {
-            method: 'POST',
-            headers: {
-                'X-secret': secret
-            }
+            method: 'POST'
         });
         
         if (response.ok) {

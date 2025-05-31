@@ -24,15 +24,9 @@ async function initializePage() {
 
 async function loadUserSession() {
     try {
-        const secret = await getSecret('GET');
-        if (!secret) {
-            return null;
-        }
-        
         const response = await fetch('/api/user/session', {
             headers: {
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
-                'X-secret': secret
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
             }
         });
 
@@ -72,11 +66,9 @@ async function checkAdminAccess() {
 
 async function loadCurrentLevel() {
     try {
-        const secret = await getSecret('GET');
         const response = await fetch('/api/user/current-level', {
             headers: {
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
-                'X-secret': secret
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
             }
         });
 
@@ -186,7 +178,6 @@ async function handleSubmit() {
         feedback.textContent = 'Checking answer...';
         feedback.style.color = 'var(--primary)';
         
-        const secret = await getSecret('POST');
         console.log('Submitting answer:', {
             levelId: currentLevel.id,
             answer: answer
@@ -196,8 +187,7 @@ async function handleSubmit() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
-                'X-secret': secret
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
             },
             body: JSON.stringify({
                 levelId: currentLevel.id,
@@ -263,12 +253,10 @@ async function handleSubmit() {
 
 async function handleLogout() {
     try {
-        const secret = await getSecret('POST');
         await fetch('/api/auth/logout', { 
             method: 'POST',
             headers: {
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
-                'X-secret': secret
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
             }
         });
     } catch (error) {
@@ -280,11 +268,9 @@ async function handleLogout() {
 
 async function checkNotifications() {
     try {
-        const secret = await getSecret('GET');
         const response = await fetch('/api/notifications/unread-count', {
             headers: {
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
-                'X-secret': secret
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
             }
         });
         

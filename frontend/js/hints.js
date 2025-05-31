@@ -7,17 +7,11 @@ function getCookie(name) {
 
 async function loadHints() {
     try {
-        const secret = await getSecret('GET');
-        if (!secret) {
-            throw new Error('Authentication service unavailable');
-        }
-        
         console.log('Loading hints from /api/question...');
         
         const response = await fetch('/api/question', {
             headers: {
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
-                'X-secret': secret
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
             }
         });
         
@@ -90,11 +84,9 @@ async function loadHints() {
 
 async function checkNotifications() {
     try {
-        const secret = await getSecret('GET');
         const response = await fetch('/api/notifications/unread-count', {
             headers: {
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
-                'X-secret': secret
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
             }
         });
         const data = await response.json();
@@ -109,11 +101,9 @@ async function checkNotifications() {
 
 async function checkAdminAccess() {
     try {
-        const secret = await getSecret('GET');
         const response = await fetch('/api/user/session', {
             headers: {
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
-                'X-secret': secret
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
             }
         });
         if (response.ok) {

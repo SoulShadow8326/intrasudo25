@@ -12,11 +12,9 @@ let isAdmin = false;
 
 async function initializeChat() {
     try {
-        const secret = await getSecret('GET');
         const sessionResponse = await fetch('/api/user/session', {
             headers: {
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
-                'X-secret': secret
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
             }
         });
         if (!sessionResponse.ok) {
@@ -40,11 +38,9 @@ async function initializeChat() {
 
 async function loadChatHistory() {
     try {
-        const secret = await getSecret('GET');
         const response = await fetch('/api/chat/messages', {
             headers: {
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
-                'X-secret': secret
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
             }
         });
         if (!response.ok) throw new Error('Failed to load chat history');
@@ -129,17 +125,11 @@ async function handleChatSubmit(event) {
     if (!message) return;
     
     try {
-        const secret = await getSecret('POST');
-        if (!secret) {
-            throw new Error('Authentication service unavailable');
-        }
-        
         const response = await fetch('/api/chat/send', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
-                'X-secret': secret
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
             },
             body: JSON.stringify({
                 content: message,
@@ -179,11 +169,9 @@ function showError(message) {
 
 async function checkAdminStatus() {
     try {
-        const secret = await getSecret('GET');
         const response = await fetch('/api/user/session', {
             headers: {
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
-                'X-secret': secret
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
             }
         });
         if (response.ok) {

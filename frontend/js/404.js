@@ -29,14 +29,7 @@ switch (errorType) {
 
 async function checkAdminAccess() {
     try {
-        const secret = await getSecret('GET');
-        if (!secret) return;
-        
-        const response = await fetch('/api/user/session', {
-            headers: {
-                'X-secret': secret
-            }
-        });
+        const response = await fetch('/api/user/session');
         if (response.ok) {
             const userData = await response.json();
             if (userData.isAdmin) {
@@ -54,14 +47,7 @@ async function checkAdminAccess() {
 
 async function checkAuthAndUpdateButtons() {
     try {
-        const secret = await getSecret('GET');
-        if (!secret) return;
-        
-        const response = await fetch('/api/user/session', {
-            headers: {
-                'X-secret': secret
-            }
-        });
+        const response = await fetch('/api/user/session');
         if (response.ok) {
             const userData = await response.json();
             if (userData.userId) {
