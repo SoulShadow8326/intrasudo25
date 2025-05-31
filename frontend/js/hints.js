@@ -18,12 +18,12 @@ async function loadHints() {
         console.log('Hints API response status:', response.status);
         
         const questionContainer = document.getElementById('levelQuestionContainer');
+        const levelQuestionDiv = document.getElementById('levelQuestion');
         const hintsContainer = document.getElementById('hintsContainer');
-        
-        questionContainer.style.display = 'none';
         
         if (!response.ok) {
             console.log('API response not ok, status:', response.status);
+            questionContainer.style.display = 'none';
             hintsContainer.innerHTML = '<div class="hint-item" style="text-align: center; color: rgba(255, 255, 255, 0.7);">No hints available yet</div>';
             return;
         }
@@ -35,6 +35,32 @@ async function loadHints() {
             const q = data.question;
             console.log('Level question data:', q);
             
+            // Display the level question with markdown rendering
+            if (q.description && q.description.trim()) {
+                console.log('Displaying level question with markdown');
+                questionContainer.style.display = 'block';
+                
+                // Initialize Showdown converter
+                if (typeof showdown !== 'undefined') {
+                    const converter = new showdown.Converter({
+                        tables: true,
+                        strikethrough: true,
+                        ghCodeBlocks: true,
+                        tasklists: true,
+                        simpleLineBreaks: true,
+                        openLinksInNewWindow: true,
+                        backslashEscapesHTMLTags: true
+                    });
+                    levelQuestionDiv.innerHTML = converter.makeHtml(q.description);
+                } else {
+                    console.warn('Showdown library not loaded, displaying raw markdown');
+                    levelQuestionDiv.innerHTML = `<pre>${q.description}</pre>`;
+                }
+            } else {
+                questionContainer.style.display = 'none';
+            }
+            
+            // Display hints if available
             if (q.sourceHint || q.consoleHint) {
                 console.log('Displaying hints');
                 
@@ -61,20 +87,25 @@ async function loadHints() {
                         ">${hintText}</p>
                     </div>
                 `;
-                return;
             } else {
                 console.log('No specific hints available');
+                hintsContainer.innerHTML = `
+                    <div class="hint-item">
+                        <h3 class="hint-title">General Hint</h3>
+                        <p class="hint-text">Study the question carefully. Look for patterns, hidden meanings, or references that might lead you to the answer.</p>
+                    </div>
+                `;
             }
         } else {
             console.log('No question data in response');
+            questionContainer.style.display = 'none';
+            hintsContainer.innerHTML = `
+                <div class="hint-item">
+                    <h3 class="hint-title">General Hint</h3>
+                    <p class="hint-text">Study the question carefully. Look for patterns, hidden meanings, or references that might lead you to the answer.</p>
+                </div>
+            `;
         }
-        
-        hintsContainer.innerHTML = `
-            <div class="hint-item">
-                <h3 class="hint-title">General Hint</h3>
-                <p class="hint-text">Study the question carefully. Look for patterns, hidden meanings, or references that might lead you to the answer.</p>
-            </div>
-        `;
     } catch (error) {
         console.error('Error loading hints:', error);
         document.getElementById('levelQuestionContainer').style.display = 'none';

@@ -8,11 +8,7 @@ import (
 	"strings"
 )
 
-
-
-type CustomHandler = handlers.CustomHandler;
-
-
+type CustomHandler = handlers.CustomHandler
 
 func RegisterRoutes() http.Handler {
 	Mux := http.NewServeMux()
@@ -30,7 +26,8 @@ func RegisterRoutes() http.Handler {
 	})
 
 	Mux.HandleFunc("/leaderboard", handlers.RequireAuth(handlers.LeaderboardHandler))
-	Mux.HandleFunc("/hints", handlers.RequireAuth(handlers.HintsHandler))
+	Mux.HandleFunc("/hints", handlers.HintsHandler)
+	Mux.HandleFunc("/guidelines", handlers.GuidelinesHandler)
 	Mux.HandleFunc("/chat", handlers.RequireAuth(handlers.ChatPageHandler))
 
 	Mux.HandleFunc("/admin", handlers.RequireAdmin(config.GetAdminEmails())(handlers.AdminDashboardHandler))
@@ -176,6 +173,6 @@ func RegisterRoutes() http.Handler {
 		http.ServeFile(w, r, "./frontend/styles.css")
 	})
 
-	ret_h := &CustomHandler{Mux: Mux};
+	ret_h := &CustomHandler{Mux: Mux}
 	return handlers.CheckHeadersMiddleware(ret_h)
 }

@@ -103,7 +103,7 @@
 }
 
 .auth-button:hover:not(:disabled) {
-    background: #2977F5 !important;
+    background: #1E5FD6 !important;
     transform: translateY(-2px);
     box-shadow: none !important;
 }

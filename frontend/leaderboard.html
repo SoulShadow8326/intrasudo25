@@ -7,14 +7,17 @@
     <meta name="description" content="Website for Exun Intra Sudo 2025">
     <title>Intra Sudo 2025 - Leaderboard</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/chat.css">
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
 </head>
 <body>
     <nav class="navbar">
         <div class="nav-left">
-            <a href="/home" class="logo-link">
+            <a href="/" class="logo-link">
                 <img class="logo-img" src="assets/logo-blue.png" alt="Sudocrypt" />
-                <span class="nav-brand">Intra Sudo vX.X</span>
+                <span class="nav-brand">Intra Sudo v6.0</span>
             </a>
             <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
                 <img src="assets/logo_nobg.png" alt="Menu" class="mobile-menu-icon">
@@ -42,12 +45,13 @@
         </div>
     </div>
 
-    <main class="main-container">
-        <div class="main-content">
-            <h1 class="level-heading">Leaderboard</h1>
-            
-            <div class="leaderboard-wrapper">
-                <div class="leaderboard-container">
+    <main class="page-container">
+        <div class="main-content-pages">
+            <div class="main-content">
+                <h1 class="level-heading">Leaderboard</h1>
+                
+                <div class="leaderboard-wrapper">
+                    <div class="leaderboard-container">
                     <div class="leaderboard-header">
                         <div class="rank-header">Rank</div>
                         <div class="name-header">Name</div>
@@ -61,19 +65,83 @@
                             </div>
                         </div>
                     </div>
+                    </div>
                 </div>
+                <div style="margin-bottom: 60px;"></div>
             </div>
         </div>
     </main>
 
     <div class="chat-button">
-        <a href="/chat" class="chat-link">
-            <img src="assets/logo_nobg.png" alt="Chat" class="chat-logo">
-            <div class="notification-dot" id="notificationDot"></div>
-        </a>
+    <div id="chatToggleBtn">
+        <button id="btn-message" class="button-message">
+            <div class="content-avatar">
+                <div class="avatar">
+                    <img src="assets/logo_nobg.png" alt="Chat" class="user-img" style="width: 24px; height: 24px; border-radius: 50%;">
+                </div>
+            </div>
+            <div class="notice-content">
+                <div class="username">Exun Clan</div>
+                <div class="lable-message">
+                    <span class="number-message" id="message-count" style="display: none;"></span>
+                </div>
+                <div class="user-id">exun@dpsrkp.net</div>
+            </div>
+        </button>
     </div>
 
+    <div id="chatPopup">
+        <div id="chatControls">
+            <div id="chatCloseBtn" class="chat-control-btn">
+                <svg width="7" height="7" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14 2L2 14" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round" />
+                    <path d="M2 2L14 14" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round" />
+                </svg>
+            </div>
+            <div id="chatMinimizeBtn" class="chat-control-btn">
+                <svg width="7" height="7" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 8h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+            </div>
+            <div id="chatMaximizeBtn" class="chat-control-btn">
+                <svg width="7" height="7" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="3" y="3" width="10" height="10" stroke="currentColor" stroke-width="2" fill="none" />
+                </svg>
+            </div>
+        </div>
+
+        <div id="messagecontainer">
+        </div>
+
+        <div id="ChatbottomDiv">
+            <textarea id="chatInput" placeholder="Your Message..." disabled maxlength="512"></textarea>
+            <p style="display: none;">Please wait...</p>
+            
+            <button type="submit" id="chatSendButton" disabled>
+                <svg width="646" height="663" viewBox="0 0 663 680" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linejoin="round" stroke-linecap="round" stroke-width="33.67" stroke="currentColor"
+                        d="M646.293 331.888L17.7538 17.6187L155.245 331.888M646.293 331.888L17.753 646.157L155.245 331.888M646.293 331.888L318.735 330.228L155.245 331.888">
+                    </path>
+                </svg>
+            </button>
+
+            <div id="chatMsgCharLimit">
+                <p id="chatMsgLen">0</p>
+                <p>/</p>
+                <p>512</p>
+            </div>
+        </div>
+    </div>
+
+    <footer class="page-footer">
+        <div class="footer-content">
+            <p class="footer-text">&copy; Exun Clan</p>
+            <p class="footer-text">The Computer Club of Delhi Public School, R.K. Puram</p>
+        </div>
+    </footer>
+
     <script src="js/utils.js"></script>
+    <script src="js/chat.js"></script>
     <script src="js/leaderboard.js"></script>
 </body>
 </html>

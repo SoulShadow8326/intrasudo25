@@ -1,17 +1,11 @@
-# Go binary
 intrasudo25
 
-# Database files
 *.db
 data/
 
-# Build output
 dist/
 
-# Environment files
 .env
 .env.*
 
-# OS generated files
 .DS_Store
-

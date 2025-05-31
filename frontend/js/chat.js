@@ -1,38 +1,199 @@
-function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-    return null;
-}
-
 let chatSocket = null;
 let userId = null;
 let userRole = null;
 let isAdmin = false;
+let chatOpen = false;
+let hasNewMessages = false;
 
-async function initializeChat() {
+const messageTemplates = {
+    admin: `
+        <div class="chat-message admin">
+            <img src="/assets/logo-blue.png" class="chat-message-avatar">
+            <div class="chat-message-content">
+                <p class="chat-message-sender">Exun Clan</p>
+                <p class="chat-message-text">{content}</p>
+            </div>
+        </div>
+    `,
+    user: `
+        <div class="chat-message user">
+            <div class="chat-message-content">
+                <p class="chat-message-sender">You</p>
+                <p class="chat-message-text">{content}</p>
+            </div>
+            <img src="{avatar}" class="chat-message-avatar">
+        </div>
+    `
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeChatPopup();
+});
+
+async function initializeChatPopup() {
     try {
         const sessionResponse = await fetch('/api/user/session', {
             headers: {
                 'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
             }
         });
-        if (!sessionResponse.ok) {
-            window.location.href = 'auth.html';
-            return;
-        }
+        if (!sessionResponse.ok) return;
         
         const sessionData = await sessionResponse.json();
         userId = sessionData.userId;
         userRole = sessionData.role;
         
-        await loadChatHistory();
-        connectWebSocket();
-        enableChatInput();
+        setupChatEventListeners();
+        checkForNewMessages();
         
     } catch (error) {
         console.error('Failed to initialize chat:', error);
-        showError('Failed to initialize chat');
+    }
+}
+
+function setupChatEventListeners() {
+    const toggleBtn = document.getElementById('btn-message');
+    const chatButton = document.querySelector('.chat-button');
+    const chatPopup = document.getElementById('chatPopup');
+    const chat_popup = document.getElementById('chat-popup');
+    const closeBtn = document.getElementById('chatCloseBtn');
+    const minimizeBtn = document.getElementById('chatMinimizeBtn');
+    const maximizeBtn = document.getElementById('chatMaximizeBtn');
+    const sendBtn = document.getElementById('chatSendButton');
+    const chat_send = document.getElementById('chat-send');
+    const chatInput = document.getElementById('chatInput');
+    const chat_input = document.getElementById('chat-input');
+    
+    if (toggleBtn) {
+        toggleBtn.addEventListener('click', toggleChat);
+    }
+    
+    if (chatButton) {
+        chatButton.addEventListener('click', toggleChat);
+    }
+    
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeChat);
+    }
+    
+    if (minimizeBtn) {
+        minimizeBtn.addEventListener('click', minimizeChat);
+    }
+    
+    if (maximizeBtn) {
+        maximizeBtn.addEventListener('click', maximizeChat);
+    }
+    
+    if (sendBtn) {
+        sendBtn.addEventListener('click', handleChatSubmit);
+    }
+    
+    if (chat_send) {
+        chat_send.addEventListener('click', handleChatSubmit);
+    }
+    
+    if (chatInput) {
+        chatInput.addEventListener('input', updateCharCount);
+        chatInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleChatSubmit();
+            }
+        });
+    }
+    
+    if (chat_input) {
+        chat_input.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleChatSubmit();
+            }
+        });
+    }
+}
+
+async function toggleChat() {
+    const chatPopup = document.getElementById('chatPopup');
+    const toggleBtnContainer = document.getElementById('chatToggleBtn');
+    
+    if (!chatOpen) {
+        chatOpen = true;
+        chatPopup.style.display = 'flex';
+        
+        toggleBtnContainer.style.opacity = '0';
+        toggleBtnContainer.style.transform = 'scale(0)';
+        
+        setTimeout(() => {
+            chatPopup.style.opacity = '1';
+            chatPopup.style.transform = 'translateY(0px)';
+            toggleBtnContainer.style.display = 'none';
+        }, 10);
+        
+        await loadChatHistory();
+        connectWebSocket();
+        updateNotificationState(false);
+        
+        const messageContainer = document.getElementById('messagecontainer');
+        setTimeout(() => {
+            messageContainer.scrollTop = messageContainer.scrollHeight;
+        }, 200);
+    }
+}
+
+function closeChat() {
+    const chatPopup = document.getElementById('chatPopup');
+    const toggleBtnContainer = document.getElementById('chatToggleBtn');
+    
+    chatOpen = false;
+    
+    toggleBtnContainer.style.display = 'block';
+    
+    chatPopup.style.opacity = '0';
+    chatPopup.style.transform = 'translateY(900px)';
+    
+    setTimeout(() => {
+        chatPopup.style.display = 'none';
+        
+        toggleBtnContainer.style.opacity = '1';
+        toggleBtnContainer.style.transform = 'scale(1)';
+    }, 400);
+    
+}
+
+function minimizeChat() {
+    const chatPopup = document.getElementById('chatPopup');
+    const toggleBtnContainer = document.getElementById('chatToggleBtn');
+    
+    chatOpen = false;
+    
+    // Minimize animation - scale down and fade out
+    chatPopup.style.transform = 'scale(0.1) translateY(50px)';
+    chatPopup.style.opacity = '0';
+    
+    setTimeout(() => {
+        chatPopup.style.display = 'none';
+        toggleBtnContainer.style.display = 'block';
+        toggleBtnContainer.style.opacity = '1';
+        toggleBtnContainer.style.transform = 'scale(1)';
+    }, 300);
+}
+
+function maximizeChat() {
+    const chatPopup = document.getElementById('chatPopup');
+    
+    // Toggle maximized state
+    if (chatPopup.style.width === '90vw') {
+        // Restore to normal size
+        chatPopup.style.width = '350px';
+        chatPopup.style.height = 'calc(100vh - 175px)';
+        chatPopup.style.maxWidth = '350px';
+        chatPopup.style.maxHeight = 'calc(100vh - 175px)';
+    } else {
+        // Maximize
+        chatPopup.style.width = '90vw';
+        chatPopup.style.height = '90vh';
+        chatPopup.style.maxWidth = '90vw';
+        chatPopup.style.maxHeight = '90vh';
     }
 }
 
@@ -48,17 +209,45 @@ async function loadChatHistory() {
         const messages = await response.json();
         displayMessages(messages);
         
-        document.getElementById('chatLoadingState').style.display = 'none';
-        
     } catch (error) {
         console.error('Failed to load chat history:', error);
-        document.getElementById('chatLoadingState').textContent = 'Failed to load messages';
     }
+}
+
+function displayMessages(messages) {
+    const container = document.getElementById('messagecontainer');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    messages.forEach(message => {
+        const messageElement = createMessageElement(message);
+        container.appendChild(messageElement);
+    });
+    
+    container.scrollTop = container.scrollHeight;
+}
+
+function createMessageElement(message) {
+    const div = document.createElement('div');
+    
+    let template;
+    if (message.isAdmin) {
+        template = messageTemplates.admin;
+    } else {
+        template = messageTemplates.user;
+    }
+    
+    div.innerHTML = template
+        .replace('{content}', escapeHtml(message.content))
+        .replace('{avatar}', '/assets/logo_nobg.png');
+    
+    return div.firstElementChild;
 }
 
 function connectWebSocket() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws/chat`;
+    const wsUrl = `${protocol}//${window.location.host}/api/chat/ws`;
     
     chatSocket = new WebSocket(wsUrl);
     
@@ -68,12 +257,18 @@ function connectWebSocket() {
     
     chatSocket.onmessage = function(event) {
         const message = JSON.parse(event.data);
-        displayMessage(message);
+        if (chatOpen) {
+            addMessageToChat(message);
+        } else {
+            updateNotificationState(true);
+        }
     };
     
     chatSocket.onclose = function() {
         console.log('Chat WebSocket disconnected');
-        setTimeout(connectWebSocket, 3000);
+        if (chatOpen) {
+            setTimeout(connectWebSocket, 3000);
+        }
     };
     
     chatSocket.onerror = function(error) {
@@ -81,48 +276,26 @@ function connectWebSocket() {
     };
 }
 
-function displayMessages(messages) {
-    const container = document.getElementById('chatMessages');
-    container.innerHTML = '';
+function addMessageToChat(message) {
+    const container = document.getElementById('messagecontainer');
+    if (!container) return;
     
-    messages.forEach(message => {
-        displayMessage(message);
-    });
-    
-    scrollToBottom();
+    const messageElement = createMessageElement(message);
+    container.appendChild(messageElement);
+    container.scrollTop = container.scrollHeight;
 }
 
-function displayMessage(message) {
-    const container = document.getElementById('chatMessages');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = `message ${message.isAdmin ? 'admin-message' : 'user-message'}`;
-    
-    const timeString = new Date(message.timestamp).toLocaleTimeString();
-    
-    messageDiv.innerHTML = `
-        <div class="message-header">
-            <span class="message-author">${message.authorName}</span>
-            <span class="message-time">${timeString}</span>
-        </div>
-        <div class="message-text">${escapeHtml(message.content)}</div>
-    `;
-    
-    container.appendChild(messageDiv);
-    scrollToBottom();
-}
-
-function enableChatInput() {
+async function handleChatSubmit() {
     const input = document.getElementById('chatInput');
-    input.disabled = false;
-    input.focus();
-}
-
-async function handleChatSubmit(event) {
-    event.preventDefault();
-    const input = document.getElementById('chatInput');
-    const message = input.value.trim();
+    if (!input) return;
     
-    if (!message) return;
+    const content = input.value.trim();
+    if (!content) return;
+    
+    if (content.length > 512) {
+        alert('Message too long! Maximum 512 characters.');
+        return;
+    }
     
     try {
         const response = await fetch('/api/chat/send', {
@@ -131,25 +304,72 @@ async function handleChatSubmit(event) {
                 'Content-Type': 'application/json',
                 'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
             },
-            body: JSON.stringify({
-                content: message,
-                userId: userId
-            })
+            body: JSON.stringify({ content })
         });
         
-        if (!response.ok) throw new Error('Failed to send message');
+        if (!response.ok) {
+            throw new Error('Failed to send message');
+        }
         
         input.value = '';
+        updateCharCount();
         
     } catch (error) {
         console.error('Failed to send message:', error);
-        showError('Failed to send message');
+        alert('Failed to send message. Please try again.');
     }
 }
 
-function scrollToBottom() {
-    const container = document.getElementById('chatMessages');
-    container.scrollTop = container.scrollHeight;
+function updateCharCount() {
+    const input = document.getElementById('chatInput');
+    const counter = document.getElementById('chatMsgLen');
+    
+    if (input && counter) {
+        counter.textContent = input.value.length;
+    }
+}
+
+async function checkForNewMessages() {
+    try {
+        const response = await fetch('/api/chat/unread-count', {
+            headers: {
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            updateNotificationState(data.count > 0);
+            if (data.count > 0) {
+                updateMessageCount(data.count);
+            }
+        }
+    } catch (error) {
+        console.error('Failed to check for new messages:', error);
+    }
+}
+
+function updateNotificationState(hasNotifications) {
+    hasNewMessages = hasNotifications;
+    
+    const logoNotification = document.getElementById('logoNotification');
+    const messageCountBadge = document.getElementById('message-count');
+    
+    if (logoNotification) {
+        logoNotification.style.display = hasNotifications ? 'block' : 'none';
+    }
+    
+    if (messageCountBadge) {
+        messageCountBadge.style.display = hasNotifications ? 'inline-flex' : 'none';
+    }
+}
+
+function updateMessageCount(count) {
+    const messageCountBadge = document.getElementById('message-count');
+    if (messageCountBadge && count > 0) {
+        messageCountBadge.textContent = count > 99 ? '99+' : count.toString();
+        messageCountBadge.style.display = 'inline-flex';
+    }
 }
 
 function escapeHtml(text) {
@@ -157,44 +377,3 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
-
-function showError(message) {
-    const container = document.getElementById('chatMessages');
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-message';
-    errorDiv.textContent = message;
-    container.appendChild(errorDiv);
-    scrollToBottom();
-}
-
-async function checkAdminStatus() {
-    try {
-        const response = await fetch('/api/user/session', {
-            headers: {
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
-            }
-        });
-        if (response.ok) {
-            const userData = await response.json();
-            isAdmin = !!userData.isAdmin;
-            if (isAdmin && document.getElementById('adminLink')) {
-                document.getElementById('adminLink').style.display = 'inline-block';
-            }
-        } else {
-            isAdmin = false;
-            if (document.getElementById('adminLink')) {
-                document.getElementById('adminLink').style.display = 'none';
-            }
-        }
-    } catch (error) {
-        isAdmin = false;
-        if (document.getElementById('adminLink')) {
-            document.getElementById('adminLink').style.display = 'none';
-        }
-    }
-}
-
-document.addEventListener('DOMContentLoaded', async function() {
-    await checkAdminStatus();
-    initializeChat();
-});

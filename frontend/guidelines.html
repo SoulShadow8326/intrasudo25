@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0D0E11">
+    <meta name="description" content="Website for Exun Intra Sudo 2025">
+    <title>Intra Sudo 2025 - Instructions</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/guidelines.css">
+    <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-left">
+            <a href="/" class="logo-link">
+                <img class="logo-img" src="assets/logo-blue.png" alt="Sudocrypt" />
+                <div class="logo-notification" id="logoNotification" style="display: none;"></div>
+                <span class="nav-brand">Intra Sudo v6.0</span>
+            </a>
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                <img src="assets/logo_nobg.png" alt="Menu" class="mobile-menu-icon">
+            </button>
+        </div>
+        <div class="nav-center">
+            <a href="/home" class="nav-link">Home</a>
+            <a href="/leaderboard" class="nav-link">Leaderboard</a>
+            <a href="/hints" class="nav-link">Hints</a>
+        </div>
+        <div class="nav-right">
+            <a href="/admin" class="nav-link" id="adminLink" style="display: none;">Admin</a>
+            <a href="#" class="nav-link" onclick="handleLogout()">Log Out</a>
+        </div>
+    </nav>
+
+    <div class="mobile-nav-menu" id="mobileNavMenu">
+        <div class="mobile-nav-links">
+            <a href="/home" class="nav-link">Home</a>
+            <a href="/leaderboard" class="nav-link">Leaderboard</a>
+            <a href="/hints" class="nav-link">Hints</a>
+            <a href="/admin" class="nav-link" id="mobileAdminLink" style="display: none;">Admin</a>
+            <a href="#" class="nav-link" onclick="handleLogout()">Log Out</a>
+        </div>
+    </div>
+
+    <main class="page-container">
+        <div class="main-content-pages">
+            <div class="guidelines-container">
+                <h1 class="guidelines-title">Instructions</h1>
+                
+                <div class="guidelines-section">
+                    <div class="guidelines-intro">
+                        <p>This platform was created by <a href="https://exunclan.com/" target="_blank" class="guidelines-link">Exun Clan</a>.</p>
+                        <p>All students are recommended to read the <a href="https://docs.google.com/document/d/e/2PACX-1vRxmgwlxNkSHb-ZDedsBvUvp14PBTXoKgIETV4XkNzZjo07MVPPNRkr7v14Ls9PhLZ8qUD1f1TulqHV/pub" target="_blank" class="guidelines-link">Cryptic Hunt resources</a>.</p>
+                    </div>
+
+                    <div class="guidelines-box">
+                        <div class="guidelines-content">
+                            <p>The platform encompasses an Online Cryptic Treasure Hunt in which students can make their way through cryptic levels created by us over the years.</p>
+                            <p>At each level, students will encounter a number of clues which shall all, together, point to one answer. Each level has one correct answer.</p>
+                            <p>Answers will always be lower-case, alphanumeric and will contain no spaces. Special characters are allowed. For example, if the answer is Big Bang, you would type it in as "bigbang".</p>
+                            <p>All levels have to be done in a sequential order. No levels can be skipped and the order of levels cannot be changed by own will.</p>
+                            <p>Every clue in the question is important. If it wasn't important, it wouldn't be there.</p>
+                            <p>Beware of the spelling you enter, we do not auto-correct.</p>
+                            <p>You can come back to this page any time by clicking on the Sudocrypt logo in the top left corner of the page.</p>
+                        </div>
+                    </div>
+
+                    <div class="guidelines-warning">
+                        <p>No aspect of the website can be shared with any student, teacher, parent or person alike from outside of Delhi Public School, R.K. Puram.</p>
+                        <p>Failure to comply will result in disciplinary actions.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="page-footer">
+        <div class="footer-content">
+            <p class="footer-text">&copy; Exun Clan</p>
+            <p class="footer-text">The Computer Club of Delhi Public School, R.K. Puram</p>
+        </div>
+    </footer>
+
+    <script src="js/utils.js?v=2"></script>
+</body>
+</html>

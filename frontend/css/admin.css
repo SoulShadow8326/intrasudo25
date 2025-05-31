@@ -20,7 +20,7 @@
 .admin-title {
     font-size: 2rem;
     font-weight: 700;
-    color: #2977f5;
+    color: #2977F5;
     margin: 0;
 }
 
@@ -41,7 +41,7 @@
 
 .admin-section:hover {
     background: rgba(13, 14, 17, 0.95) !important;
-    border-color: #2977f5 !important;
+    border-color: #2977F5 !important;
 }
 
 .admin-section * {
@@ -72,12 +72,12 @@
 .section-title {
     font-size: 1.25rem;
     font-weight: 600;
-    color: #2977f5;
+    color: #2977F5;
     margin: 0;
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #2977f5 0%, #1e63d9 100%);
+    background: linear-gradient(135deg, #2977F5 0%, #1E5FD6 100%);
     color: white;
     border: none;
     padding: 1rem 2rem;
@@ -94,7 +94,7 @@
 }
 
 .btn-primary:hover {
-    background: linear-gradient(135deg, #1e63d9 0%, #1557c0 100%);
+    background: linear-gradient(135deg, #1E5FD6 0%, #1557c0 100%);
     transform: translateY(-2px);
 }
 
@@ -281,7 +281,7 @@
 .level-number {
     width: 3rem;
     height: 3rem;
-    background: linear-gradient(135deg, #2977f5 0%, #1e63d9 100%);
+    background: linear-gradient(135deg, #2977F5 0%, #1E5FD6 100%);
     color: white;
     border-radius: 12px;
     display: flex;
@@ -528,7 +528,7 @@ input:checked + .toggle-slider:before {
     margin: 0;
     font-size: 1.25rem;
     font-weight: 600;
-    color: #2977f5;
+    color: #2977F5;
 }
 
 .confirm-close-btn {
@@ -638,7 +638,7 @@ body {
 }
 
 .btn-primary {
-    background: #2977f5 !important;
+    background: #2977F5 !important;
     color: white !important;
 }
 

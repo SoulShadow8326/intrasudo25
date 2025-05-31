@@ -137,7 +137,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+    
+    checkAuthRedirect();
 });
+
+async function checkAuthRedirect() {
+    const pathname = window.location.pathname;
+    const allowedUnauthPaths = ['/auth', '/landing', '/guidelines', '/', '/404'];
+    
+    if (!allowedUnauthPaths.includes(pathname)) {
+        const session = await checkUserSession();
+        if (!session) {
+            window.location.href = '/auth';
+        }
+    }
+}
 
 async function handleLogout() {
     try {

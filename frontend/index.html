@@ -9,12 +9,13 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
 </head>
-<body>
+<body class="index-page">
     <nav class="navbar">
         <div class="nav-left">
-            <a href="/home" class="logo-link">
+            <a href="/" class="logo-link">
                 <img class="logo-img" src="assets/logo-blue.png" alt="Sudocrypt" />
-                <span class="nav-brand" id="brandVersion">Intra Sudo vX.X</span>
+                <div class="logo-notification" id="logoNotification" style="display: none;"></div>
+                <span class="nav-brand" id="brandVersion">Intra Sudo v6.0</span>
             </a>
             <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
                 <img src="assets/logo_nobg.png" alt="Menu" class="mobile-menu-icon">
@@ -41,31 +42,97 @@
         </div>
     </div>
 
-    <main class="main-container">
-        <div class="main-content">
-            <h1 class="level-heading" id="levelTitle">Level X</h1>
-            <div id="levelContent" style="margin-bottom: 2rem; text-align: center;">
-                <div id="levelMedia"></div>
+    <main class="page-container">
+        <div class="main-content-pages">
+            <div class="main-content">
+                <h1 class="level-heading" id="levelTitle">Level X</h1>
+                <div id="levelContent" style="margin-bottom: 2rem; text-align: center;">
+                    <div id="levelMedia"></div>
+                </div>
+                <input 
+                    type="text" 
+                    class="answer-input" 
+                    id="answerInput"
+                    placeholder="Type your answer here"
+                    onkeydown="if(event.key==='Enter'){handleSubmit()}"
+                >
+                <div id="feedback" style="margin-top: 1rem; color: var(--primary);"></div>
             </div>
-            <input 
-                type="text" 
-                class="answer-input" 
-                id="answerInput"
-                placeholder="Type your answer here"
-                onkeydown="if(event.key==='Enter'){handleSubmit()}"
-            >
-            <div id="feedback" style="margin-top: 1rem; color: var(--primary);"></div>
         </div>
     </main>
 
-    <div class="chat-button">
-        <a href="/chat" class="chat-link">
-            <img src="assets/logo_nobg.png" alt="Chat" class="chat-logo">
-            <div class="notification-dot" id="notificationDot"></div>
-        </a>
+    <div id="chatToggleBtn">
+        <button id="btn-message" class="button-message">
+            <div class="content-avatar">
+                <div class="avatar">
+                    <img src="assets/logo_nobg.png" alt="Chat" class="user-img" style="width: 24px; height: 24px; border-radius: 50%;">
+                </div>
+            </div>
+            <div class="notice-content">
+                <div class="username">Exun Clan</div>
+                <div class="lable-message">
+                    <span class="number-message" id="message-count" style="display: none;"></span>
+                </div>
+                <div class="user-id">exun@dpsrkp.net</div>
+            </div>
+        </button>
     </div>
 
+    <div id="chatPopup">        <div id="chatControls">
+            <div id="chatCloseBtn" class="chat-control-btn">
+                <svg width="7" height="7" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14 2L2 14" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round" />
+                    <path d="M2 2L14 14" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round" />
+                </svg>
+            </div>
+            <div id="chatMinimizeBtn" class="chat-control-btn">
+                <svg width="7" height="7" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 8h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+            </div>
+            <div id="chatMaximizeBtn" class="chat-control-btn">
+                <svg width="7" height="7" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="3" y="3" width="10" height="10" stroke="currentColor" stroke-width="2" fill="none" />
+                </svg>
+            </div>
+        </div>
+
+            <div id="messagecontainer" class="no-scrollbar">
+            </div>
+
+            <div id="ChatbottomDiv">
+                <textarea
+                    placeholder="Enter a message"
+                    rows="4"
+                    id="chatInput"
+                    class="no-scrollbar"></textarea>
+
+                <button id="chatSendButton">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 664 663" width="20" height="20">
+                        <path stroke-linejoin="round" stroke-linecap="round" stroke-width="33.67" stroke="currentColor"
+                            d="M646.293 331.888L17.7538 17.6187L155.245 331.888M646.293 331.888L17.753 646.157L155.245 331.888M646.293 331.888L318.735 330.228L155.245 331.888">
+                        </path>
+                    </svg>
+                </button>
+
+                <div id="chatMsgCharLimit">
+                    <p id="chatMsgLen">0</p>
+                    <p>/</p>
+                    <p>512</p>
+                </div>
+            </div>
+    </div>
+
+    <footer class="page-footer">
+        <div class="footer-content">
+            <p class="footer-text">&copy; Exun Clan</p>
+            <p class="footer-text">The Computer Club of Delhi Public School, R.K. Puram</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/showdown@2.1.0/dist/showdown.min.js"></script>
     <script src="js/utils.js"></script>
+    <script src="js/chat.js"></script>
     <script src="js/index.js"></script>
 </body>
 </html>

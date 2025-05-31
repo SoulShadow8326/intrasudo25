@@ -91,9 +91,39 @@ function updateLevelDisplay() {
         levelTitle.textContent = `Level ${currentLevel.number}`;
     }
     
+    // Remove existing description
     const existingDescription = document.getElementById('levelDescription');
     if (existingDescription) {
         existingDescription.remove();
+    }
+    
+    // Add level description with markdown rendering
+    if (currentLevel.description && currentLevel.description.trim()) {
+        const levelDescription = document.createElement('div');
+        levelDescription.id = 'levelDescription';
+        levelDescription.style.cssText = 'margin-bottom: 2rem; text-align: center; color: var(--text-color); font-size: 1.1rem; line-height: 1.6;';
+        
+        // Initialize Showdown converter
+        if (typeof showdown !== 'undefined') {
+            const converter = new showdown.Converter({
+                ghCompatibleHeaderId: true,
+                parseImgDimensions: true,
+                simplifiedAutoLink: true,
+                tables: true,
+                tasklists: true,
+                strikethrough: true,
+                emoji: true
+            });
+            levelDescription.innerHTML = converter.makeHtml(currentLevel.description);
+        } else {
+            // Fallback if Showdown is not loaded
+            levelDescription.textContent = currentLevel.description;
+        }
+        
+        const levelContent = document.getElementById('levelContent');
+        if (levelContent) {
+            levelContent.insertBefore(levelDescription, levelContent.firstChild);
+        }
     }
     
     if (currentLevel.mediaUrl) {
@@ -154,12 +184,31 @@ function handleLevelLoadError(error) {
 }
 
 async function handleSubmit() {
+    if (isSubmitting) {
+        return;
+    }
+    
     const answerInput = document.getElementById('answerInput');
     const feedback = document.getElementById('feedback');
-    const answer = answerInput.value.trim();
+    let answer = answerInput.value.trim();
     
     if (!answer) {
         feedback.textContent = 'Please enter an answer.';
+        feedback.style.color = '#dc3545';
+        setTimeout(() => {
+            feedback.textContent = '';
+            feedback.style.color = 'var(--primary)';
+        }, 3000);
+        return;
+    }
+
+    // Guidelines-compliant answer formatting
+    // Convert to lowercase, remove spaces, keep alphanumeric and special characters
+    answer = answer.toLowerCase().replace(/\s+/g, '');
+    
+    // Validate answer format
+    if (!answer) {
+        feedback.textContent = 'Answer cannot be empty after formatting. Please enter a valid answer.';
         feedback.style.color = '#dc3545';
         setTimeout(() => {
             feedback.textContent = '';
@@ -174,14 +223,17 @@ async function handleSubmit() {
         return;
     }
 
+    isSubmitting = true;
+    
     try {
-        feedback.textContent = 'Checking answer...';
+        // Show formatted answer to user
+        const originalAnswer = answerInput.value.trim();
+        if (originalAnswer !== answer) {
+            feedback.textContent = `Checking answer: "${answer}" (formatted from "${originalAnswer}")...`;
+        } else {
+            feedback.textContent = 'Checking answer...';
+        }
         feedback.style.color = 'var(--primary)';
-        
-        console.log('Submitting answer:', {
-            levelId: currentLevel.id,
-            answer: answer
-        });
         
         const response = await fetch('/api/submit-answer', {
             method: 'POST',
@@ -194,9 +246,6 @@ async function handleSubmit() {
                 answer: answer
             })
         });
-
-        console.log('Response status:', response.status);
-        console.log('Response ok:', response.ok);
 
         if (!response.ok) {
             if (response.status === 401) {
@@ -211,7 +260,6 @@ async function handleSubmit() {
         }
 
         const result = await response.json();
-        console.log('Submit answer response:', result);
         
         if (result.correct) {
             feedback.textContent = 'Correct! Loading next level...';
@@ -223,6 +271,7 @@ async function handleSubmit() {
                 await loadCurrentLevel();
                 feedback.textContent = '';
                 feedback.style.color = 'var(--primary)';
+                isSubmitting = false;
             }, 2000);
         } else {
             feedback.textContent = result.message || 'Incorrect answer. Try again.';
@@ -231,22 +280,18 @@ async function handleSubmit() {
             setTimeout(() => {
                 feedback.textContent = '';
                 feedback.style.color = 'var(--primary)';
+                isSubmitting = false;
             }, 3000);
         }
     } catch (error) {
         console.error('Failed to submit answer:', error);
-        console.error('Error details:', {
-            message: error.message,
-            stack: error.stack,
-            currentLevel: currentLevel,
-            answer: answer
-        });
         feedback.textContent = 'Failed to submit answer. Please try again.';
         feedback.style.color = '#dc3545';
         
         setTimeout(() => {
             feedback.textContent = '';
             feedback.style.color = 'var(--primary)';
+            isSubmitting = false;
         }, 3000);
     }
 }

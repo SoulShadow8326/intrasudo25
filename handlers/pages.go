@@ -87,6 +87,10 @@ func HintsHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "./frontend/hints.html")
 }
 
+func GuidelinesHandler(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./frontend/guidelines.html")
+}
+
 func LeaderboardHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "./frontend/leaderboard.html")
 }

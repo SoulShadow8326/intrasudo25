@@ -46,13 +46,31 @@
 }
 
 .logo-link:hover .nav-brand {
-    color: #2977f5 !important; 
+    color: #2977F5 !important;
 }
 
 .logo-img {
     width: 2rem;
     height: 2rem;
     border-radius: 0.25rem;
+    position: relative;
+}
+
+.logo-notification {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    background: #ef4444;
+    border-radius: 50%;
+    border: 2px solid var(--background);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.1); }
 }
 
 .nav-brand {
@@ -71,28 +89,28 @@
 }
 
 .nav-link:hover {
-    color: #2977f5 !important;
+    color: #2977F5 !important;
     transform: translateY(-1px);
 }
 
 .nav-link.active {
-    color: #2977f5 !important;
+    color: #2977F5 !important;
     font-weight: 600;
 }
 
 .navbar .nav-center .nav-link:hover,
 .navbar .nav-right .nav-link:hover {
-    color: #2977f5 !important;
+    color: #2977F5 !important;
 }
 
 .navbar .nav-center .nav-link.active,
 .navbar .nav-right .nav-link.active {
-    color: #2977f5 !important;
+    color: #2977F5 !important;
     font-weight: 600;
 }
 
 .logo-link:hover .nav-brand {
-    color: #2977f5 !important;
+    color: #2977F5 !important;
 }
 
 .nav-brand {
@@ -103,7 +121,7 @@
 }
 
 .navbar .nav-left .logo-link:hover .nav-brand {
-    color: #2977f5 !important;
+    color: #2977F5 !important;
 }
 
 .mobile-menu-toggle {
@@ -191,7 +209,7 @@
 
 .mobile-nav-links .nav-link.active {
     background: rgba(41, 119, 245, 0.15);
-    border-left: 3px solid #2977f5;
+    border-left: 3px solid #2977F5;
     font-weight: 600;
 }
 
