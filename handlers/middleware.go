@@ -200,36 +200,36 @@ func HasXForwardedFor(r *http.Request) bool {
 	return r.Header.Get("X-Forwarded-For") != ""
 }
 func IsSecretValid(r *http.Request) bool {
-    xSecret := r.Header.Get("X-secret")
-    if xSecret == "" {
-        fmt.Println("NO SECRET?")
-        return false
-    }
-    secret := os.Getenv("salt")
-    method := r.Method
+	xSecret := r.Header.Get("X-secret")
+	if xSecret == "" {
+		fmt.Println("NO SECRET?")
+		return false
+	}
+	secret := os.Getenv("salt")
+	method := r.Method
 
-    mac := hmac.New(sha256.New, []byte(secret))
-    mac.Write([]byte(method))
-    expectedMAC := mac.Sum(nil)
-    expectedB64 := base64.StdEncoding.EncodeToString(expectedMAC)
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write([]byte(method))
+	expectedMAC := mac.Sum(nil)
+	expectedB64 := base64.StdEncoding.EncodeToString(expectedMAC)
 
-    fmt.Println("Expected:", expectedB64)
-    fmt.Println("Actual:  ", xSecret)
+	fmt.Println("Expected:", expectedB64)
+	fmt.Println("Actual:  ", xSecret)
 
-    return hmac.Equal([]byte(expectedB64), []byte(xSecret))
+	return hmac.Equal([]byte(expectedB64), []byte(xSecret))
 }
 
 func CheckHeadersMiddleware(Next *CustomHandler) http.Handler {
-	next := Next.Mux;
+	next := Next.Mux
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !HasXForwardedFor(r) {
-			http.Error(w, "Missing X-Forwarded-For header", http.StatusForbidden)
-			return
-		}
-		if !IsSecretValid(r) {
-			http.Error(w, "Invalid or missing X-Secret header", http.StatusForbidden)
-			return
-		}
+		// if !HasXForwardedFor(r) {
+		// 	http.Error(w, "Missing X-Forwarded-For header", http.StatusForbidden)
+		// 	return
+		// }
+		//if !IsSecretValid(r) {
+		//	http.Error(w, "Invalid or missing X-Secret header", http.StatusForbidden)
+		//	return
+		//}
 		next.ServeHTTP(w, r)
 	})
 }
