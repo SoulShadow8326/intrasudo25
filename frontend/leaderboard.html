@@ -15,9 +15,9 @@
 <body>
     <nav class="navbar">
         <div class="nav-left">
-            <a href="/" class="logo-link">
+            <a href="/home" class="logo-link">
                 <img class="logo-img" src="assets/logo-blue.png" alt="Sudocrypt" />
-                <span class="nav-brand">Intra Sudo v6.0</span>
+                <span class="nav-brand">Intra Sudo vX.X</span>
             </a>
             <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
                 <img src="assets/logo_nobg.png" alt="Menu" class="mobile-menu-icon">
@@ -48,10 +48,10 @@
     <main class="page-container">
         <div class="main-content-pages">
             <div class="main-content">
-                <h1 class="level-heading">Leaderboard</h1>
-                
-                <div class="leaderboard-wrapper">
-                    <div class="leaderboard-container">
+            <h1 class="level-heading">Leaderboard</h1>
+            
+            <div class="leaderboard-wrapper">
+                <div class="leaderboard-container">
                     <div class="leaderboard-header">
                         <div class="rank-header">Rank</div>
                         <div class="name-header">Name</div>
@@ -65,14 +65,19 @@
                             </div>
                         </div>
                     </div>
-                    </div>
                 </div>
-                <div style="margin-bottom: 60px;"></div>
             </div>
         </div>
     </main>
 
-    <div class="chat-button">
+    <!-- Footer -->
+    <footer class="page-footer">
+        <div class="footer-content">
+            <p class="footer-text">&copy; Exun Clan</p>
+            <p class="footer-text">The Computer Club of Delhi Public School, R.K. Puram</p>
+        </div>
+    </footer>
+
     <div id="chatToggleBtn">
         <button id="btn-message" class="button-message">
             <div class="content-avatar">
@@ -110,15 +115,18 @@
             </div>
         </div>
 
-        <div id="messagecontainer">
+        <div id="messagecontainer" class="no-scrollbar">
         </div>
 
         <div id="ChatbottomDiv">
-            <textarea id="chatInput" placeholder="Your Message..." disabled maxlength="512"></textarea>
-            <p style="display: none;">Please wait...</p>
-            
-            <button type="submit" id="chatSendButton" disabled>
-                <svg width="646" height="663" viewBox="0 0 663 680" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <textarea
+                placeholder="Enter a message"
+                rows="4"
+                id="chatInput"
+                class="no-scrollbar"></textarea>
+
+            <button id="chatSendButton">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 664 663" width="20" height="20">
                     <path stroke-linejoin="round" stroke-linecap="round" stroke-width="33.67" stroke="currentColor"
                         d="M646.293 331.888L17.7538 17.6187L155.245 331.888M646.293 331.888L17.753 646.157L155.245 331.888M646.293 331.888L318.735 330.228L155.245 331.888">
                     </path>
@@ -132,13 +140,6 @@
             </div>
         </div>
     </div>
-
-    <footer class="page-footer">
-        <div class="footer-content">
-            <p class="footer-text">&copy; Exun Clan</p>
-            <p class="footer-text">The Computer Club of Delhi Public School, R.K. Puram</p>
-        </div>
-    </footer>
 
     <script src="js/utils.js"></script>
     <script src="js/chat.js"></script>

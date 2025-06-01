@@ -1,6 +1,6 @@
 #chatToggleBtn {
     position: fixed;
-    bottom: 20px;
+    bottom: 80px;
     right: 20px;
     z-index: 1000;
     cursor: pointer;
@@ -153,7 +153,7 @@
 
 #chatPopup {
     position: fixed;
-    bottom: 5rem;
+    bottom: 80px;
     right: 1.5rem;
     opacity: 0;
     transform: translateY(900px);
@@ -162,7 +162,7 @@
     flex-direction: column;
     z-index: 999;
     width: 350px;
-    height: calc(100vh - 200px);
+    height: calc(100vh - 160px);
     border-radius: 8px;
     padding: 0;
     background: rgba(25, 25, 25, 0.85);
@@ -213,30 +213,30 @@
 }
 
 #chatCloseBtn {
-    background-color: #ff5f57;
+    background-color: #ff5f57 !important;
     border: 0.5px solid rgba(0, 0, 0, 0.2);
 }
 
 #chatCloseBtn:hover {
-    background-color: #ff5f57;
+    background-color: #ff5f57 !important;
 }
 
 #chatMinimizeBtn {
-    background-color: #ffbd2e;
+    background-color: #ffbd2e !important;
     border: 0.5px solid rgba(0, 0, 0, 0.2);
 }
 
 #chatMinimizeBtn:hover {
-    background-color: #ffbd2e;
+    background-color: #ffbd2e !important;
 }
 
 #chatMaximizeBtn {
-    background-color: #28c940;
+    background-color: #28c940 !important;
     border: 0.5px solid rgba(0, 0, 0, 0.2);
 }
 
 #chatMaximizeBtn:hover {
-    background-color: #28c940;
+    background-color: #28c940 !important;
 }
 
 /* Message Container */
@@ -362,20 +362,25 @@
     color: rgba(255, 255, 255, 0.4);
     border: none;
     cursor: pointer;
-    padding: 4px;
+    padding: 6px;
     transition: color 0.3s ease;
     display: flex;
     justify-content: center;
     align-items: center;
+    border-radius: 4px;
+    width: 32px;
+    height: 32px;
 }
 
 #chatSendButton:hover {
     color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 #chatSendButton svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
+    transform: translateX(1px);
 }
 
 #chatMsgCharLimit {
@@ -443,22 +448,22 @@
 
 @media (max-width: 768px) {
     #chatToggleBtn {
-        bottom: 5rem;
+        bottom: 80px;
         right: 1rem;
     }
     
     #chatPopup {
-        bottom: 5rem;
+        bottom: 80px;
         right: 1rem;
         width: calc(100vw - 2rem);
         max-width: 350px;
-        height: calc(100vh - 180px);
+        height: calc(100vh - 140px);
     }
 }
 
 .chat-button {
     position: fixed;
-    bottom: 90px;
+    bottom: 80px;
     right: 24px;
     width: 56px;
     height: 56px;

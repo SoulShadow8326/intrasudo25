@@ -4,8 +4,8 @@
     --primary: #2977F5;
     --primary-hover: #1E5FD6;
     --foreground: #ffffff;
-    --background: #0d0e11;
-    --border: rgba(255, 255, 255, 0.15);
+    --background: #0D0E11;
+    --border: rgba(255, 255, 255, 0.2);
     --text: rgba(255, 255, 255, 0.9);
     --text-secondary: rgba(255, 255, 255, 0.6);
 }
@@ -20,41 +20,19 @@ body {
     font-family: "Montserrat", sans-serif;
     background: var(--background);
     color: var(--foreground);
-    min-height: 100vh;
-    overflow-x: hidden;
-    max-width: 100vw;
-    display: flex;
-    flex-direction: column;
-}
-
-*::-webkit-scrollbar {
-    width: 10px;
-}
-
-*::-webkit-scrollbar-track {
-    border-radius: 10px;
-    border: 0.5px solid rgba(255, 255, 255, 0.1);
-}
-
-*::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-}
-
-*::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.no-scrollbar::-webkit-scrollbar {
-    display: none;
+    height: 100vh;
+    overflow: hidden;
 }
 
 .main-container {
+    position: fixed;
+    top: 60px;
+    left: 0;
     width: 100%;
-    flex: 1;
+    height: calc(100vh - 60px);
     display: flex;
-    flex-direction: column;
-    padding: 2rem 0;
+    align-items: center;
+    justify-content: center;
 }
 
 .main-content {
@@ -63,30 +41,26 @@ body {
     align-items: center;
     gap: 2rem;
     text-align: center;
+    overflow-x: auto;
     width: 100%;
-    flex: 1;
 }
 
 .page-container {
     padding-top: 60px;
-    min-height: calc(100vh - 60px);
+    height: 100vh;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
-    flex: 1;
 }
 
 .main-content-pages {
-    padding: 1rem 2% 5rem 2%;
+    padding: 1rem 2%;
+    height: calc(100vh - 120px);
     width: 100%;
-    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-}
-
-/* Index page specific content spacing */
-.index-page .main-content-pages {
-    padding-bottom: 2rem;
+    overflow: hidden;
 }
 
 .level-heading {
@@ -103,14 +77,10 @@ body {
     }
     
     .main-container {
-        padding: 1rem 0;
+        padding: 0;
     }
     
     .level-heading {
         font-size: 2rem;
-    }
-
-    .page-footer {
-        padding: 1rem;
     }
 }

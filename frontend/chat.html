@@ -1,27 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <footer class="page-footer">
-        <div class="footer-content">
-            <p class="footer-text">&copy; Exun Clan</p>
-            <p class="footer-text">The Computer Club of Delhi Public School, R.K. Puram</p>
-        </div>
-    </footer>
-
-    <script src="js/utils.js"></script>
-    <script src="js/chat.js"></script>
-</body>
-</html>me="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#0D0E11">
     <meta name="description" content="Website for Intra Sudo 2025">
     <title>Intra Sudo 2025 - Chat</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/chat.css">
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
 </head>
 <body>
@@ -62,21 +50,22 @@
                 <h1 class="level-heading">Chat</h1>
 
                 <div class="chat-content">
-                <div class="chat-messages" id="chatMessages">
-                    <div class="loading-state" id="chatLoadingState">Loading messages...</div>
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="loading-state" id="chatLoadingState">Loading messages...</div>
+                    </div>
                 </div>
-            </div>
 
-            <div class="chat-footer">
-                <form class="chat-input-form" onsubmit="handleChatSubmit(event)">
-                    <input 
-                        type="text" 
-                        class="chat-input" 
-                        placeholder="Type your message..." 
-                        autocomplete="off"
-                        id="chatInput"
-                    >
-                </form>
+                <div class="chat-footer">
+                    <form class="chat-input-form" onsubmit="handleChatSubmit(event)">
+                        <input 
+                            type="text" 
+                            class="chat-input" 
+                            placeholder="Type your message..." 
+                            autocomplete="off"
+                            id="chatInput"
+                        >
+                    </form>
+                </div>
             </div>
         </div>
     </main>
