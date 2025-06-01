@@ -328,7 +328,7 @@
 #chatInput {
     width: 100%;
     background: var(--background, rgba(255, 255, 255, 0.05));
-    padding: 12px;
+    padding: 12px 50px 12px 12px; /* Add right padding for send button */
     border: 1px solid rgba(255, 255, 255, 0.35);
     border-radius: 8px;
     color: #ffffff;
@@ -356,8 +356,8 @@
 
 #chatSendButton {
     position: absolute;
-    right: 8px;
-    bottom: 32px;
+    right: 20px;
+    bottom: 40px;
     background: var(--background, rgba(255, 255, 255, 0.05));
     color: rgba(255, 255, 255, 0.4);
     border: none;
@@ -385,8 +385,8 @@
 
 #chatMsgCharLimit {
     position: absolute;
-    right: 8px;
-    bottom: 12px;
+    right: 20px;
+    bottom: 20px;
     font-size: 9px;
     color: rgba(255, 255, 255, 0.7);
     background: var(--background, rgba(255, 255, 255, 0.05));
