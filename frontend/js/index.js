@@ -91,40 +91,11 @@ function updateLevelDisplay() {
         levelTitle.textContent = `Level ${currentLevel.number}`;
     }
     
-    // Remove existing description
     const existingDescription = document.getElementById('levelDescription');
     if (existingDescription) {
         existingDescription.remove();
     }
     
-    // Add level description with markdown rendering
-    if (currentLevel.description && currentLevel.description.trim()) {
-        const levelDescription = document.createElement('div');
-        levelDescription.id = 'levelDescription';
-        levelDescription.style.cssText = 'margin-bottom: 2rem; text-align: center; color: var(--text-color); font-size: 1.1rem; line-height: 1.6;';
-        
-        // Initialize Showdown converter
-        if (typeof showdown !== 'undefined') {
-            const converter = new showdown.Converter({
-                ghCompatibleHeaderId: true,
-                parseImgDimensions: true,
-                simplifiedAutoLink: true,
-                tables: true,
-                tasklists: true,
-                strikethrough: true,
-                emoji: true
-            });
-            levelDescription.innerHTML = converter.makeHtml(currentLevel.description);
-        } else {
-            // Fallback if Showdown is not loaded
-            levelDescription.textContent = currentLevel.description;
-        }
-        
-        const levelContent = document.getElementById('levelContent');
-        if (levelContent) {
-            levelContent.insertBefore(levelDescription, levelContent.firstChild);
-        }
-    }
     
     if (currentLevel.mediaUrl) {
         const mediaContainer = document.getElementById('levelMedia');
