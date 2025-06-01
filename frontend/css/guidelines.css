@@ -75,6 +75,18 @@
     font-weight: 500;
 }
 
+.guidelines-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.guidelines-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
 @media (max-width: 768px) {
     .guidelines-container {
         padding: 1rem;

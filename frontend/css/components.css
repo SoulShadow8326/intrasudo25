@@ -67,8 +67,9 @@
     align-items: center;
     justify-content: center;
     padding: 1rem 2rem;
-    background: #2977F5 !important;
-    color: white !important;
+    background: transparent !important;
+    color: #2977F5 !important;
+    border: 2px solid #2977F5;
     text-decoration: none;
     border-radius: 0.5rem;
     font-size: 1rem;
@@ -77,8 +78,9 @@
 }
 
 .landing-button:hover {
-    background: #2977F5 !important;
+    background: rgba(41, 119, 245, 0.1) !important;
     transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(41, 119, 245, 0.3);
 }
 
 .landing-button:active {
