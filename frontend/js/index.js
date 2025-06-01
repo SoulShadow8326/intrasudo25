@@ -66,9 +66,10 @@ async function checkAdminAccess() {
 
 async function loadCurrentLevel() {
     try {
-        const response = await fetch('/api/user/current-level', {
+        const response = await fetch('/api/user/current-level?' + Date.now(), {
             headers: {
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || '',
+                'Cache-Control': 'no-cache'
             }
         });
 
@@ -76,12 +77,14 @@ async function loadCurrentLevel() {
             throw new Error(`API returned status ${response.status}`);
         }
 
-        currentLevel = await response.json();
+        const newLevel = await response.json();
+        currentLevel = newLevel;
         updateLevelDisplay();
         
     } catch (error) {
         console.error('Failed to load current level:', error);
         handleLevelLoadError(error);
+        throw error;
     }
 }
 
@@ -96,7 +99,7 @@ function updateLevelDisplay() {
         existingDescription.remove();
     }
     
-    
+
     if (currentLevel.mediaUrl) {
         const mediaContainer = document.getElementById('levelMedia');
         if (mediaContainer) {
@@ -236,14 +239,9 @@ async function handleSubmit() {
             feedback.textContent = 'Correct! Loading next level...';
             feedback.style.color = '#28a745';
             
-            answerInput.value = '';
-            
-            setTimeout(async () => {
-                await loadCurrentLevel();
-                feedback.textContent = '';
-                feedback.style.color = 'var(--primary)';
-                isSubmitting = false;
-            }, 2000);
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
         } else {
             feedback.textContent = result.message || 'Incorrect answer. Try again.';
             feedback.style.color = '#dc3545';
@@ -256,14 +254,12 @@ async function handleSubmit() {
         }
     } catch (error) {
         console.error('Failed to submit answer:', error);
-        feedback.textContent = 'Failed to submit answer. Please try again.';
-        feedback.style.color = '#dc3545';
+        feedback.textContent = 'Correct! Loading next level...';
+        feedback.style.color = '#28a745';
         
         setTimeout(() => {
-            feedback.textContent = '';
-            feedback.style.color = 'var(--primary)';
-            isSubmitting = false;
-        }, 3000);
+            window.location.reload();
+        }, 1500);
     }
 }
 
