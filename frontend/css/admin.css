@@ -578,6 +578,47 @@ input:checked + .toggle-slider:before {
     }
 }
 
+/* User action button styles */
+.user-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.user-actions .btn-secondary,
+.user-actions .btn-danger {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    min-width: 100px;
+}
+
+.admin-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.admin-setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: rgba(41, 119, 245, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.setting-description {
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.setting-action {
+    display: flex;
+    gap: 0.5rem;
+}
+
 .admin-container *, 
 .admin-dashboard *,
 .admin-section *,
@@ -1175,190 +1216,17 @@ input:checked + .toggle-slider:before {
     }
 }
 
-.admin-container *, 
-.admin-dashboard *,
-.admin-section *,
-.stats-grid *,
-.level-list *,
-.user-list *,
-.form-group *,
-.add-level-form * {
-    background: transparent !important;
-    color: var(--foreground) !important;
-}
-
-table, tbody, thead, tr, td, th {
-    background: transparent !important;
-    color: var(--foreground) !important;
-    border-color: rgba(255, 255, 255, 0.1) !important;
-}
-
-.level-item, .user-item {
-    background: rgba(255, 255, 255, 0.05) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
-    color: var(--foreground) !important;
-}
-
-.level-item:hover, .user-item:hover {
-    background: rgba(255, 255, 255, 0.08) !important;
-    border-color: rgba(41, 119, 245, 0.3) !important;
-}
-
-.admin-container div,
-.admin-container span,
-.admin-container p,
-.admin-container ul,
-.admin-container li {
-    background: transparent !important;
-    color: inherit !important;
-}
-
-* {
-    background: transparent !important;
-    color: var(--foreground) !important;
-}
-
-body {
-    background: var(--background) !important;
-}
-
-.admin-section {
-    background: rgba(13, 14, 17, 0.9) !important;
-}
-
-.stat-card {
-    background: rgba(255, 255, 255, 0.05) !important;
-}
-
-.form-input, .form-textarea {
-    background: rgba(255, 255, 255, 0.05) !important;
-}
-
-.btn-primary {
-    background: #2977F5 !important;
-    color: white !important;
-}
-
-.btn-danger {
-    background: #dc3545 !important;
-    color: white !important;
-}
-
-.btn-secondary {
-    background: rgba(255, 255, 255, 0.1) !important;
-    color: var(--foreground) !important;
-}
-
-.question-input-group {
+/* User action button styles */
+.user-actions {
     display: flex;
-    gap: 0.5rem;
-    margin-bottom: 0.5rem;
-    align-items: flex-start;
-}
-
-.question-input-group .level-question {
-    flex: 1;
-    margin-bottom: 0;
-}
-
-.btn-add-question {
-    background: #2977F5;
-    border: 1px solid #2977F5;
-    border-radius: 0.375rem;
-    color: white;
-    padding: 0.75rem 1rem;
-    font-size: 1.25rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    min-width: 45px;
-    height: 45px;
-    display: flex;
+    gap: 10px;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-end;
 }
 
-.btn-add-question:hover {
-    background: #1d5cbf;
-    border-color: #1d5cbf;
-    transform: translateY(-1px);
-}
-
-.btn-remove-question {
-    background: #ef4444;
-    border: 1px solid #ef4444;
-    border-radius: 0.375rem;
-    color: white;
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    min-width: 45px;
-    height: 45px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.btn-remove-question:hover {
-    background: rgba(220, 38, 127, 0.2);
-    border-color: rgba(220, 38, 127, 0.4);
-    color: #dc267f;
-}
-
-.btn-expand {
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: var(--text-secondary);
-    padding: 0.5rem 0.75rem;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.btn-expand:hover {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.2);
-    color: var(--foreground);
-}
-
-.expand-icon {
-    font-size: 0.7rem;
-    transition: transform 0.2s ease;
-}
-
-.level-questions-expanded {
-    padding: 1rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    margin-top: 1rem;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-}
-
-.question-item {
-    margin-bottom: 1rem;
-}
-
-.question-item:last-child {
-    margin-bottom: 0;
-}
-
-.question-item h5 {
-    color: var(--primary);
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin: 0 0 0.5rem 0;
-}
-
-.question-item p {
-    color: var(--text-secondary);
+.user-actions .btn-secondary,
+.user-actions .btn-danger {
+    padding: 6px 12px;
     font-size: 0.85rem;
-    line-height: 1.5;
-    margin: 0;
-    white-space: pre-wrap;
+    min-width: 100px;
 }

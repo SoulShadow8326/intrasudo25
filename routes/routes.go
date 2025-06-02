@@ -155,10 +155,19 @@ func RegisterRoutes() http.Handler {
 				if r.Method == "GET" {
 					handlers.GetAllUsersHandler(w, r)
 				}
+			} else if userPath == "/reset-my-level" && r.Method == "POST" {
+				handlers.ResetMyLevelHandler(w, r)
 			} else {
-				email := strings.TrimPrefix(userPath, "/")
-				if r.Method == "DELETE" {
-					handlers.DeleteUserHandler(w, r, email)
+				parts := strings.Split(strings.TrimPrefix(userPath, "/"), "/")
+				if len(parts) >= 1 {
+					email := parts[0]
+					if len(parts) >= 2 && parts[1] == "reset-level" {
+						if r.Method == "POST" {
+							handlers.ResetUserLevelHandler(w, r, email)
+						}
+					} else if r.Method == "DELETE" {
+						handlers.DeleteUserHandler(w, r, email)
+					}
 				}
 			}
 		}

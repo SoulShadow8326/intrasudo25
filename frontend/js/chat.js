@@ -206,8 +206,11 @@ async function loadChatHistory() {
         });
         if (!response.ok) throw new Error('Failed to load chat history');
         
-        const messages = await response.json();
-        displayMessages(messages);
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            const messages = await response.json();
+            displayMessages(messages);
+        }
         
     } catch (error) {
         console.error('Failed to load chat history:', error);
@@ -338,10 +341,13 @@ async function checkForNewMessages() {
         });
         
         if (response.ok) {
-            const data = await response.json();
-            updateNotificationState(data.count > 0);
-            if (data.count > 0) {
-                updateMessageCount(data.count);
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const data = await response.json();
+                updateNotificationState(data.count > 0);
+                if (data.count > 0) {
+                    updateMessageCount(data.count);
+                }
             }
         }
     } catch (error) {

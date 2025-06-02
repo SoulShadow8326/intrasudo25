@@ -17,6 +17,12 @@ func LeaderboardPage(w http.ResponseWriter, r *http.Request) {
 	}
 	top := result.([]database.Sucker)
 
+	var maxLevel int
+	maxLevelResult, err := database.Get("max_level", map[string]interface{}{})
+	if err == nil && maxLevelResult != nil {
+		maxLevel = maxLevelResult.(int)
+	}
+
 	type Entry struct {
 		Gmail string
 		Score string
@@ -25,10 +31,16 @@ func LeaderboardPage(w http.ResponseWriter, r *http.Request) {
 
 	var entries []Entry
 	for _, e := range top {
+		level := e.On
+		// If user has completed all levels (level > maxLevel)
+		// Display them as being on the max level in the leaderboard
+		if maxLevel > 0 && int(level) > maxLevel {
+			level = uint(maxLevel)
+		}
 		entries = append(entries, Entry{
 			Gmail: e.Gmail,
 			Score: strconv.Itoa(e.Score),
-			On:    e.On,
+			On:    level,
 		})
 	}
 

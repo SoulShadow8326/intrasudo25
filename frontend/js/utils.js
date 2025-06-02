@@ -1,5 +1,24 @@
 
 
+async function getCurrentUser() {
+    try {
+        const response = await fetch('/api/user/session', {
+            headers: {
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+            }
+        });
+        if (response.ok) {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return await response.json();
+            }
+        }
+    } catch (error) {
+        console.error('Failed to check user session:', error);
+    }
+    return null;
+}
+
 function getCookie(name) {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
@@ -15,7 +34,10 @@ async function checkUserSession() {
             }
         });
         if (response.ok) {
-            return await response.json();
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return await response.json();
+            }
         }
     } catch (error) {
         console.error('Failed to check user session:', error);
@@ -31,12 +53,20 @@ async function checkAdminAccess() {
             }
         });
         if (response.ok) {
-            const userData = await response.json();
-            if (userData.isAdmin) {
-                const adminLink = document.getElementById('adminLink');
-                const mobileAdminLink = document.getElementById('mobileAdminLink');
-                if (adminLink) adminLink.style.display = 'inline-block';
-                if (mobileAdminLink) mobileAdminLink.style.display = 'block';
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const userData = await response.json();
+                if (userData.isAdmin) {
+                    const adminLink = document.getElementById('adminLink');
+                    const mobileAdminLink = document.getElementById('mobileAdminLink');
+                    if (adminLink) adminLink.style.display = 'inline-block';
+                    if (mobileAdminLink) mobileAdminLink.style.display = 'block';
+                } else {
+                    const adminLink = document.getElementById('adminLink');
+                    const mobileAdminLink = document.getElementById('mobileAdminLink');
+                    if (adminLink) adminLink.style.display = 'none';
+                    if (mobileAdminLink) mobileAdminLink.style.display = 'none';
+                }
             } else {
                 const adminLink = document.getElementById('adminLink');
                 const mobileAdminLink = document.getElementById('mobileAdminLink');

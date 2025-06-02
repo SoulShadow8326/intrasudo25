@@ -90,18 +90,59 @@ async function loadCurrentLevel() {
 
 function updateLevelDisplay() {
     const levelTitle = document.getElementById('levelTitle');
-    if (levelTitle) {
-        levelTitle.textContent = `Level ${currentLevel.number}`;
-    }
-    
     const existingDescription = document.getElementById('levelDescription');
+    const mediaContainer = document.getElementById('levelMedia');
+    const answerInput = document.getElementById('answerInput');
+    const feedback = document.getElementById('feedback');
+    
     if (existingDescription) {
         existingDescription.remove();
     }
     
-
+    if (currentLevel && currentLevel.allCompleted) {
+        if (levelTitle) {
+            levelTitle.textContent = 'Congratulations!';
+        }
+        
+        const levelContent = document.getElementById('levelContent');
+        const completionMessage = document.createElement('div');
+        completionMessage.id = 'levelDescription';
+        completionMessage.style.cssText = 'margin-bottom: 2rem; text-align: center; color: var(--primary); font-size: 1.3rem; line-height: 1.6;';
+        completionMessage.innerHTML = `
+            <div style="margin-bottom: 20px;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+            </div>
+            <p>${currentLevel.description}</p>
+            <p style="margin-top: 20px; font-size: 1.1rem;">You've completed all ${currentLevel.maxLevel} levels!</p>
+        `;
+        
+        if (levelContent) {
+            levelContent.insertBefore(completionMessage, levelContent.firstChild);
+        }
+        
+        if (mediaContainer) {
+            mediaContainer.innerHTML = '';
+        }
+        
+        if (answerInput) {
+            answerInput.style.display = 'none';
+        }
+        
+        if (feedback) {
+            feedback.textContent = '';
+        }
+        
+        return;
+    }
+    
+    if (levelTitle) {
+        levelTitle.textContent = `Level ${currentLevel.number}`;
+    }
+    
     if (currentLevel.mediaUrl) {
-        const mediaContainer = document.getElementById('levelMedia');
         if (mediaContainer) {
             if (currentLevel.mediaType === 'image') {
                 mediaContainer.innerHTML = `<img src="${currentLevel.mediaUrl}" alt="Level ${currentLevel.number}" style="max-width: 100%; height: auto; margin: 1rem 0; border-radius: 8px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">`;
@@ -110,18 +151,15 @@ function updateLevelDisplay() {
             }
         }
     } else {
-        const mediaContainer = document.getElementById('levelMedia');
         if (mediaContainer) {
             mediaContainer.innerHTML = '';
         }
     }
     
-    const feedback = document.getElementById('feedback');
     if (feedback) {
         feedback.textContent = '';
     }
     
-    const answerInput = document.getElementById('answerInput');
     if (answerInput) {
         answerInput.value = '';
         answerInput.focus();
@@ -162,6 +200,13 @@ async function handleSubmit() {
         return;
     }
     
+    if (!currentLevel) {
+        const feedback = document.getElementById('feedback');
+        feedback.textContent = 'No level loaded. Please refresh the page.';
+        feedback.style.color = '#dc3545';
+        return;
+    }
+    
     const answerInput = document.getElementById('answerInput');
     const feedback = document.getElementById('feedback');
     let answer = answerInput.value.trim();
@@ -199,15 +244,24 @@ async function handleSubmit() {
 
     isSubmitting = true;
     
+    // Disable submit button to prevent double submissions
+    const submitButton = document.querySelector('button[onclick="handleSubmit()"]');
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = 'Submitting...';
+    }
+    
     try {
         // Show formatted answer to user
         const originalAnswer = answerInput.value.trim();
         if (originalAnswer !== answer) {
-            feedback.textContent = `Checking answer: "${answer}" (formatted from "${originalAnswer}")...`;
+            feedback.textContent = `Validating answer: "${answer}" (formatted from "${originalAnswer}")...`;
         } else {
-            feedback.textContent = 'Checking answer...';
+            feedback.textContent = 'Validating...';
         }
         feedback.style.color = 'var(--primary)';
+        
+        console.log('Submitting answer for level:', currentLevel.id, 'Answer:', answer);
         
         const response = await fetch('/api/submit-answer', {
             method: 'POST',
@@ -239,12 +293,28 @@ async function handleSubmit() {
             feedback.textContent = 'Correct! Loading next level...';
             feedback.style.color = '#28a745';
             
+            // Prevent further submissions and clear the current level
+            currentLevel = null;
+            
             setTimeout(() => {
                 window.location.reload();
-            }, 1500);
+            }, 300);
+        } else if (result.reload_page) {
+            feedback.textContent = result.message || 'Validating...';
+            feedback.style.color = '#2977F5';
+            setTimeout(() => {
+                window.location.reload();
+            }, 300);
         } else {
             feedback.textContent = result.message || 'Incorrect answer. Try again.';
             feedback.style.color = '#dc3545';
+            
+            // Re-enable submit button for incorrect answers
+            const submitButton = document.querySelector('button[onclick="handleSubmit()"]');
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Submit Answer';
+            }
             
             setTimeout(() => {
                 feedback.textContent = '';
@@ -257,9 +327,16 @@ async function handleSubmit() {
         feedback.textContent = 'Correct! Loading next level...';
         feedback.style.color = '#28a745';
         
+        // Re-enable submit button on error
+        const submitButton = document.querySelector('button[onclick="handleSubmit()"]');
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent = 'Submit Answer';
+        }
+        
         setTimeout(() => {
             window.location.reload();
-        }, 1500);
+        }, 300);
     }
 }
 
@@ -288,13 +365,13 @@ async function checkNotifications() {
         
         if (response.ok) {
             const data = await response.json();
-            const notificationDot = document.getElementById('notificationDot');
+            const logoNotification = document.getElementById('logoNotification');
             
-            if (notificationDot) {
+            if (logoNotification) {
                 if (data.count > 0) {
-                    notificationDot.classList.add('show');
+                    logoNotification.style.display = 'block';
                 } else {
-                    notificationDot.classList.remove('show');
+                    logoNotification.style.display = 'none';
                 }
             }
         }

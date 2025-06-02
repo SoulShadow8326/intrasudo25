@@ -66,44 +66,14 @@ func SubmitAnswer(w http.ResponseWriter, r *http.Request) {
 
 	userAnswerTrimmed := strings.TrimSpace(userAnswer)
 
-	// Use database function to check answer instead of accessing level.Answer directly
-	result, err := database.Get("check_answer", map[string]interface{}{"level": currentLevel, "answer": userAnswerTrimmed})
+	// Use CheckAnswer function directly to get the complete result including ReloadPage flag
+	result, err := database.CheckAnswer(login.Gmail, currentLevel, userAnswerTrimmed)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to check answer"})
 		return
 	}
-	isCorrect := result.(bool)
 
 	w.Header().Set("Content-Type", "application/json")
-	if isCorrect {
-		nextLevel := currentLevel + 1
-		err = database.Update("login_field", map[string]interface{}{"gmail": login.Gmail, "field": "on"}, nextLevel)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{"error": "Failed to update progress"})
-			return
-		}
-
-		result, _ := database.Get("user_score", map[string]interface{}{"gmail": login.Gmail})
-		currentScore := 0
-		if result != nil {
-			currentScore = result.(int)
-		}
-		newScore := currentScore + 10
-		database.Update("score", map[string]interface{}{"gmail": login.Gmail}, newScore)
-
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"message":    "Correct answer!",
-			"correct":    true,
-			"next_level": nextLevel,
-			"score":      newScore,
-		})
-	} else {
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"message":       "Incorrect answer. Try again!",
-			"correct":       false,
-			"current_level": currentLevel,
-		})
-	}
+	json.NewEncoder(w).Encode(result)
 }

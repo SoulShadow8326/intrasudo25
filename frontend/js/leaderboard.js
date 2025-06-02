@@ -69,13 +69,21 @@ async function checkNotifications() {
                 'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
             }
         });
-        const data = await response.json();
-        const notificationDot = document.getElementById('notificationDot');
         
-        if (data.count > 0) {
-            notificationDot.classList.add('show');
-        } else {
-            notificationDot.classList.remove('show');
+        if (response.ok) {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                const data = await response.json();
+                const logoNotification = document.getElementById('logoNotification');
+                
+                if (logoNotification && data && typeof data.count === 'number') {
+                    if (data.count > 0) {
+                        logoNotification.style.display = 'block';
+                    } else {
+                        logoNotification.style.display = 'none';
+                    }
+                }
+            }
         }
     } catch (error) {
         console.error('Failed to check notifications:', error);

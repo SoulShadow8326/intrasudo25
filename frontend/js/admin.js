@@ -361,7 +361,10 @@ function renderUsers(users) {
                         </div>
                     </div>
                     <div class="user-actions">
-                        ${!user.IsAdmin ? `<button class="btn-danger" onclick="deleteUser('${user.Gmail}')">Delete</button>` : ''}
+                        ${!user.IsAdmin ? `
+                            <button class="btn-secondary" onclick="resetUserLevel('${user.Gmail}')">Reset Level</button>
+                            <button class="btn-danger" onclick="deleteUser('${user.Gmail}')">Delete</button>
+                        ` : ''}
                     </div>
                 </div>
             `).join('')}
@@ -392,6 +395,34 @@ async function deleteUser(email) {
             } catch (error) {
                 console.error('Error deleting user:', error);
                 showNotification('Failed to delete user. Please try again.', 'error');
+            }
+        }
+    );
+}
+
+async function resetUserLevel(email) {
+    showConfirmModal(
+        'Reset User Level', 
+        `Are you sure you want to reset the level for user ${email}? This will set their level back to 1.`,
+        async function() {
+            try {
+                const csrfToken = getCookie('X-CSRF_COOKIE');
+                const response = await fetch(`/api/admin/users/${encodeURIComponent(email)}/reset-level`, {
+                    method: 'POST',
+                    headers: {
+                        'CSRFtok': csrfToken
+                    }
+                });
+
+                if (response.ok) {
+                    showNotification(`Level for ${email} has been reset successfully!`, 'success');
+                    loadUsers();
+                } else {
+                    throw new Error('Failed to reset user level');
+                }
+            } catch (error) {
+                console.error('Error resetting user level:', error);
+                showNotification('Failed to reset user level. Please try again.', 'error');
             }
         }
     );
@@ -460,7 +491,7 @@ async function toggleAllQuestions(enabled) {
                 method: 'PATCH',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || ''
+                    'CSRFtok': getCookie('X_CSRF_COOKIE') || userSession?.csrfToken || ''
                 },
                 body: JSON.stringify({ enabled })
             });
@@ -857,7 +888,7 @@ async function deleteAnnouncement(id) {
                 const response = await fetch(`/api/admin/announcements/${id}`, {
                     method: 'DELETE',
                     headers: {
-                        'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || ''
+                        'CSRFtok': getCookie('X_CSRF_COOKIE') || userSession?.csrfToken || ''
                     }
                 });
 
@@ -880,4 +911,32 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+async function resetMyLevel() {
+    showConfirmModal(
+        'Reset My Level', 
+        'Are you sure you want to reset your level to 1? This action cannot be undone.',
+        async function() {
+            try {
+                const csrfToken = getCookie('X-CSRF_COOKIE');
+                const response = await fetch('/api/admin/users/reset-my-level', {
+                    method: 'POST',
+                    headers: {
+                        'CSRFtok': csrfToken
+                    }
+                });
+
+                if (response.ok) {
+                    showNotification('Your level has been reset to 1', 'success');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    throw new Error('Failed to reset level');
+                }
+            } catch (error) {
+                console.error('Error resetting level:', error);
+                showNotification('Failed to reset your level. Please try again.', 'error');
+            }
+        }
+    );
 }

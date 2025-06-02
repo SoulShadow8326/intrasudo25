@@ -491,6 +491,13 @@ func Get(entity string, params map[string]interface{}) (interface{}, error) {
 			}
 			return count, nil
 		}
+	case "max_level":
+		var maxLevel int
+		err := db.QueryRow("SELECT MAX(level_number) FROM levels WHERE active = 1").Scan(&maxLevel)
+		if err != nil {
+			return 0, err
+		}
+		return maxLevel, nil
 	case "level_hints":
 		if number, ok := params["number"].(int); ok {
 			var l Level
@@ -670,11 +677,13 @@ func Delete(entity string, params map[string]interface{}) error {
 }
 
 type GameLevel struct {
-	ID          int    `json:"id"`
-	Number      int    `json:"number"`
-	Description string `json:"description"`
-	MediaURL    string `json:"mediaUrl,omitempty"`
-	MediaType   string `json:"mediaType,omitempty"`
+	ID           int    `json:"id"`
+	Number       int    `json:"number"`
+	Description  string `json:"description"`
+	MediaURL     string `json:"mediaUrl,omitempty"`
+	MediaType    string `json:"mediaType,omitempty"`
+	AllCompleted bool   `json:"allCompleted,omitempty"`
+	MaxLevel     int    `json:"maxLevel,omitempty"`
 }
 
 func GetCurrentLevelForUser(userEmail string) (*GameLevel, error) {
@@ -699,6 +708,13 @@ func GetCurrentLevelForUser(userEmail string) (*GameLevel, error) {
 
 	log.Printf("DEBUG: User %s is on level %d", userEmail, user.On)
 
+	var maxLevelNumber int
+	err = db.QueryRow("SELECT MAX(level_number) FROM levels WHERE active = 1").Scan(&maxLevelNumber)
+	if err != nil {
+		log.Printf("ERROR: Failed to get max level number: %v", err)
+		return nil, fmt.Errorf("error determining maximum level")
+	}
+
 	if user.On > 1 {
 		var allPreviousExist bool
 		err = db.QueryRow("SELECT COUNT(*) = ? FROM levels WHERE level_number BETWEEN 1 AND ? AND active = 1", user.On-1, user.On-1).Scan(&allPreviousExist)
@@ -716,6 +732,19 @@ func GetCurrentLevelForUser(userEmail string) (*GameLevel, error) {
 			user.On = 1
 			log.Printf("INFO: Reset user %s to level 1 due to broken progression", userEmail)
 		}
+	}
+
+	// Check if the user has completed all levels by being past the max level
+	if int(user.On) > maxLevelNumber {
+		log.Printf("INFO: User %s has completed all available levels (current level: %d, max level: %d)", userEmail, user.On, maxLevelNumber)
+		gameLevel := &GameLevel{
+			ID:           0,
+			Number:       maxLevelNumber + 1,
+			Description:  "You have completed all available levels!",
+			AllCompleted: true,
+			MaxLevel:     maxLevelNumber,
+		}
+		return gameLevel, nil
 	}
 
 	var level AdminLevel
@@ -751,8 +780,9 @@ func GetCurrentLevelForUser(userEmail string) (*GameLevel, error) {
 }
 
 type SubmitAnswerResult struct {
-	Correct bool   `json:"correct"`
-	Message string `json:"message"`
+	Correct    bool   `json:"correct"`
+	Message    string `json:"message"`
+	ReloadPage bool   `json:"reload_page"`
 }
 
 func CheckAnswer(userEmail string, levelID int, answer string) (*SubmitAnswerResult, error) {
@@ -762,10 +792,26 @@ func CheckAnswer(userEmail string, levelID int, answer string) (*SubmitAnswerRes
 		return nil, err
 	}
 
+	log.Printf("DEBUG CheckAnswer: User %s, currentLevel=%d, submittedLevelID=%d", userEmail, currentLevel, levelID)
+
+	// Allow submission for current level only
+	// This prevents issues when users double-click or have timing issues
 	if int(currentLevel) != levelID {
+		log.Printf("DEBUG CheckAnswer: Level mismatch for user %s - user is on level %d but submitted answer for level %d", userEmail, currentLevel, levelID)
 		return &SubmitAnswerResult{
-			Correct: false,
-			Message: "You're not on this level",
+			Correct:    true,
+			Message:    "Validating...",
+			ReloadPage: true,
+		}, nil
+	}
+
+	// If user is already past this level, don't process the answer again
+	if int(currentLevel) > levelID {
+		log.Printf("DEBUG CheckAnswer: User %s already completed level %d (currently on %d), ignoring duplicate submission", userEmail, levelID, currentLevel)
+		return &SubmitAnswerResult{
+			Correct:    true,
+			Message:    "Validating...",
+			ReloadPage: true,
 		}, nil
 	}
 
@@ -779,10 +825,27 @@ func CheckAnswer(userEmail string, levelID int, answer string) (*SubmitAnswerRes
 	}
 
 	if strings.EqualFold(strings.TrimSpace(answer), strings.TrimSpace(correctAnswer)) {
-		_, err = db.Exec("UPDATE logins SET \"on\" = \"on\" + 1 WHERE gmail = ?", userEmail)
+		var maxLevelNumber int
+		err = db.QueryRow("SELECT MAX(level_number) FROM levels WHERE active = 1").Scan(&maxLevelNumber)
+		if err != nil {
+			log.Printf("ERROR: Failed to get max level number: %v", err)
+			return nil, err
+		}
+
+		// Check if this is the last level
+		if levelID == maxLevelNumber {
+			// Set to maxLevelNumber + 1 to indicate completion of all levels
+			_, err = db.Exec("UPDATE logins SET \"on\" = ? WHERE gmail = ?", maxLevelNumber+1, userEmail)
+		} else {
+			// Normal progression
+			_, err = db.Exec("UPDATE logins SET \"on\" = \"on\" + 1 WHERE gmail = ?", userEmail)
+		}
+
 		if err != nil {
 			return nil, err
 		}
+
+		log.Printf("DEBUG CheckAnswer: User %s answered correctly for level %d, promoted to level %d", userEmail, levelID, levelID+1)
 
 		notification := map[string]interface{}{
 			"user_email": userEmail,
@@ -867,6 +930,34 @@ func DeleteAnnouncement(id int) error {
 	query := `UPDATE announcements SET active = FALSE WHERE id = ?`
 	_, err := db.Exec(query, id)
 	return err
+}
+
+func ResetUserLevel(userEmail string) error {
+	log.Printf("Resetting level for user %s", userEmail)
+	result, err := db.Exec("UPDATE logins SET \"on\" = 1 WHERE gmail = ?", userEmail)
+	if err != nil {
+		log.Printf("ERROR: Failed to reset level for user %s: %v", userEmail, err)
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("user %s not found", userEmail)
+	}
+
+	notification := map[string]interface{}{
+		"user_email": userEmail,
+		"message":    "Your level has been reset to Level 1 by an administrator",
+		"type":       "info",
+	}
+	Create("notification", notification)
+
+	log.Printf("Successfully reset level for user %s", userEmail)
+	return nil
 }
 
 func GetUnreadNotificationCount(email string) (int, error) {

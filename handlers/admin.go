@@ -311,3 +311,32 @@ func ToggleAllLevelsStateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"message": "All level states updated successfully"})
 }
+
+// ResetUserLevelHandler resets a user's level to 1
+func ResetUserLevelHandler(w http.ResponseWriter, r *http.Request, email string) {
+	if r.Method != http.MethodPost {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Method not allowed"})
+		return
+	}
+
+	user, err := GetUserFromSession(r)
+	if err != nil || user == nil || !isAdminEmail(user.Gmail) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Access denied"})
+		return
+	}
+
+	err = database.ResetUserLevel(email)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to reset user level"})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "User level reset successfully"})
+}

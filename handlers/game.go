@@ -85,3 +85,37 @@ func GetNotificationCountHandler(w http.ResponseWriter, r *http.Request) {
 		"count": count,
 	})
 }
+
+// ResetMyLevelHandler allows an admin to reset their own level to 1
+func ResetMyLevelHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Method not allowed"})
+		return
+	}
+
+	// Check if current user is admin
+	currentUser, err := GetUserFromSession(r)
+	if err != nil || currentUser == nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Authentication required"})
+		return
+	}
+
+	if !isAdminEmail(currentUser.Gmail) {
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Admin privileges required"})
+		return
+	}
+
+	// Reset the admin's own level
+	err = database.ResetUserLevel(currentUser.Gmail)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to reset level: " + err.Error()})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Your level has been reset successfully"})
+}

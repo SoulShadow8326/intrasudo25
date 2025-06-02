@@ -103,11 +103,13 @@ async function checkNotifications() {
             }
         });
         const data = await response.json();
-        const notificationDot = document.getElementById('notificationDot');
-        if (data.count > 0) {
-            notificationDot.classList.add('show');
-        } else {
-            notificationDot.classList.remove('show');
+        const logoNotification = document.getElementById('logoNotification');
+        if (logoNotification) {
+            if (data.count > 0) {
+                logoNotification.style.display = 'block';
+            } else {
+                logoNotification.style.display = 'none';
+            }
         }
     } catch (error) {}
 }
