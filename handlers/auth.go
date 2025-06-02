@@ -33,7 +33,7 @@ type Sucker = database.Sucker
 func New(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(map[string]string{"error": "please use POST"})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid request method"})
 		return
 	}
 
@@ -52,14 +52,14 @@ func New(w http.ResponseWriter, r *http.Request) {
 
 	if !isAdmin && !strings.HasSuffix(gmail, "@dpsrkp.net") {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Email should belong to dpsrkp.net domain"})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Please use your DPS RK Puram email address (@dpsrkp.net)"})
 		return
 	}
 
 	result, err := database.Get("login", map[string]interface{}{"gmail": gmail})
 	if err == nil && result != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Gmail Taken"})
+		json.NewEncoder(w).Encode(map[string]string{"error": "This email address is already registered"})
 		return
 	}
 
@@ -75,14 +75,14 @@ func New(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Error hashing password"})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Registration failed. Please try again"})
 		return
 	}
 
 	err = sendVerificationEmail(gmail, verificationCodeForUser)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to send verification email"})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Unable to send verification email. Please try again"})
 		return
 	}
 
@@ -91,12 +91,12 @@ func New(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fmt.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"message": "Unable to add user..."})
+		json.NewEncoder(w).Encode(map[string]string{"message": "Registration failed. Please try again"})
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Verification email sent. Please check your inbox for the last 4 digits of your verification code."})
+	json.NewEncoder(w).Encode(map[string]string{"message": "Verification email sent! Please check your inbox for the verification code"})
 }
 
 func hash(pass string) (string, error) {
@@ -177,7 +177,7 @@ func Verify(w http.ResponseWriter, r *http.Request) {
 	result, err := database.Get("login", map[string]interface{}{"gmail": gmail})
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Account not found or not registered"})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Account not found. Please register first"})
 		return
 	}
 	acc := result.(*database.Login)
@@ -185,7 +185,7 @@ func Verify(w http.ResponseWriter, r *http.Request) {
 	storedFullVerificationHash := acc.VerificationNumber
 	if len(storedFullVerificationHash) < 4 || storedFullVerificationHash[len(storedFullVerificationHash)-4:] != userProvidedCode {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Incorrect Verification Number;"})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid verification code. Please check your email and try again"})
 		return
 	}
 
@@ -193,13 +193,13 @@ func Verify(w http.ResponseWriter, r *http.Request) {
 
 	database.Create("leaderboard", Sucker{Gmail: gmail, Score: 0})
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Welcome..."})
+	json.NewEncoder(w).Encode(map[string]string{"message": "Account verified successfully! You can now log in"})
 }
 
 func LoginF(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(map[string]string{"error": "please use POST"})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid request method"})
 		return
 	}
 
@@ -210,13 +210,13 @@ func LoginF(w http.ResponseWriter, r *http.Request) {
 	result, err := database.Get("login", map[string]interface{}{"gmail": gmail})
 	if err != nil || result == nil {
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Either; Gmail incorrect ; not verified ; password incorrect"})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid email or password"})
 		return
 	}
 	acc := result.(*database.Login)
 	if !acc.Verified || !checkHash(acc.Hashed, password) {
 		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Either; Gmail incorrect ; not verified ; password incorrect"})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid email or password"})
 		return
 	}
 
@@ -239,7 +239,7 @@ func LoginF(w http.ResponseWriter, r *http.Request) {
 	database.Update("login_field", map[string]interface{}{"gmail": gmail, "field": "CSRFtok"}, csrf)
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Logged in..."})
+	json.NewEncoder(w).Encode(map[string]string{"message": "Successfully logged in"})
 }
 
 func checkHash(hash string, pass string) bool {
@@ -296,7 +296,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	})
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"message": "logged out successfully"})
+	json.NewEncoder(w).Encode(map[string]string{"message": "Successfully logged out"})
 }
 
 func EmailOnly(w http.ResponseWriter, r *http.Request) {
@@ -328,7 +328,7 @@ func EmailOnly(w http.ResponseWriter, r *http.Request) {
 
 	if !isAdmin && !strings.HasSuffix(gmail, "@dpsrkp.net") {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Email should belong to dpsrkp.net domain"})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Please use your DPS RK Puram email address (@dpsrkp.net)"})
 		return
 	}
 
@@ -358,14 +358,14 @@ func EmailOnly(w http.ResponseWriter, r *http.Request) {
 		hashedPass, err := hash("email_verified_user")
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{"error": "Error creating account"})
+			json.NewEncoder(w).Encode(map[string]string{"error": "Registration failed. Please try again"})
 			return
 		}
 
 		err = sendLoginCodeEmail(gmail, "", permanentLoginCode)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{"error": "Failed to send login code email"})
+			json.NewEncoder(w).Encode(map[string]string{"error": "Unable to send login code. Please try again"})
 			return
 		}
 
@@ -386,16 +386,16 @@ func EmailOnly(w http.ResponseWriter, r *http.Request) {
 		})
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{"error": "Unable to create account"})
+			json.NewEncoder(w).Encode(map[string]string{"error": "Registration failed. Please try again"})
 			return
 		}
 
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"message": "Account created! Check your email for your permanent 4-digit login code."})
+		json.NewEncoder(w).Encode(map[string]string{"message": "Account created successfully! Check your email for your login code"})
 	} else {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(map[string]string{
-			"message":       "Account found! Use your existing 4-digit login code.",
+			"message":       "Welcome back! Please enter your login code",
 			"existing_user": "true",
 		})
 	}
@@ -412,14 +412,14 @@ func EmailVerify(w http.ResponseWriter, r *http.Request) {
 	result, err := database.Get("login", map[string]interface{}{"gmail": gmail})
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Account not found"})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Account not found. Please register first"})
 		return
 	}
 	acc := result.(*database.Login)
 
 	if acc.LoginCode != userProvidedCode {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Incorrect login code"})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid login code. Please check your email and try again"})
 		return
 	}
 
@@ -449,5 +449,5 @@ func EmailVerify(w http.ResponseWriter, r *http.Request) {
 	database.Update("login_field", map[string]interface{}{"gmail": gmail, "field": "CSRFtok"}, csrf)
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Verified and logged in successfully"})
+	json.NewEncoder(w).Encode(map[string]string{"message": "Login successful! Welcome to Intra Sudo"})
 }
