@@ -41,7 +41,16 @@ func New(w http.ResponseWriter, r *http.Request) {
 	gmail := r.FormValue("gmail")
 	password := r.FormValue("password")
 
-	if !strings.HasSuffix(gmail, "@dpsrkp.net") {
+	adminEmails := config.GetAdminEmails()
+	isAdmin := false
+	for _, adminEmail := range adminEmails {
+		if strings.EqualFold(gmail, adminEmail) {
+			isAdmin = true
+			break
+		}
+	}
+
+	if !isAdmin && !strings.HasSuffix(gmail, "@dpsrkp.net") {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Email should belong to dpsrkp.net domain"})
 		return
@@ -308,7 +317,16 @@ func EmailOnly(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !strings.HasSuffix(gmail, "@dpsrkp.net") {
+	adminEmails := config.GetAdminEmails()
+	isAdmin := false
+	for _, adminEmail := range adminEmails {
+		if strings.EqualFold(gmail, adminEmail) {
+			isAdmin = true
+			break
+		}
+	}
+
+	if !isAdmin && !strings.HasSuffix(gmail, "@dpsrkp.net") {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Email should belong to dpsrkp.net domain"})
 		return
