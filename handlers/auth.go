@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/smtp"
+	"strings"
 	"sync"
 	"time"
 
@@ -39,6 +40,12 @@ func New(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	gmail := r.FormValue("gmail")
 	password := r.FormValue("password")
+
+	if !strings.HasSuffix(gmail, "@dpsrkp.net") {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Email should belong to dpsrkp.net domain"})
+		return
+	}
 
 	result, err := database.Get("login", map[string]interface{}{"gmail": gmail})
 	if err == nil && result != nil {
@@ -298,6 +305,12 @@ func EmailOnly(w http.ResponseWriter, r *http.Request) {
 	if gmail == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Email is required"})
+		return
+	}
+
+	if !strings.HasSuffix(gmail, "@dpsrkp.net") {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Email should belong to dpsrkp.net domain"})
 		return
 	}
 

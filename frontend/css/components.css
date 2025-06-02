@@ -232,7 +232,7 @@
 }
 
 .name {
-    flex: 0 0 400px;
+    flex: 1 1 auto;
     text-align: left;
     color: var(--foreground);
     font-size: 1.25rem;
@@ -242,9 +242,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    width: 400px;
-    min-width: 400px;
-    max-width: 400px;
+    min-width: 0;
 }
 
 .level {
@@ -373,6 +371,32 @@
         width: 100%;
         min-width: 320px;
         max-width: 100%;
+    }
+    
+    .leaderboard-entry {
+        padding: 1rem;
+    }
+    
+    .rank {
+        width: 40px;
+        min-width: 40px;
+    }
+    
+    .name {
+        flex: 1;
+        min-width: 0;
+        max-width: none;
+        width: auto;
+        margin-left: 0.5rem;
+        margin-right: 0.5rem;
+        font-size: 1rem;
+    }
+    
+    .level {
+        width: 90px;
+        min-width: 90px;
+        height: 34px;
+        font-size: 0.9rem;
     }
     
     .content-card {
