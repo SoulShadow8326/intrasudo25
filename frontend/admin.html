@@ -70,10 +70,6 @@
                                 <div class="stat-value" id="totalLevels">-</div>
                                 <div class="stat-label">Total Levels</div>
                             </div>
-                            <div class="stat-card">
-                                <div class="stat-value" id="activeUsers">-</div>
-                                <div class="stat-label">Active Users</div>
-                            </div>
                         </div>
                     </section>
 
@@ -91,8 +87,13 @@
                                 <input type="number" id="levelNumber" class="form-input" placeholder="Enter level number" min="1">
                             </div>
                             <div class="form-group">
-                                <label class="form-label" for="levelQuestion">Level Question:</label>
-                                <textarea id="levelQuestion" class="form-input form-textarea" placeholder="Enter the level question or description"></textarea>
+                                <label class="form-label">Level Questions:</label>
+                                <div id="questionsContainer">
+                                    <div class="question-input-group">
+                                        <textarea class="form-input form-textarea level-question" placeholder="Enter the level question or description"></textarea>
+                                        <button type="button" class="btn-add-question" onclick="addQuestionInput()">+</button>
+                                    </div>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label class="form-label" for="levelAnswer">Correct Answer:</label>
@@ -111,8 +112,13 @@
                                 <input type="number" id="editLevelNumber" class="form-input" placeholder="Enter level number" min="1">
                             </div>
                             <div class="form-group">
-                                <label class="form-label" for="editLevelQuestion">Level Question:</label>
-                                <textarea id="editLevelQuestion" class="form-input form-textarea" placeholder="Enter the level question or description"></textarea>
+                                <label class="form-label">Level Questions:</label>
+                                <div id="editQuestionsContainer">
+                                    <div class="question-input-group">
+                                        <textarea class="form-input form-textarea level-question" placeholder="Enter the level question or description"></textarea>
+                                        <button type="button" class="btn-add-question" onclick="addEditQuestionInput()">+</button>
+                                    </div>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label class="form-label" for="editLevelAnswer">Correct Answer:</label>

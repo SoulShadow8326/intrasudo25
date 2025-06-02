@@ -1,10 +1,10 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/joho/godotenv"
 
@@ -17,16 +17,14 @@ func init() {
 }
 
 func main() {
+	port := flag.String("port", "8080", "Port to run the server on")
+	flag.Parse()
+
 	database.InitDB()
 
 	handler := routes.RegisterRoutes()
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-
-	address := fmt.Sprintf(":%s", port)
+	address := fmt.Sprintf(":%s", *port)
 	log.Printf("Server running on %s", address)
 	log.Fatal(http.ListenAndServe(address, handler))
 }

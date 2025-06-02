@@ -65,7 +65,6 @@ type ChatParticipant struct {
 type AdminStats struct {
 	TotalUsers  int `json:"totalUsers"`
 	TotalLevels int `json:"totalLevels"`
-	ActiveUsers int `json:"activeUsers"`
 }
 
 func GetAdminStats() (*AdminStats, error) {
@@ -91,17 +90,6 @@ func GetAdminStats() (*AdminStats, error) {
 	}
 
 	err = db.QueryRow("SELECT COUNT(*) FROM levels").Scan(&stats.TotalLevels)
-	if err != nil {
-		return nil, err
-	}
-
-	activeQuery := "SELECT COUNT(*) FROM logins" + whereClause
-	if whereClause != "" {
-		activeQuery += " AND verified = 1"
-	} else {
-		activeQuery += " WHERE verified = 1"
-	}
-	err = db.QueryRow(activeQuery, args...).Scan(&stats.ActiveUsers)
 	if err != nil {
 		return nil, err
 	}

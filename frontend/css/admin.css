@@ -652,6 +652,120 @@ body {
     color: var(--foreground) !important;
 }
 
+.question-input-group {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    align-items: flex-start;
+}
+
+.question-input-group .level-question {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.btn-add-question {
+    background: #2977F5;
+    border: 1px solid #2977F5;
+    border-radius: 0.375rem;
+    color: white;
+    padding: 0.75rem 1rem;
+    font-size: 1.25rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-add-question:hover {
+    background: #1d5cbf;
+    border-color: #1d5cbf;
+    transform: translateY(-1px);
+}
+
+.btn-remove-question {
+    background: #ef4444;
+    border: 1px solid #ef4444;
+    border-radius: 0.375rem;
+    color: white;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-remove-question:hover {
+    background: rgba(220, 38, 127, 0.2);
+    border-color: rgba(220, 38, 127, 0.4);
+    color: #dc267f;
+}
+
+.btn-expand {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-expand:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: var(--foreground);
+}
+
+.expand-icon {
+    font-size: 0.7rem;
+    transition: transform 0.2s ease;
+}
+
+.level-questions-expanded {
+    padding: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+}
+
+.question-item {
+    margin-bottom: 1rem;
+}
+
+.question-item:last-child {
+    margin-bottom: 0;
+}
+
+.question-item h5 {
+    color: var(--primary);
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+}
+
+.question-item p {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0;
+    white-space: pre-wrap;
+}
+
 @media (max-width: 768px) {
     .admin-container {
         padding: 1rem;

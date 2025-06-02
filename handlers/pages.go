@@ -36,7 +36,6 @@ type AdminPageData struct {
 type AdminStats struct {
 	TotalUsers  int
 	TotalLevels int
-	ActiveUsers int
 }
 
 func isAdminEmail(email string) bool {
@@ -167,7 +166,6 @@ func AdminDashboardHandler(w http.ResponseWriter, r *http.Request) {
 	stats := AdminStats{
 		TotalUsers:  len(users),
 		TotalLevels: len(levels),
-		ActiveUsers: countActiveUsers(users),
 	}
 
 	errorMsg := r.URL.Query().Get("error")
@@ -241,10 +239,6 @@ func EditLevelFormHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	renderAdminTemplate(w, "admin_edit_level.html", data)
-}
-
-func countActiveUsers(users []database.Login) int {
-	return len(users)
 }
 
 func renderAdminTemplate(w http.ResponseWriter, templateName string, data AdminPageData) {

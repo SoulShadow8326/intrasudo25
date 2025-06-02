@@ -1,4 +1,5 @@
 let userSession = null;
+let levelsData = {};
 
 async function initializeAdmin() {
     try {
@@ -43,7 +44,6 @@ async function loadStats() {
 function updateStatsDisplay(stats) {
     document.getElementById('totalUsers').textContent = stats.totalUsers || 0;
     document.getElementById('totalLevels').textContent = stats.totalLevels || 0;
-    document.getElementById('activeUsers').textContent = stats.activeUsers || 0;
 }
 
 async function loadLevels() {
@@ -86,42 +86,76 @@ async function loadLevels() {
 
 function renderLevels(levels) {
     const list = document.getElementById('levelsList');
-    list.innerHTML = levels.map(level => `
-        <div class="level-item">
-            <div class="level-info">
-                <div class="level-number">${level.number}</div>
-                <div class="level-details">
-                    <h4 class="level-title">${level.title}</h4>
-                    <p class="level-description">${level.question.substring(0, 50)}${level.question.length > 50 ? '...' : ''}</p>
-                    <div class="level-meta">
-                        <span class="status-badge ${level.active ? 'status-active' : 'status-inactive'}">
-                            ${level.active ? 'Active' : 'Inactive'}
-                        </span>
+    
+    // Store levels data for editing
+    levelsData = {};
+    levels.forEach(level => {
+        levelsData[level.id] = level;
+    });
+    
+    list.innerHTML = levels.map(level => {
+        const questions = level.question.split('\n\n').filter(q => q.trim());
+        return `
+            <div class="level-item" data-level-id="${level.id}">
+                <div class="level-info">
+                    <div class="level-number">${level.number}</div>
+                    <div class="level-details">
+                        <h4 class="level-title">${level.title}</h4>
+                        <div class="level-meta">
+                            <span class="status-badge ${level.active ? 'status-active' : 'status-inactive'}">
+                                ${level.active ? 'Active' : 'Inactive'}
+                            </span>
+                            <button class="btn-expand" onclick="toggleLevelExpand(this)">
+                                <span class="expand-text">Show Questions</span>
+                                <span class="expand-icon">▼</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
+                <div class="level-actions">
+                    <button class="btn-secondary" onclick="editLevel(this)">Edit</button>
+                    <button class="btn-danger" onclick="deleteLevel(${level.id})">Delete</button>
+                </div>
+                <div class="level-questions-expanded" style="display: none;">
+                    ${questions.map((q, index) => `
+                        <div class="question-item">
+                            <h5>Question ${index + 1}</h5>
+                            <p>${q.trim()}</p>
+                        </div>
+                    `).join('')}
+                </div>
             </div>
-            <div class="level-actions">
-                <button class="btn-secondary" onclick="editLevel(${level.id}, '${level.question.replace(/'/g, "\\'")}', '${level.answer.replace(/'/g, "\\'")}', ${level.active})">Edit</button>
-                <button class="btn-danger" onclick="deleteLevel(${level.id})">Delete</button>
-            </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 async function createLevel() {
     const levelNumber = document.getElementById('levelNumber').value;
-    const levelQuestion = document.getElementById('levelQuestion').value.trim();
+    const questionInputs = document.querySelectorAll('#questionsContainer .level-question');
     const levelAnswer = document.getElementById('levelAnswer').value.trim();
 
-    if (!levelNumber || !levelQuestion || !levelAnswer) {
-        showNotification('Please fill in all required fields.', 'error');
+    if (!levelNumber || !levelAnswer) {
+        showNotification('Please fill in level number and answer.', 'error');
+        return;
+    }
+
+    const questions = [];
+    for (let input of questionInputs) {
+        const question = input.value.trim();
+        if (question) {
+            questions.push(question);
+        }
+    }
+
+    if (questions.length === 0) {
+        showNotification('Please add at least one question.', 'error');
         return;
     }
 
     const requestData = {
         level_number: levelNumber,
         title: `Level ${levelNumber}`,
-        markdown: levelQuestion,
+        markdown: questions.join('\n\n'),
         answer: levelAnswer,
         active: "true"
     };
@@ -180,29 +214,78 @@ async function deleteLevel(levelId) {
     );
 }
 
-function editLevel(levelId, question, answer, active) {
-    document.getElementById('editLevelNumber').value = levelId;
-    document.getElementById('editLevelQuestion').value = question;
-    document.getElementById('editLevelAnswer').value = answer;
-    document.getElementById('editLevelActive').checked = active;
+function editLevel(button) {
+    const levelItem = button.closest('.level-item');
+    const levelId = levelItem.dataset.levelId;
+    const level = levelsData[levelId];
+    
+    if (!level) {
+        showNotification('Level data not found. Please refresh the page.', 'error');
+        return;
+    }
+    
+    document.getElementById('editLevelNumber').value = level.number;
+    document.getElementById('editLevelAnswer').value = level.answer;
+    document.getElementById('editLevelActive').checked = level.active;
     document.getElementById('editLevelForm').dataset.levelId = levelId;
+    
+    const container = document.getElementById('editQuestionsContainer');
+    const questions = level.question.split('\n\n').filter(q => q.trim());
+    
+    container.innerHTML = '';
+    questions.forEach((q, index) => {
+        const group = document.createElement('div');
+        group.className = 'question-input-group';
+        group.innerHTML = `
+            <textarea class="form-input form-textarea level-question" placeholder="Enter the level question or description">${q.trim()}</textarea>
+            ${index === 0 ? 
+                '<button type="button" class="btn-add-question" onclick="addEditQuestionInput()">+</button>' :
+                '<button type="button" class="btn-remove-question" onclick="removeEditQuestionInput(this)">-</button>'
+            }
+        `;
+        container.appendChild(group);
+    });
+    
+    if (questions.length === 0) {
+        const group = document.createElement('div');
+        group.className = 'question-input-group';
+        group.innerHTML = `
+            <textarea class="form-input form-textarea level-question" placeholder="Enter the level question or description"></textarea>
+            <button type="button" class="btn-add-question" onclick="addEditQuestionInput()">+</button>
+        `;
+        container.appendChild(group);
+    }
+    
     document.getElementById('addLevelForm').classList.remove('show');
     document.getElementById('editLevelForm').style.display = 'block';
 }
 
 async function updateLevel() {
     const levelId = document.getElementById('editLevelForm').dataset.levelId;
-    const levelQuestion = document.getElementById('editLevelQuestion').value.trim();
+    const questionInputs = document.querySelectorAll('#editQuestionsContainer .level-question');
     const levelAnswer = document.getElementById('editLevelAnswer').value.trim();
     const levelActive = document.getElementById('editLevelActive').checked;
 
-    if (!levelQuestion || !levelAnswer) {
-        showNotification('Please fill in all required fields.', 'error');
+    if (!levelAnswer) {
+        showNotification('Please fill in the answer.', 'error');
+        return;
+    }
+
+    const questions = [];
+    for (let input of questionInputs) {
+        const question = input.value.trim();
+        if (question) {
+            questions.push(question);
+        }
+    }
+
+    if (questions.length === 0) {
+        showNotification('Please add at least one question.', 'error');
         return;
     }
 
     const requestData = {
-        markdown: levelQuestion,
+        markdown: questions.join('\n\n'),
         answer: levelAnswer,
         active: levelActive.toString()
     };
@@ -414,8 +497,14 @@ function cancelAddLevel() {
 
 function clearAddLevelForm() {
     document.getElementById('levelNumber').value = '';
-    document.getElementById('levelQuestion').value = '';
     document.getElementById('levelAnswer').value = '';
+    const container = document.getElementById('questionsContainer');
+    container.innerHTML = `
+        <div class="question-input-group">
+            <textarea class="form-input form-textarea level-question" placeholder="Enter the level question or description"></textarea>
+            <button type="button" class="btn-add-question" onclick="addQuestionInput()">+</button>
+        </div>
+    `;
 }
 
 function cancelEditLevel() {
@@ -425,10 +514,16 @@ function cancelEditLevel() {
 
 function clearEditLevelForm() {
     document.getElementById('editLevelNumber').value = '';
-    document.getElementById('editLevelQuestion').value = '';
     document.getElementById('editLevelAnswer').value = '';
     document.getElementById('editLevelActive').checked = false;
     delete document.getElementById('editLevelForm').dataset.levelId;
+    const container = document.getElementById('editQuestionsContainer');
+    container.innerHTML = `
+        <div class="question-input-group">
+            <textarea class="form-input form-textarea level-question" placeholder="Enter the level question or description"></textarea>
+            <button type="button" class="btn-add-question" onclick="addEditQuestionInput()">+</button>
+        </div>
+    `;
 }
 
 async function refreshUsers() {
@@ -538,3 +633,56 @@ function confirmAction() {
 document.addEventListener('DOMContentLoaded', function() {
     initializeAdmin();
 });
+
+function addQuestionInput() {
+    const container = document.getElementById('questionsContainer');
+    const group = document.createElement('div');
+    group.className = 'question-input-group';
+    group.innerHTML = `
+        <textarea class="form-input form-textarea level-question" placeholder="Enter the level question or description"></textarea>
+        <button type="button" class="btn-remove-question" onclick="removeQuestionInput(this)">-</button>
+    `;
+    container.appendChild(group);
+}
+
+function removeQuestionInput(button) {
+    const container = document.getElementById('questionsContainer');
+    if (container.children.length > 1) {
+        button.parentElement.remove();
+    }
+}
+
+function addEditQuestionInput() {
+    const container = document.getElementById('editQuestionsContainer');
+    const group = document.createElement('div');
+    group.className = 'question-input-group';
+    group.innerHTML = `
+        <textarea class="form-input form-textarea level-question" placeholder="Enter the level question or description"></textarea>
+        <button type="button" class="btn-remove-question" onclick="removeEditQuestionInput(this)">-</button>
+    `;
+    container.appendChild(group);
+}
+
+function removeEditQuestionInput(button) {
+    const container = document.getElementById('editQuestionsContainer');
+    if (container.children.length > 1) {
+        button.parentElement.remove();
+    }
+}
+
+function toggleLevelExpand(button) {
+    const levelItem = button.closest('.level-item');
+    const expandedSection = levelItem.querySelector('.level-questions-expanded');
+    const expandIcon = button.querySelector('.expand-icon');
+    const expandText = button.querySelector('.expand-text');
+    
+    if (expandedSection.style.display === 'none') {
+        expandedSection.style.display = 'block';
+        expandIcon.textContent = '▲';
+        expandText.textContent = 'Hide Questions';
+    } else {
+        expandedSection.style.display = 'none';
+        expandIcon.textContent = '▼';
+        expandText.textContent = 'Show Questions';
+    }
+}
