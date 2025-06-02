@@ -48,8 +48,8 @@ async function loadLeaderboard() {
             return `
                 <div class="leaderboard-entry ${rank <= 3 ? 'top-three' : ''}">
                     <span class="rank ${rankClass}">${rank}</span>
-                    <span class="name" title="${username}">${username}</span>
-                    <span class="level">Level ${entry.On || 1}</span>
+                    <span class="name" title="${username}">${username.length > 12 ? username.substring(0, 12) + '...' : username}</span>
+                    <span class="level">${entry.On || 1}</span>
                 </div>
             `;
         }).join('');
