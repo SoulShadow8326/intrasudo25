@@ -16,7 +16,6 @@ async function handleEmailSubmit(event) {
     }
     
     setEmailLoading(true);
-    hideError('emailError');
     
     try {
         const params = new URLSearchParams();
@@ -39,15 +38,18 @@ async function handleEmailSubmit(event) {
         
         if (response.ok) {
             userEmail = email;
+            hideError('emailError');
             
             if (data.existing_user === "true") {
                 showPopup('info', 'Account Found', 'You already have an account. Please enter your permanent 4-digit login code to continue.', () => {
                     showCodeForm();
                 });
             } else {
-                showPopup('success', 'Code Sent!', 'Check your email for your permanent 4-digit login code.', () => {
+                // For new users, show success message and code form
+                showSuccess('emailSuccess', 'Code sent! Check your email for your permanent 4-digit login code.');
+                setTimeout(() => {
                     showCodeForm();
-                });
+                }, 1500); // Short delay to show the success message
             }
         } else {
             if (data.cooldown === "true") {
@@ -76,7 +78,6 @@ async function handleCodeSubmit(event) {
     }
     
     setCodeLoading(true);
-    hideError('codeError');
     
     try {
         const params = new URLSearchParams();
@@ -99,6 +100,7 @@ async function handleCodeSubmit(event) {
         console.log('Code verification response data:', data);
         
         if (response.ok) {
+            hideError('codeError');
             window.location.href = '/home';
         } else {
             showError('codeError', data.error || 'Invalid verification code');
@@ -115,6 +117,14 @@ async function handleCodeSubmit(event) {
 function showCodeForm() {
     document.getElementById('email-form').style.display = 'none';
     document.getElementById('code-form').style.display = 'block';
+    
+    // Hide any success messages from email form
+    const emailSuccess = document.getElementById('emailSuccess');
+    if (emailSuccess) {
+        emailSuccess.className = 'auth-success';
+        emailSuccess.style.display = 'none';
+    }
+    
     document.getElementById('verification-code').focus();
 }
 
@@ -123,6 +133,21 @@ function showEmailForm() {
     document.getElementById('email-form').style.display = 'block';
     document.getElementById('email').value = '';
     document.getElementById('verification-code').value = '';
+    
+    // Hide all error and success messages
+    hideError('emailError');
+    hideError('codeError');
+    const emailSuccess = document.getElementById('emailSuccess');
+    const codeSuccess = document.getElementById('codeSuccess');
+    if (emailSuccess) {
+        emailSuccess.className = 'auth-success';
+        emailSuccess.style.display = 'none';
+    }
+    if (codeSuccess) {
+        codeSuccess.className = 'auth-success';
+        codeSuccess.style.display = 'none';
+    }
+    
     userEmail = '';
     document.getElementById('email').focus();
 }
@@ -160,13 +185,37 @@ function setCodeLoading(loading) {
 function showError(elementId, message) {
     const errorElement = document.getElementById(elementId);
     errorElement.textContent = message;
-    errorElement.style.display = 'block';
-    errorElement.style.color = '#dc3545';
+    errorElement.className = 'auth-error show';
+    
+    // Add smooth animation
+    setTimeout(() => {
+        errorElement.style.opacity = '1';
+        errorElement.style.transform = 'translateY(0)';
+    }, 10);
 }
 
 function hideError(elementId) {
     const errorElement = document.getElementById(elementId);
-    errorElement.style.display = 'none';
+    errorElement.className = 'auth-error';
+    errorElement.style.opacity = '0';
+    errorElement.style.transform = 'translateY(-10px)';
+    
+    setTimeout(() => {
+        errorElement.style.display = 'none';
+    }, 300);
+}
+
+function showSuccess(elementId, message) {
+    const successElement = document.getElementById(elementId);
+    if (successElement) {
+        successElement.textContent = message;
+        successElement.className = 'auth-success show';
+        
+        setTimeout(() => {
+            successElement.style.opacity = '1';
+            successElement.style.transform = 'translateY(0)';
+        }, 10);
+    }
 }
 
 function validateEmail(email) {
@@ -237,6 +286,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const emailInput = document.getElementById('email');
     if (emailInput) {
         emailInput.focus();
+        emailInput.addEventListener('input', () => {
+            if (emailInput.value.trim() === '') {
+                hideError('emailError');
+            }
+        });
+    }
+    
+    const codeInput = document.getElementById('verification-code');
+    if (codeInput) {
+        codeInput.addEventListener('input', () => {
+            if (codeInput.value.trim() === '') {
+                hideError('codeError');
+            }
+        });
     }
     
     checkExistingSession();

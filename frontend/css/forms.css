@@ -69,6 +69,42 @@
     box-sizing: border-box;
 }
 
+.auth-input:invalid {
+    border-color: #2977f5;
+    box-shadow: none;
+}
+
+.auth-input::-webkit-validation-bubble {
+    display: none;
+}
+
+.auth-input::-webkit-validation-bubble-message {
+    background: #000000;
+    color: #2977f5;
+    border: 1px solid #2977f5;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    font-size: 0.875rem;
+    box-shadow: 0 4px 12px rgba(41, 119, 245, 0.3);
+}
+
+.auth-input::-webkit-validation-bubble-arrow {
+    background: #000000;
+    border: 1px solid #2977f5;
+}
+
+.auth-input::-moz-validation-bubble {
+    background: #000000;
+    color: #2977f5;
+    border: 1px solid #2977f5;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(41, 119, 245, 0.3);
+}
+
+.auth-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
 .auth-input:hover {
     border-color: rgba(255, 255, 255, 0.3);
     background: rgba(255, 255, 255, 0.06);
@@ -187,6 +223,82 @@
     margin: 0.5rem 0 0 0;
 }
 
+
+/* Error message styling */
+.auth-error {
+    display: none;
+    text-align: center;
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    background: #000000;
+    border: 1px solid #2977f5;
+    border-radius: 0.5rem;
+    color: #2977f5;
+    font-size: 0.875rem;
+    font-weight: 500;
+    animation: slideInError 0.3s ease-out;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px rgba(41, 119, 245, 0.3);
+}
+
+.auth-error.show {
+    display: block;
+}
+
+.auth-error::before {
+    content: "error:";
+    margin-right: 0.5rem;
+    font-size: 1rem;
+}
+
+@keyframes slideInError {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Success message styling */
+.auth-success {
+    display: none;
+    text-align: center;
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    background: rgba(40, 167, 69, 0.1);
+    border: 1px solid rgba(40, 167, 69, 0.3);
+    border-radius: 0.5rem;
+    color: #4ade80;
+    font-size: 0.875rem;
+    font-weight: 500;
+    animation: slideInSuccess 0.3s ease-out;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.1);
+}
+
+.auth-success.show {
+    display: block;
+}
+
+.auth-success::before {
+    content: "✅";
+    margin-right: 0.5rem;
+    font-size: 1rem;
+}
+
+@keyframes slideInSuccess {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 
 @media (max-width: 480px) {
     .auth-card {
@@ -323,4 +435,61 @@
 
 .popup-button.secondary:hover {
     background: rgba(255, 255, 255, 0.2);
+}
+
+input:invalid:not(:placeholder-shown) {
+    border-color: #2977f5 !important;
+}
+
+input[type="email"]:invalid:not(:placeholder-shown)::after {
+    content: "Please enter a valid email address";
+    position: absolute;
+    background: #000000;
+    color: #2977f5;
+    border: 1px solid #2977f5;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    font-size: 0.875rem;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(41, 119, 245, 0.3);
+    margin-top: 0.5rem;
+    display: block;
+}
+
+*::-webkit-validation-bubble {
+    background: #000000 !important;
+    color: #2977f5 !important;
+    border: 1px solid #2977f5 !important;
+    border-radius: 0.5rem !important;
+    font-family: inherit !important;
+    font-size: 0.875rem !important;
+    box-shadow: 0 4px 12px rgba(41, 119, 245, 0.3) !important;
+}
+
+*::-webkit-validation-bubble-message {
+    background: #000000 !important;
+    color: #2977f5 !important;
+    border: none !important;
+    padding: 0.75rem !important;
+    font-family: inherit !important;
+    font-size: 0.875rem !important;
+}
+
+*::-webkit-validation-bubble-arrow {
+    background: #000000 !important;
+    border-color: #2977f5 !important;
+}
+
+*::-webkit-validation-bubble-arrow-clipper {
+    clip: none !important;
+}
+
+*::-moz-validation-bubble {
+    background: #000000 !important;
+    color: #2977f5 !important;
+    border: 1px solid #2977f5 !important;
+    border-radius: 0.5rem !important;
+    font-family: inherit !important;
+    font-size: 0.875rem !important;
+    box-shadow: 0 4px 12px rgba(41, 119, 245, 0.3) !important;
 }
