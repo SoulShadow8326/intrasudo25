@@ -1,3 +1,4 @@
+// Hints page JavaScript
 function getCookie(name) {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
@@ -5,9 +6,9 @@ function getCookie(name) {
     return null;
 }
 
-async function loadHints() {
+async function loadQuestions() {
     try {
-        console.log('Loading hints from /api/question...');
+        console.log('Loading questions from /api/question...');
         
         const response = await fetch('/api/question', {
             headers: {
@@ -15,32 +16,30 @@ async function loadHints() {
             }
         });
         
-        console.log('Hints API response status:', response.status);
+        console.log('Questions API response status:', response.status);
         
-        const questionContainer = document.getElementById('levelQuestionContainer');
-        const levelQuestionDiv = document.getElementById('levelQuestion');
-        const hintsContainer = document.getElementById('hintsContainer');
+        const questionsList = document.getElementById('questionsList');
         
         if (!response.ok) {
             console.log('API response not ok, status:', response.status);
-            questionContainer.style.display = 'none';
-            hintsContainer.innerHTML = '<div class="hint-item" style="text-align: center; color: rgba(255, 255, 255, 0.7);">No hints available yet</div>';
+            if (response.status === 401) {
+                console.log('User not authenticated, redirecting to auth page');
+                window.location.href = '/auth';
+                return;
+            }
+            questionsList.innerHTML = '<div class="no-questions"><p>No questions available yet</p></div>';
             return;
         }
         
         const data = await response.json();
-        console.log('Hints API response data:', data);
+        console.log('Questions API response data:', data);
         
-        if (data && data.question) {
-            const q = data.question;
-            console.log('Level question data:', q);
+        if (data && data.question && data.question.markdown && data.question.markdown.trim()) {
+            console.log('Displaying level questions');
             
-            // Display the level question with markdown rendering
-            if (q.description && q.description.trim()) {
-                console.log('Displaying level question with markdown');
-                questionContainer.style.display = 'block';
-                
-                // Initialize Showdown converter
+            const questions = data.question.markdown.split('\n\n').filter(question => question.trim());
+            
+            if (questions.length > 0) {
                 if (typeof showdown !== 'undefined') {
                     const converter = new showdown.Converter({
                         tables: true,
@@ -51,65 +50,40 @@ async function loadHints() {
                         openLinksInNewWindow: true,
                         backslashEscapesHTMLTags: true
                     });
-                    levelQuestionDiv.innerHTML = converter.makeHtml(q.description);
+                    
+                    questionsList.innerHTML = questions.map((question, index) => `
+                        <div class="question-item">
+                            <div class="question-header">
+                                <div class="question-number">${index + 1}</div>
+                                <div class="question-content">
+                                    ${converter.makeHtml(question.trim())}
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
                 } else {
-                    console.warn('Showdown library not loaded, displaying raw markdown');
-                    levelQuestionDiv.innerHTML = `<pre>${q.description}</pre>`;
+                    console.warn('Showdown library not loaded, displaying raw text');
+                    questionsList.innerHTML = questions.map((question, index) => `
+                        <div class="question-item">
+                            <div class="question-header">
+                                <div class="question-number">${index + 1}</div>
+                                <div class="question-content">
+                                    <pre>${question.trim()}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
                 }
             } else {
-                questionContainer.style.display = 'none';
-            }
-            
-            // Display hints if available
-            if (q.sourceHint || q.consoleHint) {
-                console.log('Displaying hints');
-                
-                const hintText = q.sourceHint || q.consoleHint;
-                
-                hintsContainer.innerHTML = `
-                    <div class="hint-item" style="
-                        text-align: center;
-                        padding: 3rem;
-                        margin: 2rem auto;
-                        max-width: 600px;
-                        background: rgba(255, 255, 255, 0.05);
-                        border: 2px solid rgba(255, 255, 255, 0.1);
-                        border-radius: 1rem;
-                        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-                    ">
-                        <p class="hint-text" style="
-                            font-size: 3rem;
-                            font-weight: bold;
-                            color: var(--primary);
-                            margin: 0;
-                            letter-spacing: 0.1em;
-                            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-                        ">${hintText}</p>
-                    </div>
-                `;
-            } else {
-                console.log('No specific hints available');
-                hintsContainer.innerHTML = `
-                    <div class="hint-item">
-                        <h3 class="hint-title">General Hint</h3>
-                        <p class="hint-text">Study the question carefully. Look for patterns, hidden meanings, or references that might lead you to the answer.</p>
-                    </div>
-                `;
+                questionsList.innerHTML = '<div class="no-questions"><p>No questions available yet</p></div>';
             }
         } else {
             console.log('No question data in response');
-            questionContainer.style.display = 'none';
-            hintsContainer.innerHTML = `
-                <div class="hint-item">
-                    <h3 class="hint-title">General Hint</h3>
-                    <p class="hint-text">Study the question carefully. Look for patterns, hidden meanings, or references that might lead you to the answer.</p>
-                </div>
-            `;
+            questionsList.innerHTML = '<div class="no-questions"><p>No questions available yet</p></div>';
         }
     } catch (error) {
-        console.error('Error loading hints:', error);
-        document.getElementById('levelQuestionContainer').style.display = 'none';
-        document.getElementById('hintsContainer').innerHTML = '<div class="hint-item" style="text-align: center; color: #dc3545;">Failed to load hints</div>';
+        console.error('Error loading questions:', error);
+        document.getElementById('questionsList').innerHTML = '<div class="no-questions"><p>Failed to load questions</p></div>';
     }
 }
 
@@ -139,22 +113,36 @@ async function checkAdminAccess() {
         });
         if (response.ok) {
             const userData = await response.json();
-            if (userData.isAdmin) {
-                document.getElementById('adminLink').style.display = 'inline-block';
-            } else {
-                document.getElementById('adminLink').style.display = 'none';
-            }
+            const adminLinks = ['adminLink', 'mobileAdminLink'];
+            adminLinks.forEach(linkId => {
+                const element = document.getElementById(linkId);
+                if (element) {
+                    element.style.display = userData.isAdmin ? 'inline-block' : 'none';
+                }
+            });
         } else {
-            document.getElementById('adminLink').style.display = 'none';
+            const adminLinks = ['adminLink', 'mobileAdminLink'];
+            adminLinks.forEach(linkId => {
+                const element = document.getElementById(linkId);
+                if (element) {
+                    element.style.display = 'none';
+                }
+            });
         }
     } catch (error) {
-        document.getElementById('adminLink').style.display = 'none';
+        const adminLinks = ['adminLink', 'mobileAdminLink'];
+        adminLinks.forEach(linkId => {
+            const element = document.getElementById(linkId);
+            if (element) {
+                element.style.display = 'none';
+            }
+        });
     }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
     checkAdminAccess();
-    loadHints();
+    loadQuestions();
     checkNotifications();
     setInterval(checkNotifications, 30000);
 });
