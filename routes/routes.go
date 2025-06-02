@@ -91,6 +91,7 @@ func RegisterRoutes() http.Handler {
 	Mux.HandleFunc("/enter/email-verify", handlers.CORS(handlers.EmailVerify))
 
 	Mux.HandleFunc("/api/question", handlers.GetQuestionHandler)
+	Mux.HandleFunc("/api/announcements", handlers.GetAnnouncementsForPublicHandler)
 	Mux.HandleFunc("/api/submit", handlers.SubmitAnswer)
 	Mux.HandleFunc("/dashboard", handlers.DashboardPage)
 
@@ -158,6 +159,27 @@ func RegisterRoutes() http.Handler {
 				email := strings.TrimPrefix(userPath, "/")
 				if r.Method == "DELETE" {
 					handlers.DeleteUserHandler(w, r, email)
+				}
+			}
+		}
+
+		if strings.HasPrefix(path, "/announcements") {
+			announcementPath := strings.TrimPrefix(path, "/announcements")
+			if announcementPath == "" || announcementPath == "/" {
+				if r.Method == "GET" {
+					handlers.GetAllAnnouncementsHandler(w, r)
+				} else if r.Method == "POST" {
+					handlers.CreateAnnouncementHandler(w, r)
+				}
+			} else {
+				parts := strings.Split(strings.TrimPrefix(announcementPath, "/"), "/")
+				if len(parts) >= 1 {
+					id := parts[0]
+					if r.Method == "PUT" {
+						handlers.UpdateAnnouncementHandler(w, r, id)
+					} else if r.Method == "DELETE" {
+						handlers.DeleteAnnouncementHandler(w, r, id)
+					}
 				}
 			}
 		}

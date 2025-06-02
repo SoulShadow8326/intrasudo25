@@ -148,9 +148,59 @@ async function checkAdminAccess() {
     }
 }
 
+// Announcements functions
+async function loadAnnouncements() {
+    try {
+        console.log('Loading announcements from /api/announcements...');
+        
+        const response = await fetch('/api/announcements');
+        
+        if (!response.ok) {
+            console.log('Announcements API response not ok, status:', response.status);
+            return;
+        }
+        
+        const announcements = await response.json();
+        console.log('Announcements API response data:', announcements);
+        
+        const announcementsContainer = document.getElementById('announcementsContainer');
+        
+        if (announcements && announcements.length > 0) {
+            displayAnnouncements(announcements);
+            announcementsContainer.style.display = 'flex';
+        } else {
+            announcementsContainer.style.display = 'none';
+        }
+    } catch (error) {
+        console.error('Error loading announcements:', error);
+        document.getElementById('announcementsContainer').style.display = 'none';
+    }
+}
+
+function displayAnnouncements(announcements) {
+    const announcementsList = document.getElementById('announcementsList');
+    
+    const announcementsHTML = announcements.map(announcement => `
+        <div class="announcement-banner">
+            <h2 class="announcement-heading">
+                ${escapeHtml(announcement.heading)}
+            </h2>
+        </div>
+    `).join('');
+    
+    announcementsList.innerHTML = announcementsHTML;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     checkAdminAccess();
     loadQuestions();
     checkNotifications();
+    loadAnnouncements();
     setInterval(checkNotifications, 30000);
 });

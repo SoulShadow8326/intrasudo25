@@ -368,3 +368,97 @@ func GetSecretHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"secret": secret})
 }
+
+// Announcement handlers
+func GetAllAnnouncementsHandler(w http.ResponseWriter, r *http.Request) {
+	announcements, err := database.GetAllAnnouncements()
+	if err != nil {
+		http.Error(w, "Failed to get announcements", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(announcements)
+}
+
+func CreateAnnouncementHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Heading string `json:"heading"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if req.Heading == "" {
+		http.Error(w, "Heading is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := database.CreateAnnouncement(req.Heading); err != nil {
+		http.Error(w, "Failed to create announcement", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Announcement created successfully"})
+}
+
+func UpdateAnnouncementHandler(w http.ResponseWriter, r *http.Request, idStr string) {
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid announcement ID", http.StatusBadRequest)
+		return
+	}
+
+	var req struct {
+		Heading string `json:"heading"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if req.Heading == "" {
+		http.Error(w, "Heading is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := database.UpdateAnnouncement(id, req.Heading); err != nil {
+		http.Error(w, "Failed to update announcement", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Announcement updated successfully"})
+}
+
+func DeleteAnnouncementHandler(w http.ResponseWriter, r *http.Request, idStr string) {
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		http.Error(w, "Invalid announcement ID", http.StatusBadRequest)
+		return
+	}
+
+	if err := database.DeleteAnnouncement(id); err != nil {
+		http.Error(w, "Failed to delete announcement", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Announcement deleted successfully"})
+}
+
+// Public handler for getting announcements (no auth required)
+func GetAnnouncementsForPublicHandler(w http.ResponseWriter, r *http.Request) {
+	announcements, err := database.GetAllAnnouncements()
+	if err != nil {
+		http.Error(w, "Failed to get announcements", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(announcements)
+}

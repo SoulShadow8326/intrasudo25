@@ -1,51 +1,90 @@
 /* Hints Page Styles */
-.hints-container {
-    max-width: 800px;
-    width: 100%;
-    margin: 0 auto;
-    padding: 2rem;
-    text-align: center;
+.main-content-pages {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 1rem;
+    padding-bottom: 80px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    height: calc(100vh - 120px) !important;
 }
 
-.hints-title {
+.announcements-container {
+    width: 800px;
+    min-width: 800px;
+    max-width: 800px;
+    margin: 0 auto;
+    flex: 0 0 auto;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+
+.hints-container {
+    width: 800px;
+    min-width: 800px;
+    max-width: 800px;
+    margin: 0 auto;
+    flex: 1 1 auto;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+
+.hints-title, .announcements-title {
     text-align: center;
-    margin-bottom: 3rem;
     font-size: 2.5rem;
     font-weight: 700;
     color: var(--foreground);
+    padding: 1.5rem 2rem;
+    margin: 0;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    flex-shrink: 0;
 }
 
-.questions-wrapper {
-    width: 100%;
-    max-height: 70vh;
+.questions-wrapper, .announcements-wrapper {
+    flex: 1;
     overflow-y: auto;
-    padding-right: 0.5rem;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(41, 119, 245, 0.5) rgba(255, 255, 255, 0.1);
+    min-height: 0;
+    transition: opacity 0.3s ease;
 }
 
-.questions-wrapper::-webkit-scrollbar {
+.questions-wrapper::-webkit-scrollbar, .announcements-wrapper::-webkit-scrollbar {
     width: 8px;
 }
 
-.questions-wrapper::-webkit-scrollbar-track {
+.questions-wrapper::-webkit-scrollbar-track, .announcements-wrapper::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.1);
     border-radius: 4px;
 }
 
-.questions-wrapper::-webkit-scrollbar-thumb {
+.questions-wrapper::-webkit-scrollbar-thumb, .announcements-wrapper::-webkit-scrollbar-thumb {
     background: rgba(41, 119, 245, 0.6);
     border-radius: 4px;
 }
 
-.questions-wrapper::-webkit-scrollbar-thumb:hover {
+.questions-wrapper::-webkit-scrollbar-thumb:hover, .announcements-wrapper::-webkit-scrollbar-thumb:hover {
     background: rgba(41, 119, 245, 0.8);
 }
 
-.questions-list {
+.questions-list, .announcements-list {
     display: flex;
     flex-direction: column;
     gap: 1.5rem;
-    max-width: 800px;
-    margin: 0 auto;
+    padding: 1.5rem 2rem;
     text-align: left;
 }
 
@@ -213,14 +252,14 @@
 
 .loading-message {
     text-align: center;
-    padding: 3rem 1rem;
+    padding: 3rem 2rem;
     color: var(--text-secondary);
     font-size: 1.1rem;
 }
 
 .no-questions {
     text-align: center;
-    padding: 3rem 1rem;
+    padding: 3rem 2rem;
     color: var(--text-secondary);
 }
 
@@ -229,18 +268,50 @@
     margin: 0;
 }
 
+/* Announcements Section */
+.announcement-banner {
+    background: #2977F5;
+    border: 2px solid #4A90F7;
+    border-radius: 0.75rem;
+    padding: 1.5rem 2rem;
+    box-shadow: 0 4px 15px rgba(41, 119, 245, 0.2);
+}
+
+.announcement-heading {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: white;
+    margin: 0;
+    text-align: center;
+}
+
 @media (max-width: 768px) {
+    .main-content-pages {
+        padding-bottom: 60px !important;
+    }
+    
+    .announcements-container,
     .hints-container {
+        width: 100%;
+        min-width: 320px;
+        max-width: 100%;
+        min-height: 350px;
+    }
+    
+    .announcements-container {
+        min-height: 200px;
+    }
+    
+    .hints-title,
+    .announcements-title {
+        font-size: 2rem;
         padding: 1rem;
     }
     
-    .hints-title {
-        font-size: 2rem;
-        margin-bottom: 2rem;
-    }
-    
-    .questions-list {
+    .questions-list,
+    .announcements-list {
         gap: 1rem;
+        padding: 1rem;
     }
     
     .question-item {
@@ -262,5 +333,9 @@
     
     .question-content {
         font-size: 1.5rem;
+    }
+    
+    .loading-message {
+        padding: 2rem 1rem;
     }
 }

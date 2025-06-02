@@ -7,7 +7,8 @@ async function initializeAdmin() {
         await Promise.all([
             loadStats(),
             loadLevels(),
-            loadUsers()
+            loadUsers(),
+            loadAnnouncements()
         ]);
     } catch (error) {
         console.error('Failed to initialize admin dashboard:', error);
@@ -685,4 +686,198 @@ function toggleLevelExpand(button) {
         expandIcon.textContent = '▼';
         expandText.textContent = 'Show Questions';
     }
+}
+
+// Announcement management functions
+async function loadAnnouncements() {
+    try {
+        const response = await fetch('/api/admin/announcements');
+        if (response.ok) {
+            const announcements = await response.json();
+            displayAnnouncements(announcements);
+        } else {
+            throw new Error('Failed to load announcements');
+        }
+    } catch (error) {
+        console.error('Failed to load announcements:', error);
+        showNotification('Failed to load announcements', 'error');
+    }
+}
+
+function displayAnnouncements(announcements) {
+    const container = document.getElementById('announcementsContainer');
+    
+    if (!announcements || announcements.length === 0) {
+        container.innerHTML = '<div class="empty-state">No announcements found</div>';
+        return;
+    }
+
+    const announcementsHTML = announcements.map(announcement => `
+        <div class="announcement-item" data-id="${announcement.id}">
+            <div class="announcement-content">
+                <h3 class="announcement-heading">${escapeHtml(announcement.heading)}</h3>
+                <div class="announcement-meta">
+                    Created: ${new Date(announcement.created_at).toLocaleDateString()}
+                    ${announcement.updated_at !== announcement.created_at ? 
+                        `• Updated: ${new Date(announcement.updated_at).toLocaleDateString()}` : ''}
+                </div>
+            </div>
+            <div class="announcement-actions">
+                <button class="btn-edit-announcement" onclick="editAnnouncement(${announcement.id}, '${escapeHtml(announcement.heading).replace(/'/g, "\\'")}')">
+                    Edit
+                </button>
+                <button class="btn-delete-announcement" onclick="deleteAnnouncement(${announcement.id})">
+                    Delete
+                </button>
+            </div>
+        </div>
+    `).join('');
+
+    container.innerHTML = announcementsHTML;
+}
+
+function toggleAddAnnouncementForm() {
+    const addForm = document.getElementById('addAnnouncementForm');
+    const editForm = document.getElementById('editAnnouncementForm');
+    
+    editForm.style.display = 'none';
+    addForm.classList.toggle('show');
+    
+    if (addForm.classList.contains('show')) {
+        document.getElementById('announcementHeading').focus();
+    } else {
+        clearAddAnnouncementForm();
+    }
+}
+
+function clearAddAnnouncementForm() {
+    document.getElementById('announcementHeading').value = '';
+}
+
+function cancelAddAnnouncement() {
+    const addForm = document.getElementById('addAnnouncementForm');
+    const editForm = document.getElementById('editAnnouncementForm');
+    
+    addForm.classList.remove('show');
+    editForm.style.display = 'none';
+    clearAddAnnouncementForm();
+}
+
+async function createAnnouncement() {
+    const heading = document.getElementById('announcementHeading').value.trim();
+    
+    if (!heading) {
+        showNotification('Please enter an announcement heading', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/admin/announcements', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || ''
+            },
+            body: JSON.stringify({ heading })
+        });
+
+        if (response.ok) {
+            showNotification('Announcement created successfully', 'success');
+            cancelAddAnnouncement();
+            await loadAnnouncements();
+        } else {
+            const error = await response.text();
+            throw new Error(error);
+        }
+    } catch (error) {
+        console.error('Failed to create announcement:', error);
+        showNotification('Failed to create announcement', 'error');
+    }
+}
+
+async function editAnnouncement(id, currentHeading) {
+    const addForm = document.getElementById('addAnnouncementForm');
+    const editForm = document.getElementById('editAnnouncementForm');
+    
+    addForm.classList.remove('show');
+    editForm.style.display = 'block';
+    editForm.dataset.announcementId = id;
+    
+    document.getElementById('editAnnouncementHeading').value = currentHeading;
+    document.getElementById('editAnnouncementHeading').focus();
+}
+
+function cancelEditAnnouncement() {
+    const editForm = document.getElementById('editAnnouncementForm');
+    editForm.style.display = 'none';
+    delete editForm.dataset.announcementId;
+    document.getElementById('editAnnouncementHeading').value = '';
+}
+
+async function updateAnnouncement() {
+    const editForm = document.getElementById('editAnnouncementForm');
+    const id = editForm.dataset.announcementId;
+    const newHeading = document.getElementById('editAnnouncementHeading').value.trim();
+    
+    if (!newHeading) {
+        showNotification('Please enter an announcement heading', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/admin/announcements/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || ''
+            },
+            body: JSON.stringify({ heading: newHeading })
+        });
+
+        if (response.ok) {
+            showNotification('Announcement updated successfully', 'success');
+            cancelEditAnnouncement();
+            await loadAnnouncements();
+        } else {
+            const error = await response.text();
+            throw new Error(error);
+        }
+    } catch (error) {
+        console.error('Failed to update announcement:', error);
+        showNotification('Failed to update announcement', 'error');
+    }
+}
+
+async function deleteAnnouncement(id) {
+    showConfirmModal(
+        'Delete Announcement',
+        'Are you sure you want to delete this announcement? This action cannot be undone.',
+        async function() {
+            try {
+                const response = await fetch(`/api/admin/announcements/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || ''
+                    }
+                });
+
+                if (response.ok) {
+                    showNotification('Announcement deleted successfully', 'success');
+                    await loadAnnouncements();
+                } else {
+                    const error = await response.text();
+                    throw new Error(error);
+                }
+            } catch (error) {
+                console.error('Failed to delete announcement:', error);
+                showNotification('Failed to delete announcement', 'error');
+            }
+        }
+    );
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }

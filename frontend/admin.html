@@ -164,6 +164,50 @@
 
                     <section class="admin-section">
                         <div class="section-header">
+                            <h2 class="section-title">Announcements Management</h2>
+                            <button class="btn-primary" onclick="toggleAddAnnouncementForm()">
+                                Add New Announcement
+                            </button>
+                        </div>
+
+                        <div class="add-announcement-form" id="addAnnouncementForm">
+                            <div class="form-group">
+                                <label class="form-label" for="announcementHeading">Announcement Heading:</label>
+                                <input type="text" id="announcementHeading" class="form-input" placeholder="Enter announcement heading">
+                            </div>
+                            <div class="form-actions">
+                                <button class="btn-primary" onclick="createAnnouncement()">
+                                    Create Announcement
+                                </button>
+                                <button class="btn-secondary" onclick="cancelAddAnnouncement()">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="add-announcement-form" id="editAnnouncementForm" style="display: none;">
+                            <h3>Edit Announcement</h3>
+                            <div class="form-group">
+                                <label class="form-label" for="editAnnouncementHeading">Announcement Heading:</label>
+                                <input type="text" id="editAnnouncementHeading" class="form-input" placeholder="Enter announcement heading">
+                            </div>
+                            <div class="form-actions">
+                                <button class="btn-primary" onclick="updateAnnouncement()">
+                                    Update Announcement
+                                </button>
+                                <button class="btn-secondary" onclick="cancelEditAnnouncement()">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="announcementsContainer">
+                            <div class="loading-state">Loading announcements...</div>
+                        </div>
+                    </section>
+
+                    <section class="admin-section">
+                        <div class="section-header">
                             <h2 class="section-title">User Management</h2>
                             <button class="btn-primary" onclick="refreshUsers()">
                                 Refresh

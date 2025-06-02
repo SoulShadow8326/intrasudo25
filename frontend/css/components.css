@@ -293,7 +293,7 @@
     padding: 0.5rem;
     text-align: center;
     border-top: 1px solid rgba(255, 255, 255, 0.15);
-    background-color: rgba(0, 0, 0, 0.9);
+    background-color: #0D0E11 !important;
     position: fixed;
     bottom: 0;
     left: 0;

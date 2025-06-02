@@ -277,6 +277,13 @@ func createTables() {
 			read BOOLEAN DEFAULT FALSE,
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		);`,
+		`CREATE TABLE IF NOT EXISTS announcements (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			heading TEXT NOT NULL,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			active BOOLEAN DEFAULT TRUE
+		);`,
 	}
 
 	for _, table := range tables {
@@ -554,6 +561,11 @@ func Create(entity string, data interface{}) error {
 			_, err := db.Exec("INSERT INTO notifications (user_email, message, type, read) VALUES (?, ?, ?, 0)", userEmail, message, notifType)
 			return err
 		}
+	case "announcement":
+		if announcement, ok := data.(Announcement); ok {
+			_, err := db.Exec("INSERT INTO announcements (heading, active) VALUES (?, ?)", announcement.Heading, announcement.Active)
+			return err
+		}
 	}
 	return fmt.Errorf("invalid create request")
 }
@@ -625,6 +637,13 @@ func Update(entity string, params map[string]interface{}, data interface{}) erro
 			_, err := db.Exec("UPDATE notifications SET read = 1 WHERE user_email = ?", gmail)
 			return err
 		}
+	case "announcement":
+		if id, ok := params["id"].(int); ok {
+			if heading, ok := data.(string); ok {
+				_, err := db.Exec("UPDATE announcements SET heading = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", heading, id)
+				return err
+			}
+		}
 	}
 	return fmt.Errorf("invalid update request")
 }
@@ -639,6 +658,11 @@ func Delete(entity string, params map[string]interface{}) error {
 	case "level":
 		if number, ok := params["number"].(int); ok {
 			_, err := db.Exec("DELETE FROM levels WHERE level_number = ?", number)
+			return err
+		}
+	case "announcement":
+		if id, ok := params["id"].(int); ok {
+			_, err := db.Exec("UPDATE announcements SET active = FALSE WHERE id = ?", id)
 			return err
 		}
 	}
@@ -779,8 +803,75 @@ func CheckAnswer(userEmail string, levelID int, answer string) (*SubmitAnswerRes
 	}, nil
 }
 
-func GetUnreadNotificationCount(userEmail string) (int, error) {
+// Announcement struct
+type Announcement struct {
+	ID        int    `json:"id" db:"id"`
+	Heading   string `json:"heading" db:"heading"`
+	CreatedAt string `json:"created_at" db:"created_at"`
+	UpdatedAt string `json:"updated_at" db:"updated_at"`
+	Active    bool   `json:"active" db:"active"`
+}
+
+// CreateAnnouncement creates a new announcement
+func CreateAnnouncement(heading string) error {
+	query := `INSERT INTO announcements (heading) VALUES (?)`
+	_, err := db.Exec(query, heading)
+	return err
+}
+
+// GetAllAnnouncements retrieves all active announcements
+func GetAllAnnouncements() ([]Announcement, error) {
+	var announcements []Announcement
+	query := `SELECT id, heading, created_at, updated_at, active FROM announcements WHERE active = TRUE ORDER BY created_at DESC`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var announcement Announcement
+		err := rows.Scan(&announcement.ID, &announcement.Heading, &announcement.CreatedAt, &announcement.UpdatedAt, &announcement.Active)
+		if err != nil {
+			return nil, err
+		}
+		announcements = append(announcements, announcement)
+	}
+
+	return announcements, nil
+}
+
+// GetAnnouncementByID retrieves an announcement by ID
+func GetAnnouncementByID(id int) (*Announcement, error) {
+	var announcement Announcement
+	query := `SELECT id, heading, created_at, updated_at, active FROM announcements WHERE id = ?`
+
+	err := db.QueryRow(query, id).Scan(&announcement.ID, &announcement.Heading, &announcement.CreatedAt, &announcement.UpdatedAt, &announcement.Active)
+	if err != nil {
+		return nil, err
+	}
+
+	return &announcement, nil
+}
+
+// UpdateAnnouncement updates an existing announcement
+func UpdateAnnouncement(id int, heading string) error {
+	query := `UPDATE announcements SET heading = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+	_, err := db.Exec(query, heading, id)
+	return err
+}
+
+// DeleteAnnouncement soft deletes an announcement by setting active to false
+func DeleteAnnouncement(id int) error {
+	query := `UPDATE announcements SET active = FALSE WHERE id = ?`
+	_, err := db.Exec(query, id)
+	return err
+}
+
+func GetUnreadNotificationCount(email string) (int, error) {
 	var count int
-	err := db.QueryRow("SELECT COUNT(*) FROM notifications WHERE user_email = ? AND read = 0", userEmail).Scan(&count)
+	query := `SELECT COUNT(*) FROM notifications WHERE user_email = ? AND read = FALSE`
+	err := db.QueryRow(query, email).Scan(&count)
 	return count, err
 }
