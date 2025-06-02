@@ -163,6 +163,30 @@
     border-radius: 8px;
     margin: 1rem 0;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    display: block;
+}
+
+.question-content a {
+    color: #2977F5;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease;
+}
+
+.question-content a:hover {
+    border-bottom-color: #2977F5;
+}
+
+.question-content strong,
+.question-content b {
+    color: var(--foreground);
+    font-weight: 700;
+}
+
+.question-content em,
+.question-content i {
+    font-style: italic;
+    color: var(--text-color);
 }
 
 .question-content table {

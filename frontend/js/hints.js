@@ -48,7 +48,15 @@ async function loadQuestions() {
                         tasklists: true,
                         simpleLineBreaks: true,
                         openLinksInNewWindow: true,
-                        backslashEscapesHTMLTags: true
+                        backslashEscapesHTMLTags: true,
+                        emoji: true,
+                        underline: true,
+                        completeHTMLDocument: false,
+                        metadata: false,
+                        splitAdjacentBlockquotes: true,
+                        smartIndentationFix: true,
+                        disableForced4SpacesIndentedSublists: true,
+                        literalMidWordUnderscores: true
                     });
                     
                     questionsList.innerHTML = questions.map((question, index) => `
