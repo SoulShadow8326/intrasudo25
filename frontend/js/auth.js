@@ -233,7 +233,13 @@ function showPopup(type, title, message, callback = null) {
     messageEl.textContent = message;
     modal.classList.add('show');
     
+    const autoHideTimeout = setTimeout(() => {
+        hidePopup();
+        if (callback) callback();
+    }, 5000);
+    
     const handleClick = () => {
+        clearTimeout(autoHideTimeout);
         hidePopup();
         if (callback) callback();
         button.removeEventListener('click', handleClick);
