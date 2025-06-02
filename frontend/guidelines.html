@@ -74,8 +74,15 @@
                         <p>Failure to comply will result in disciplinary actions.</p>
                     </div>
                     
+                    <div class="guidelines-agreement">
+                        <label class="agreement-checkbox">
+                            <input type="checkbox" id="agreementCheckbox" required>
+                            <span class="agreement-text">I have read and agree to follow all the instructions and guidelines mentioned above</span>
+                        </label>
+                    </div>
+                    
                     <div class="guidelines-actions" style="display: flex !important; justify-content: center !important; align-items: center !important; margin: 2rem 0 !important; text-align: center !important;">
-                        <a href="/home" class="landing-button" style="margin: 0 auto !important;">Get Started</a>
+                        <a href="/home" class="landing-button" style="margin: 0 auto !important;" id="getStartedButton">Get Started</a>
                     </div>
                 </div>
             </div>
@@ -92,5 +99,27 @@
     </footer>
 
     <script src="js/utils.js?v=2"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const agreementCheckbox = document.getElementById('agreementCheckbox');
+            const getStartedButton = document.getElementById('getStartedButton');
+            const agreementBox = document.querySelector('.guidelines-agreement');
+            
+            getStartedButton.addEventListener('click', function(e) {
+                if (!agreementCheckbox.checked) {
+                    e.preventDefault();
+                    agreementBox.classList.add('highlight');
+                    agreementBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(() => {
+                        agreementBox.classList.remove('highlight');
+                    }, 2000);
+                }
+            });
+            
+            agreementCheckbox.addEventListener('change', function() {
+                agreementBox.classList.remove('highlight');
+            });
+        });
+    </script>
 </body>
 </html>
