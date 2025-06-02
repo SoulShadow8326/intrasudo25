@@ -1,0 +1,151 @@
+.guidelines-content {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.guidelines-container {
+    background: rgba(255, 255, 255, 0.03);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 2.5rem;
+    backdrop-filter: blur(10px);
+}
+
+.guidelines-title {
+    text-align: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--foreground);
+    margin-bottom: 2rem;
+}
+
+.guidelines-section {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.guidelines-intro {
+    text-align: center;
+    font-size: 1.1rem;
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.guidelines-intro p {
+    margin-bottom: 1rem;
+}
+
+.guidelines-box {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 2rem;
+}
+
+.guidelines-box .guidelines-content {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: 0;
+    backdrop-filter: none;
+}
+
+.guidelines-box p {
+    font-size: 1.1rem;
+    color: var(--text-color);
+    line-height: 1.7;
+    margin-bottom: 1.5rem;
+}
+
+.guidelines-box p:last-child {
+    margin-bottom: 0;
+}
+
+.guidelines-warning {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.guidelines-warning p {
+    font-size: 1rem;
+    color: #fca5a5;
+    line-height: 1.6;
+    margin-bottom: 0.5rem;
+}
+
+.guidelines-warning p:last-child {
+    margin-bottom: 0;
+    font-weight: 600;
+}
+
+.guidelines-link {
+    color: #2977F5;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s ease;
+}
+
+.guidelines-link:hover {
+    border-bottom-color: #2977F5;
+}
+
+.guidelines-actions {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 2rem 0;
+    text-align: center;
+}
+
+.landing-button {
+    background: linear-gradient(135deg, #2977F5 0%, #1E5FD6 100%);
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    border: none;
+    cursor: pointer;
+    display: inline-block;
+}
+
+.landing-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(41, 119, 245, 0.3);
+}
+
+@media (max-width: 768px) {
+    .guidelines-content {
+        padding: 1rem;
+    }
+    
+    .guidelines-container {
+        padding: 1.5rem;
+    }
+    
+    .guidelines-title {
+        font-size: 2rem;
+    }
+    
+    .guidelines-box {
+        padding: 1.5rem;
+    }
+    
+    .guidelines-intro,
+    .guidelines-box p {
+        font-size: 1rem;
+    }
+    
+    .guidelines-warning {
+        padding: 1rem;
+    }
+}
