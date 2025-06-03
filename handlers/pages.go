@@ -6,6 +6,7 @@ import (
 	"intrasudo25/config"
 	"intrasudo25/database"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -87,7 +88,34 @@ func HintsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GuidelinesHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./frontend/guidelines.html")
+	_, err := GetUserFromSession(r)
+	isLoggedIn := err == nil
+
+	content, err := os.ReadFile("./frontend/guidelines.html")
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	htmlContent := string(content)
+
+	if !isLoggedIn {
+		navStart := strings.Index(htmlContent, `<nav class="navbar">`)
+		mobileNavStart := strings.Index(htmlContent, `<div class="mobile-nav-menu"`)
+
+		if navStart != -1 && mobileNavStart != -1 {
+			mobileNavEnd := strings.Index(htmlContent[mobileNavStart:], `</div>`)
+			if mobileNavEnd != -1 {
+				mobileNavEnd = mobileNavStart + mobileNavEnd + 6
+				beforeNav := htmlContent[:navStart]
+				afterMobileNav := htmlContent[mobileNavEnd:]
+				htmlContent = beforeNav + afterMobileNav
+			}
+		}
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write([]byte(htmlContent))
 }
 
 func LeaderboardHandler(w http.ResponseWriter, r *http.Request) {
@@ -357,10 +385,6 @@ func AuthPageHandler(w http.ResponseWriter, r *http.Request) {
 
 	data := PageData{}
 	renderTemplate(w, "auth.html", data)
-}
-
-func ChatPageHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./frontend/chat.html")
 }
 
 func GetSecretHandler(w http.ResponseWriter, r *http.Request) {

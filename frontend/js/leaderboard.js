@@ -15,12 +15,10 @@ async function loadLeaderboard() {
         
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Response not OK:', response.status, errorText);
             throw new Error(`Failed to fetch leaderboard data: ${response.status} ${errorText}`);
         }
         
         const data = await response.json();
-        console.log('Leaderboard data received:', data);
         const leaderboardData = data.leaderboard || [];
         const listContainer = document.getElementById('leaderboardList');
         
@@ -86,7 +84,6 @@ async function checkNotifications() {
             }
         }
     } catch (error) {
-        console.error('Failed to check notifications:', error);
     }
 }
 

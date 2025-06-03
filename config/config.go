@@ -49,3 +49,11 @@ func GetEmailConfig() EmailConfig {
 func GetXSecretValue() string {
 	return os.Getenv("X_SECRET_VALUE")
 }
+
+func GetDiscordBotToken() string {
+	return os.Getenv("DISCORD_BOT_TOKEN")
+}
+
+func GetDiscordBotURL() string {
+	return os.Getenv("DISCORD_BOT_URL")
+}

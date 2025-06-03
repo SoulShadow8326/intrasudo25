@@ -5,12 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#0D0E11">
     <meta name="description" content="Website for Intra Sudo 2025">
-    <title>Intra Sudo 2025 - Chat</title>
+    <title>Intra Sudo 2025 - Chat Unavailable</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="css/base.css">
     <link rel="stylesheet" href="css/components.css">
-    <link rel="stylesheet" href="css/chat.css">
     <link rel="icon" type="image/x-icon" href="assets/favicon.ico">
+    <script>
+        // Redirect to home page after 3 seconds
+        setTimeout(() => {
+            window.location.href = '/home';
+        }, 3000);
+    </script>
 </head>
 <body>
     <nav class="navbar">
@@ -19,9 +24,6 @@
                 <img class="logo-img" src="assets/logo-blue.png" alt="Sudocrypt" />
                 <span class="nav-brand">Intra Sudo v6.0</span>
             </a>
-            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
-                <img src="assets/logo_nobg.png" alt="Menu" class="mobile-menu-icon">
-            </button>
         </div>
         <div class="nav-center">
             <a href="/home" class="nav-link">Home</a>
@@ -34,37 +36,19 @@
         </div>
     </nav>
 
-    <div class="mobile-nav-menu" id="mobileNavMenu">
-        <div class="mobile-nav-links">
-            <a href="/home" class="nav-link">Home</a>
-            <a href="/leaderboard" class="nav-link">Leaderboard</a>
-            <a href="/hints" class="nav-link">Hints</a>
-            <a href="/admin" class="nav-link" id="mobileAdminLink" style="display: none;">Admin</a>
-            <a href="#" class="nav-link" onclick="handleLogout()">Log Out</a>
-        </div>
-    </div>
-
     <main class="page-container">
         <div class="main-content-pages">
             <div class="main-content">
-                <h1 class="level-heading">Chat</h1>
-
-                <div class="chat-content">
-                    <div class="chat-messages" id="chatMessages">
-                        <div class="loading-state" id="chatLoadingState">Loading messages...</div>
-                    </div>
-                </div>
-
-                <div class="chat-footer">
-                    <form class="chat-input-form" onsubmit="handleChatSubmit(event)">
-                        <input 
-                            type="text" 
-                            class="chat-input" 
-                            placeholder="Type your message..." 
-                            autocomplete="off"
-                            id="chatInput"
-                        >
-                    </form>
+                <h1 class="level-heading">Chat Feature Unavailable</h1>
+                <div style="text-align: center; padding: 2rem;">
+                    <p style="margin-bottom: 1rem;">Global chat functionality has been removed from the application.</p>
+                    <p style="margin-bottom: 1rem;">You can still:</p>
+                    <ul style="text-align: left; display: inline-block;">
+                        <li>Communicate with leads through the <strong>Leads</strong> feature</li>
+                        <li>Receive <strong>Hints</strong> available for the game</li>
+                    </ul>
+                    <p style="margin-top: 1rem;">Redirecting to home page in 3 seconds...</p>
+                    <a href="/home" class="submit-button" style="display: inline-block; margin-top: 1rem;">Go to Home</a>
                 </div>
             </div>
         </div>
@@ -78,6 +62,5 @@
     </footer>
 
     <script src="js/utils.js"></script>
-    <script src="js/chat.js"></script>
 </body>
 </html>

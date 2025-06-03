@@ -11,7 +11,6 @@ async function initializeAdmin() {
             loadAnnouncements()
         ]);
     } catch (error) {
-        console.error('Failed to initialize admin dashboard:', error);
         showNotification('Failed to load admin dashboard', 'error');
     }
 }
@@ -23,7 +22,6 @@ async function getUserSession() {
             userSession = await response.json();
         }
     } catch (error) {
-        console.error('Failed to get user session:', error);
     }
 }
 
@@ -37,7 +35,6 @@ async function loadStats() {
             throw new Error('Failed to load stats');
         }
     } catch (error) {
-        console.error('Failed to load stats:', error);
         showNotification('Failed to load statistics', 'error');
     }
 }
@@ -77,7 +74,6 @@ async function loadLevels() {
             throw new Error('Failed to load levels');
         }
     } catch (error) {
-        console.error('Failed to load levels:', error);
         loading.style.display = 'none';
         empty.style.display = 'block';
         hideQuestionStateSection();
@@ -179,11 +175,9 @@ async function createLevel() {
         } else {
             const errorData = await response.json();
             showNotification(errorData.error || 'Failed to create level', 'error');
+        }        } catch (error) {
+            showNotification('Failed to create level. Please try again.', 'error');
         }
-    } catch (error) {
-        console.error('Error creating level:', error);
-        showNotification('Failed to create level. Please try again.', 'error');
-    }
 }
 
 async function deleteLevel(levelId) {
@@ -208,7 +202,6 @@ async function deleteLevel(levelId) {
                     throw new Error('Failed to delete level');
                 }
             } catch (error) {
-                console.error('Error deleting level:', error);
                 showNotification('Failed to delete level. Please try again.', 'error');
             }
         }
@@ -311,7 +304,6 @@ async function updateLevel() {
             showNotification(errorData.error || 'Failed to update level', 'error');
         }
     } catch (error) {
-        console.error('Error updating level:', error);
         showNotification('Failed to update level. Please try again.', 'error');
     }
 }
@@ -331,7 +323,6 @@ async function loadUsers() {
             throw new Error('Failed to load users');
         }
     } catch (error) {
-        console.error('Failed to load users:', error);
         container.innerHTML = '<div class="error-state">Unable to load users. Please try again.</div>';
         showNotification('Failed to load users', 'error');
     }
@@ -393,7 +384,6 @@ async function deleteUser(email) {
                     throw new Error('Failed to delete user');
                 }
             } catch (error) {
-                console.error('Error deleting user:', error);
                 showNotification('Failed to delete user. Please try again.', 'error');
             }
         }
@@ -421,7 +411,6 @@ async function resetUserLevel(email) {
                     throw new Error('Failed to reset user level');
                 }
             } catch (error) {
-                console.error('Error resetting user level:', error);
                 showNotification('Failed to reset user level. Please try again.', 'error');
             }
         }
@@ -473,7 +462,6 @@ async function toggleQuestionState(levelId, enabled) {
             throw new Error('Failed to update question state');
         }
     } catch (error) {
-        console.error('Error updating question state:', error);
         showNotification('Failed to update question state. Please try again.', 'error');
         loadLevels();
     }
@@ -503,7 +491,6 @@ async function toggleAllQuestions(enabled) {
                 throw new Error('Failed to update question states');
             }
         } catch (error) {
-            console.error('Error updating question states:', error);
             showNotification('Failed to update question states. Please try again.', 'error');
         }
     });
@@ -572,10 +559,9 @@ async function handleLogout() {
         if (response.ok) {
             window.location.href = '/auth';
         } else {
-            console.error('Logout failed');
+            window.location.href = '/auth';
         }
     } catch (error) {
-        console.error('Error during logout:', error);
         window.location.href = '/auth';
     }
 }
@@ -730,7 +716,6 @@ async function loadAnnouncements() {
             throw new Error('Failed to load announcements');
         }
     } catch (error) {
-        console.error('Failed to load announcements:', error);
         showNotification('Failed to load announcements', 'error');
     }
 }
@@ -821,7 +806,6 @@ async function createAnnouncement() {
             throw new Error(error);
         }
     } catch (error) {
-        console.error('Failed to create announcement:', error);
         showNotification('Failed to create announcement', 'error');
     }
 }
@@ -874,7 +858,6 @@ async function updateAnnouncement() {
             throw new Error(error);
         }
     } catch (error) {
-        console.error('Failed to update announcement:', error);
         showNotification('Failed to update announcement', 'error');
     }
 }
@@ -900,7 +883,6 @@ async function deleteAnnouncement(id) {
                     throw new Error(error);
                 }
             } catch (error) {
-                console.error('Failed to delete announcement:', error);
                 showNotification('Failed to delete announcement', 'error');
             }
         }
@@ -934,7 +916,6 @@ async function resetMyLevel() {
                     throw new Error('Failed to reset level');
                 }
             } catch (error) {
-                console.error('Error resetting level:', error);
                 showNotification('Failed to reset your level. Please try again.', 'error');
             }
         }

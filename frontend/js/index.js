@@ -13,11 +13,12 @@ async function initializePage() {
         await checkAdminAccess();
         await loadCurrentLevel();
         await checkNotifications();
+        await updateHintsDisplay();
         
         setInterval(checkNotifications, 30000);
+        setInterval(updateHintsDisplay, 30000);
         
     } catch (error) {
-        console.error('Failed to initialize page:', error);
         window.location.href = '/auth';
     }
 }
@@ -37,7 +38,6 @@ async function loadUserSession() {
             return null;
         }
     } catch (error) {
-        console.error('Failed to load user session:', error);
         return null;
     }
 }
@@ -56,7 +56,6 @@ async function checkAdminAccess() {
             if (mobileAdminLink) mobileAdminLink.style.display = 'none';
         }
     } catch (error) {
-        console.error('Failed to check admin access:', error);
         const adminLink = document.getElementById('adminLink');
         const mobileAdminLink = document.getElementById('mobileAdminLink');
         if (adminLink) adminLink.style.display = 'none';
@@ -80,6 +79,7 @@ async function loadCurrentLevel() {
         const newLevel = await response.json();
         currentLevel = newLevel;
         updateLevelDisplay();
+        updateHintsDisplay();
         
     } catch (error) {
         console.error('Failed to load current level:', error);
@@ -164,6 +164,8 @@ function updateLevelDisplay() {
         answerInput.value = '';
         answerInput.focus();
     }
+    
+    updateHintsDisplay();
 }
 
 function handleLevelLoadError(error) {
@@ -261,8 +263,6 @@ async function handleSubmit() {
         }
         feedback.style.color = 'var(--primary)';
         
-        console.log('Submitting answer for level:', currentLevel.id, 'Answer:', answer);
-        
         const response = await fetch('/api/submit-answer', {
             method: 'POST',
             headers: {
@@ -309,7 +309,6 @@ async function handleSubmit() {
             feedback.textContent = result.message || 'Incorrect answer. Try again.';
             feedback.style.color = '#dc3545';
             
-            // Re-enable submit button for incorrect answers
             const submitButton = document.querySelector('button[onclick="handleSubmit()"]');
             if (submitButton) {
                 submitButton.disabled = false;
@@ -323,11 +322,9 @@ async function handleSubmit() {
             }, 3000);
         }
     } catch (error) {
-        console.error('Failed to submit answer:', error);
         feedback.textContent = 'Correct! Loading next level...';
         feedback.style.color = '#28a745';
         
-        // Re-enable submit button on error
         const submitButton = document.querySelector('button[onclick="handleSubmit()"]');
         if (submitButton) {
             submitButton.disabled = false;
@@ -349,7 +346,6 @@ async function handleLogout() {
             }
         });
     } catch (error) {
-        console.error('Logout failed:', error);
     } finally {
         window.location.href = '/auth';
     }
@@ -376,11 +372,52 @@ async function checkNotifications() {
             }
         }
     } catch (error) {
-        console.error('Failed to check notifications:', error);
+    }
+}
+
+async function updateHintsDisplay() {
+    try {
+        const levelSpan = document.getElementById('levelNumber');
+        const hintsSpan = document.getElementById('hintsStatus');
+        
+        if (currentLevel && !currentLevel.allCompleted) {
+            if (levelSpan) {
+                levelSpan.textContent = currentLevel.number;
+            }
+        }
+        
+        if (hintsSpan) {
+            try {
+                const response = await fetch('/api/hints', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+                    }
+                });
+                
+                if (response.ok) {
+                    const hints = await response.json();
+                    const count = Array.isArray(hints) ? hints.length : 0;
+                    
+                    if (count === 0) {
+                        hintsSpan.textContent = 'No hints posted';
+                    } else if (count === 1) {
+                        hintsSpan.textContent = '1 hint available';
+                    } else {
+                        hintsSpan.textContent = `${count} hints available`;
+                    }
+                } else {
+                    hintsSpan.textContent = 'No hints posted';
+                }
+            } catch (error) {
+                hintsSpan.textContent = 'No hints posted';
+            }
+        }
+    } catch (error) {
     }
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Index page loaded, initializing...');
     initializePage();
 });

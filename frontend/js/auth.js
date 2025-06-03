@@ -107,7 +107,6 @@ async function handleCodeSubmit(event) {
         }
         
     } catch (error) {
-        console.error('Code verification error:', error);
         showError('codeError', `Network error: ${error.message || 'Please try again.'}`);
     } finally {
         setCodeLoading(false);
@@ -274,19 +273,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const emailForm = document.getElementById('email-form');
     if (emailForm) {
         emailForm.addEventListener('submit', handleEmailSubmit);
-        console.log('Email form handler attached');
     }
     
     const codeForm = document.getElementById('code-form');
     if (codeForm) {
         codeForm.addEventListener('submit', handleCodeSubmit);
-        console.log('Code form handler attached');
     }
     
     const backButton = document.getElementById('backButton');
     if (backButton) {
         backButton.addEventListener('click', showEmailForm);
-        console.log('Back button handler attached');
     }
     
     const emailInput = document.getElementById('email');

@@ -28,7 +28,6 @@ func RegisterRoutes() http.Handler {
 	Mux.HandleFunc("/leaderboard", handlers.RequireAuth(handlers.LeaderboardHandler))
 	Mux.HandleFunc("/hints", handlers.HintsHandler)
 	Mux.HandleFunc("/guidelines", handlers.GuidelinesHandler)
-	Mux.HandleFunc("/chat", handlers.RequireAuth(handlers.ChatPageHandler))
 
 	Mux.HandleFunc("/admin", handlers.RequireAdmin(config.GetAdminEmails())(handlers.AdminDashboardHandler))
 	Mux.HandleFunc("/admin/levels/new", handlers.RequireAdmin(config.GetAdminEmails())(handlers.NewLevelFormHandler))
@@ -75,9 +74,6 @@ func RegisterRoutes() http.Handler {
 		w.WriteHeader(http.StatusNotFound)
 		w.Write([]byte("Not found"))
 	}))
-
-	Mux.HandleFunc("/api/chat", handlers.ChatAPIHandler)
-	Mux.HandleFunc("/api/chat/leave", handlers.ChatLeaveHandler)
 
 	Mux.HandleFunc("/enter/New", handlers.New)
 	Mux.HandleFunc("/enter", func(w http.ResponseWriter, r *http.Request) {
@@ -195,6 +191,13 @@ func RegisterRoutes() http.Handler {
 	})
 
 	Mux.HandleFunc("/api/secret", handlers.CORS(handlers.GetSecretHandler))
+
+	Mux.HandleFunc("/api/discord-bot", handlers.DiscordBotHandler)
+	Mux.HandleFunc("/api/levels", handlers.GetLevelsHandler)
+	Mux.HandleFunc("/api/chat/checksum", handlers.RequireAuth(handlers.ChatChecksumHandler))
+	Mux.HandleFunc("/api/leads", handlers.RequireAuth(handlers.LeadsHandler))
+	Mux.HandleFunc("/api/hints", handlers.RequireAuth(handlers.GetUserHintsHandler))
+	Mux.HandleFunc("/submit_message", handlers.RequireAuth(handlers.SubmitMessageHandler))
 
 	Mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./frontend/"))))
 	Mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./frontend/assets/"))))

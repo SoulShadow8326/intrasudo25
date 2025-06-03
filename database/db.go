@@ -62,6 +62,32 @@ type ChatParticipant struct {
 	IsAdmin  bool   `json:"isAdmin"`
 }
 
+type LeadMessage struct {
+	ID           int    `json:"id"`
+	UserEmail    string `json:"userEmail"`
+	Username     string `json:"username"`
+	Message      string `json:"message"`
+	LevelNumber  int    `json:"levelNumber"`
+	Timestamp    string `json:"timestamp"`
+	DiscordMsgID string `json:"discordMsgId"`
+	IsReply      bool   `json:"isReply"`
+	ParentMsgID  int    `json:"parentMsgId"`
+}
+
+type HintMessage struct {
+	ID           int    `json:"id"`
+	Message      string `json:"message"`
+	LevelNumber  int    `json:"levelNumber"`
+	Timestamp    string `json:"timestamp"`
+	DiscordMsgID string `json:"discordMsgId"`
+	SentBy       string `json:"sentBy"`
+}
+
+type ChatChecksum struct {
+	MessagesHash string `json:"messagesHash"`
+	LeadsHash    string `json:"leadsHash"`
+}
+
 type AdminStats struct {
 	TotalUsers  int `json:"totalUsers"`
 	TotalLevels int `json:"totalLevels"`
@@ -284,12 +310,102 @@ func createTables() {
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			active BOOLEAN DEFAULT TRUE
 		);`,
+		`CREATE TABLE IF NOT EXISTS lead_messages (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_email TEXT NOT NULL,
+			username TEXT NOT NULL,
+			message TEXT NOT NULL,
+			level_number INTEGER NOT NULL,
+			timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+			discord_msg_id TEXT,
+			is_reply BOOLEAN DEFAULT FALSE,
+			parent_msg_id INTEGER,
+			is_deleted BOOLEAN DEFAULT FALSE,
+			FOREIGN KEY (parent_msg_id) REFERENCES lead_messages(id)
+		);`,
+		`CREATE TABLE IF NOT EXISTS hint_messages (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			message TEXT NOT NULL,
+			level_number INTEGER NOT NULL,
+			timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+			discord_msg_id TEXT,
+			sent_by TEXT NOT NULL,
+			is_deleted BOOLEAN DEFAULT FALSE
+		);`,
+		`CREATE TABLE IF NOT EXISTS message_mappings (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			db_message_id INTEGER NOT NULL,
+			discord_msg_id TEXT NOT NULL,
+			user_email TEXT NOT NULL,
+			level_number INTEGER NOT NULL,
+			timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+		);`,
 	}
 
 	for _, table := range tables {
 		if _, err := db.Exec(table); err != nil {
 			log.Fatal(err)
 		}
+	}
+
+	runMigrations()
+}
+
+func runMigrations() {
+	rows, err := db.Query("PRAGMA table_info(lead_messages)")
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	hasIsDeleted := false
+	for rows.Next() {
+		var cid int
+		var name, dataType string
+		var notNull, pk int
+		var defaultValue interface{}
+
+		err := rows.Scan(&cid, &name, &dataType, &notNull, &defaultValue, &pk)
+		if err != nil {
+			continue
+		}
+
+		if name == "is_deleted" {
+			hasIsDeleted = true
+			break
+		}
+	}
+
+	if !hasIsDeleted {
+		db.Exec("ALTER TABLE lead_messages ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE")
+	}
+
+	rows2, err := db.Query("PRAGMA table_info(hint_messages)")
+	if err != nil {
+		return
+	}
+	defer rows2.Close()
+
+	hasIsDeletedHints := false
+	for rows2.Next() {
+		var cid int
+		var name, dataType string
+		var notNull, pk int
+		var defaultValue interface{}
+
+		err := rows2.Scan(&cid, &name, &dataType, &notNull, &defaultValue, &pk)
+		if err != nil {
+			continue
+		}
+
+		if name == "is_deleted" {
+			hasIsDeletedHints = true
+			break
+		}
+	}
+
+	if !hasIsDeletedHints {
+		db.Exec("ALTER TABLE hint_messages ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE")
 	}
 }
 
@@ -529,7 +645,162 @@ func Get(entity string, params map[string]interface{}) (interface{}, error) {
 				"consoleHint": l.ConsoleHint,
 			}, nil
 		}
+	case "lead_messages":
+		if userEmail, ok := params["userEmail"].(string); ok {
+			if level, ok := params["level"].(int); ok {
+				rows, err := db.Query("SELECT id, user_email, username, message, level_number, timestamp, discord_msg_id, is_reply, parent_msg_id FROM lead_messages WHERE user_email = ? AND level_number = ? ORDER BY timestamp ASC", userEmail, level)
+				if err != nil {
+					return nil, err
+				}
+				defer rows.Close()
+				var messages []LeadMessage
+				for rows.Next() {
+					var msg LeadMessage
+					var discordMsgID sql.NullString
+					var parentMsgIDInt sql.NullInt64
+					if err := rows.Scan(&msg.ID, &msg.UserEmail, &msg.Username, &msg.Message, &msg.LevelNumber, &msg.Timestamp, &discordMsgID, &msg.IsReply, &parentMsgIDInt); err != nil {
+						return nil, err
+					}
+					if discordMsgID.Valid {
+						msg.DiscordMsgID = discordMsgID.String
+					}
+					if parentMsgIDInt.Valid {
+						msg.ParentMsgID = int(parentMsgIDInt.Int64)
+					}
+					messages = append(messages, msg)
+				}
+				return messages, nil
+			}
+		}
+	case "lead_message_by_discord_id":
+		if discordMsgId, ok := params["discordMsgId"].(string); ok {
+			var msg LeadMessage
+			var discordMsgID sql.NullString
+			var parentMsgIDInt sql.NullInt64
+			err := db.QueryRow("SELECT id, user_email, username, message, level_number, timestamp, discord_msg_id, is_reply, parent_msg_id FROM lead_messages WHERE discord_msg_id = ?", discordMsgId).
+				Scan(&msg.ID, &msg.UserEmail, &msg.Username, &msg.Message, &msg.LevelNumber, &msg.Timestamp, &discordMsgID, &msg.IsReply, &parentMsgIDInt)
+			if err != nil {
+				return nil, err
+			}
+			if discordMsgID.Valid {
+				msg.DiscordMsgID = discordMsgID.String
+			}
+			if parentMsgIDInt.Valid {
+				msg.ParentMsgID = int(parentMsgIDInt.Int64)
+			}
+			return msg, nil
+		}
+	case "hint_messages":
+		if level, ok := params["level"].(int); ok {
+			rows, err := db.Query("SELECT id, message, level_number, timestamp, discord_msg_id, sent_by FROM hint_messages WHERE level_number = ? ORDER BY timestamp ASC", level)
+			if err != nil {
+				return nil, err
+			}
+			defer rows.Close()
+			var messages []HintMessage
+			for rows.Next() {
+				var msg HintMessage
+				var discordMsgID sql.NullString
+				if err := rows.Scan(&msg.ID, &msg.Message, &msg.LevelNumber, &msg.Timestamp, &discordMsgID, &msg.SentBy); err != nil {
+					return nil, err
+				}
+				if discordMsgID.Valid {
+					msg.DiscordMsgID = discordMsgID.String
+				}
+				messages = append(messages, msg)
+			}
+			return messages, nil
+		}
+	case "user_level":
+		if email, ok := params["email"].(string); ok {
+			var level int
+			err := db.QueryRow("SELECT \"on\" FROM logins WHERE gmail = ?", email).Scan(&level)
+			if err != nil {
+				return 1, err
+			}
+			return level, nil
+		}
+	case "users_at_level":
+		if level, ok := params["level"].(int); ok {
+			rows, err := db.Query("SELECT gmail FROM logins WHERE \"on\" = ?", level)
+			if err != nil {
+				return nil, err
+			}
+			defer rows.Close()
+			var users []string
+			for rows.Next() {
+				var email string
+				if err := rows.Scan(&email); err != nil {
+					return nil, err
+				}
+				users = append(users, email)
+			}
+			return users, nil
+		}
+	case "message_by_discord_id":
+		discordMsgID := params["discordMsgId"].(string)
+		var leadMsg LeadMessage
+		err := db.QueryRow("SELECT id, user_email, username, message, level_number, timestamp, discord_msg_id, is_reply, parent_msg_id FROM lead_messages WHERE discord_msg_id = ?",
+			discordMsgID).Scan(&leadMsg.ID, &leadMsg.UserEmail, &leadMsg.Username, &leadMsg.Message,
+			&leadMsg.LevelNumber, &leadMsg.Timestamp, &leadMsg.DiscordMsgID, &leadMsg.IsReply, &leadMsg.ParentMsgID)
+		if err != nil {
+			return nil, err
+		}
+		return leadMsg, nil
+
+	case "message_mapping":
+		discordMsgID := params["discordMsgId"].(string)
+		var dbMessageId int
+		var userEmail string
+		var levelNumber int
+		var timestamp string
+		err := db.QueryRow("SELECT db_message_id, user_email, level_number, timestamp FROM message_mappings WHERE discord_msg_id = ?",
+			discordMsgID).Scan(&dbMessageId, &userEmail, &levelNumber, &timestamp)
+		if err != nil {
+			return nil, err
+		}
+
+		return map[string]interface{}{
+			"dbMessageId": dbMessageId,
+			"userEmail":   userEmail,
+			"levelNumber": levelNumber,
+			"timestamp":   timestamp,
+		}, nil
+
+	case "lead_messages_by_content":
+		userEmail := params["userEmail"].(string)
+		level := params["level"].(int)
+		content := params["content"].(string)
+
+		query := "SELECT id, user_email, username, message, level_number, timestamp, discord_msg_id, is_reply, parent_msg_id FROM lead_messages WHERE user_email = ? AND level_number = ?"
+		args := []interface{}{userEmail, level}
+
+		if content != "" {
+			query += " AND message LIKE ?"
+			args = append(args, content+"%")
+		}
+
+		query += " ORDER BY timestamp DESC LIMIT 5"
+
+		rows, err := db.Query(query, args...)
+		if err != nil {
+			return nil, err
+		}
+		defer rows.Close()
+
+		var leadMessages []LeadMessage
+		for rows.Next() {
+			var msg LeadMessage
+			if err := rows.Scan(&msg.ID, &msg.UserEmail, &msg.Username, &msg.Message,
+				&msg.LevelNumber, &msg.Timestamp, &msg.DiscordMsgID, &msg.IsReply, &msg.ParentMsgID); err != nil {
+				return nil, err
+			}
+			leadMessages = append(leadMessages, msg)
+		}
+
+		return leadMessages, nil
 	}
+
 	return nil, fmt.Errorf("invalid get request")
 }
 
@@ -572,6 +843,32 @@ func Create(entity string, data interface{}) error {
 		if announcement, ok := data.(Announcement); ok {
 			_, err := db.Exec("INSERT INTO announcements (heading, active) VALUES (?, ?)", announcement.Heading, announcement.Active)
 			return err
+		}
+	case "lead_message":
+		if leadMsg, ok := data.(LeadMessage); ok {
+			_, err := db.Exec("INSERT INTO lead_messages (user_email, username, message, level_number, discord_msg_id, is_reply, parent_msg_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+				leadMsg.UserEmail, leadMsg.Username, leadMsg.Message, leadMsg.LevelNumber, leadMsg.DiscordMsgID, leadMsg.IsReply, leadMsg.ParentMsgID)
+			return err
+		}
+	case "hint_message":
+		if hintMsg, ok := data.(HintMessage); ok {
+			_, err := db.Exec("INSERT INTO hint_messages (message, level_number, discord_msg_id, sent_by) VALUES (?, ?, ?, ?)",
+				hintMsg.Message, hintMsg.LevelNumber, hintMsg.DiscordMsgID, hintMsg.SentBy)
+			return err
+		}
+	case "message_mapping":
+		if params, ok := data.(map[string]interface{}); ok {
+			dbMessageID := params["dbMessageId"].(int)
+			discordMsgID := params["discordMsgId"].(string)
+			userEmail := params["userEmail"].(string)
+			levelNumber := params["levelNumber"].(int)
+
+			_, err := db.Exec("INSERT INTO message_mappings (db_message_id, discord_msg_id, user_email, level_number) VALUES (?, ?, ?, ?)",
+				dbMessageID, discordMsgID, userEmail, levelNumber)
+			if err != nil {
+				return err
+			}
+			return nil
 		}
 	}
 	return fmt.Errorf("invalid create request")
@@ -649,6 +946,15 @@ func Update(entity string, params map[string]interface{}, data interface{}) erro
 			if heading, ok := data.(string); ok {
 				_, err := db.Exec("UPDATE announcements SET heading = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", heading, id)
 				return err
+			}
+		}
+	case "lead_message":
+		if id, ok := params["id"].(int); ok {
+			if updateData, ok := data.(map[string]interface{}); ok {
+				if discordMsgID, exists := updateData["discordMsgID"]; exists {
+					_, err := db.Exec("UPDATE lead_messages SET discord_msg_id = ? WHERE id = ?", discordMsgID, id)
+					return err
+				}
 			}
 		}
 	}
@@ -734,7 +1040,6 @@ func GetCurrentLevelForUser(userEmail string) (*GameLevel, error) {
 		}
 	}
 
-	// Check if the user has completed all levels by being past the max level
 	if int(user.On) > maxLevelNumber {
 		log.Printf("INFO: User %s has completed all available levels (current level: %d, max level: %d)", userEmail, user.On, maxLevelNumber)
 		gameLevel := &GameLevel{
@@ -794,8 +1099,6 @@ func CheckAnswer(userEmail string, levelID int, answer string) (*SubmitAnswerRes
 
 	log.Printf("DEBUG CheckAnswer: User %s, currentLevel=%d, submittedLevelID=%d", userEmail, currentLevel, levelID)
 
-	// Allow submission for current level only
-	// This prevents issues when users double-click or have timing issues
 	if int(currentLevel) != levelID {
 		log.Printf("DEBUG CheckAnswer: Level mismatch for user %s - user is on level %d but submitted answer for level %d", userEmail, currentLevel, levelID)
 		return &SubmitAnswerResult{
@@ -805,7 +1108,6 @@ func CheckAnswer(userEmail string, levelID int, answer string) (*SubmitAnswerRes
 		}, nil
 	}
 
-	// If user is already past this level, don't process the answer again
 	if int(currentLevel) > levelID {
 		log.Printf("DEBUG CheckAnswer: User %s already completed level %d (currently on %d), ignoring duplicate submission", userEmail, levelID, currentLevel)
 		return &SubmitAnswerResult{
@@ -832,12 +1134,9 @@ func CheckAnswer(userEmail string, levelID int, answer string) (*SubmitAnswerRes
 			return nil, err
 		}
 
-		// Check if this is the last level
 		if levelID == maxLevelNumber {
-			// Set to maxLevelNumber + 1 to indicate completion of all levels
 			_, err = db.Exec("UPDATE logins SET \"on\" = ? WHERE gmail = ?", maxLevelNumber+1, userEmail)
 		} else {
-			// Normal progression
 			_, err = db.Exec("UPDATE logins SET \"on\" = \"on\" + 1 WHERE gmail = ?", userEmail)
 		}
 
@@ -866,7 +1165,6 @@ func CheckAnswer(userEmail string, levelID int, answer string) (*SubmitAnswerRes
 	}, nil
 }
 
-// Announcement struct
 type Announcement struct {
 	ID        int    `json:"id" db:"id"`
 	Heading   string `json:"heading" db:"heading"`
@@ -875,14 +1173,12 @@ type Announcement struct {
 	Active    bool   `json:"active" db:"active"`
 }
 
-// CreateAnnouncement creates a new announcement
 func CreateAnnouncement(heading string) error {
 	query := `INSERT INTO announcements (heading) VALUES (?)`
 	_, err := db.Exec(query, heading)
 	return err
 }
 
-// GetAllAnnouncements retrieves all active announcements
 func GetAllAnnouncements() ([]Announcement, error) {
 	var announcements []Announcement
 	query := `SELECT id, heading, created_at, updated_at, active FROM announcements WHERE active = TRUE ORDER BY created_at DESC`
@@ -905,7 +1201,6 @@ func GetAllAnnouncements() ([]Announcement, error) {
 	return announcements, nil
 }
 
-// GetAnnouncementByID retrieves an announcement by ID
 func GetAnnouncementByID(id int) (*Announcement, error) {
 	var announcement Announcement
 	query := `SELECT id, heading, created_at, updated_at, active FROM announcements WHERE id = ?`
@@ -918,14 +1213,12 @@ func GetAnnouncementByID(id int) (*Announcement, error) {
 	return &announcement, nil
 }
 
-// UpdateAnnouncement updates an existing announcement
 func UpdateAnnouncement(id int, heading string) error {
 	query := `UPDATE announcements SET heading = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
 	_, err := db.Exec(query, heading, id)
 	return err
 }
 
-// DeleteAnnouncement soft deletes an announcement by setting active to false
 func DeleteAnnouncement(id int) error {
 	query := `UPDATE announcements SET active = FALSE WHERE id = ?`
 	_, err := db.Exec(query, id)
@@ -965,4 +1258,55 @@ func GetUnreadNotificationCount(email string) (int, error) {
 	query := `SELECT COUNT(*) FROM notifications WHERE user_email = ? AND read = FALSE`
 	err := db.QueryRow(query, email).Scan(&count)
 	return count, err
+}
+
+func MarkMessageDeletedByDiscordID(discordMsgID string) error {
+	result, err := db.Exec("UPDATE lead_messages SET is_deleted = TRUE WHERE discord_msg_id = ?", discordMsgID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		_, err = db.Exec("UPDATE hint_messages SET is_deleted = TRUE WHERE discord_msg_id = ?", discordMsgID)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func MarkAllMessagesDeletedForLevel(levelNumber int, messageType string) error {
+	var query string
+
+	if messageType == "lead" {
+		query = "UPDATE lead_messages SET is_deleted = TRUE WHERE level_number = ?"
+	} else if messageType == "hint" {
+		query = "UPDATE hint_messages SET is_deleted = TRUE WHERE level_number = ?"
+	} else {
+		return fmt.Errorf("invalid message type: %s", messageType)
+	}
+
+	_, err := db.Exec(query, levelNumber)
+	return err
+}
+
+func DeleteAllMessagesForLevel(levelNumber int, messageType string) error {
+	var query string
+
+	if messageType == "lead" {
+		query = "DELETE FROM lead_messages WHERE level_number = ?"
+	} else if messageType == "hint" {
+		query = "DELETE FROM hint_messages WHERE level_number = ?"
+	} else {
+		return fmt.Errorf("invalid message type: %s", messageType)
+	}
+
+	_, err := db.Exec(query, levelNumber)
+	return err
 }

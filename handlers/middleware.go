@@ -171,10 +171,23 @@ func UserSessionHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
+	// Get user's current level
+	userLevel, err := database.Get("user_level", map[string]interface{}{"email": user.Gmail})
+	level := 1
+	if err == nil {
+		if lvl, ok := userLevel.(int); ok {
+			level = lvl
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"userId":    user.Gmail,
+		"email":     user.Gmail,
+		"name":      user.Name,
 		"isAdmin":   isAdmin,
+		"role":      map[bool]string{true: "admin", false: "user"}[isAdmin],
+		"level":     level,
 		"csrfToken": user.CSRFtok,
 	})
 }

@@ -105,28 +105,88 @@
             </div>
         </div>
 
-        <div id="messagecontainer" class="no-scrollbar">
+        <div class="chat-header">
+            <h3 class="chat-title">Communication Hub</h3>
         </div>
 
-        <div id="ChatbottomDiv">
-            <textarea
-                placeholder="Enter a message"
-                rows="4"
-                id="chatInput"
-                class="no-scrollbar"></textarea>
+        <div class="chat-tabs">
+            <div class="chat-tab active" onclick="switchChatTab('leads')" data-tab="leads">
+                <span class="tab-icon">MSG</span>
+                <span class="tab-text">Contact Leads</span>
+                <span class="tab-badge" id="leadsBadge" style="display: none;">0</span>
+            </div>
+            <div class="chat-tab" onclick="switchChatTab('hints')" data-tab="hints">
+                <span class="tab-icon">HINT</span>
+                <span class="tab-text">Hints</span>
+                <span class="tab-badge" id="hintsBadge" style="display: none;">0</span>
+            </div>
+        </div>
 
-            <button id="chatSendButton">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 664 663" width="20" height="20">
-                    <path stroke-linejoin="round" stroke-linecap="round" stroke-width="33.67" stroke="currentColor"
-                        d="M646.293 331.888L17.7538 17.6187L155.245 331.888M646.293 331.888L318.735 330.228L155.245 331.888">
-                    </path>
-                </svg>
-            </button>
+        <div id="leadsContent" class="chat-tab-content active">
+            <div class="chat-content-area">
+                <div class="leads-info">
+                    <div class="info-box">
+                        <div class="info-icon">INFO</div>
+                        <div class="info-text">
+                            <h4>Need Help?</h4>
+                            <p>Send a message directly to the leads. They'll respond as soon as possible.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="leadsContainer" class="chat-messages-container no-scrollbar">
+                    <div class="empty-state">
+                        <div class="empty-icon">INBOX</div>
+                        <p>No messages with admins yet.</p>
+                    </div>
+                </div>
+            </div>
 
-            <div id="chatMsgCharLimit">
-                <p id="chatMsgLen">0</p>
-                <p>/</p>
-                <p>512</p>
+            <div class="chat-input-area">
+                <div class="input-wrapper">
+                    <textarea
+                        placeholder="Describe your question or issue..."
+                        rows="1"
+                        id="leadInput"
+                        class="chat-input no-scrollbar"
+                        maxlength="512"></textarea>
+                    
+                    <button id="leadSendButton" class="send-button" title="Contact leads" disabled>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 664 663" width="16" height="16">
+                            <path stroke-linejoin="round" stroke-linecap="round" stroke-width="33.67" stroke="currentColor"
+                                d="M646.293 331.888L17.7538 17.6187L155.245 331.888M646.293 331.888L17.753 646.157L155.245 331.888M646.293 331.888L318.735 330.228L155.245 331.888">
+                            </path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="chat-footer-info">
+                    <span class="char-count">
+                        <span id="leadMsgLen">0</span>/512
+                    </span>
+                    <span class="lead-status">Contact leads</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="hintsContent" class="chat-tab-content">
+            <div class="chat-content-area">
+                <div class="hints-info">
+                    <div class="info-box">
+                        <div class="info-icon">HINT</div>
+                        <div class="info-text">
+                            <h4>Hint System</h4>
+                            <p>Official hints and announcements will appear here.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="hintsContainer" class="chat-messages-container no-scrollbar">
+                    <div class="empty-state">
+                        <div class="empty-icon">BULB</div>
+                        <p>No hints available yet.</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

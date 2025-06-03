@@ -1,4 +1,3 @@
-// Hints page JavaScript
 function getCookie(name) {
     const value = `; ${document.cookie}`;
     const parts = value.split(`; ${name}=`);
@@ -8,22 +7,16 @@ function getCookie(name) {
 
 async function loadQuestions() {
     try {
-        console.log('Loading questions from /api/question...');
-        
         const response = await fetch('/api/question', {
             headers: {
                 'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
             }
         });
         
-        console.log('Questions API response status:', response.status);
-        
         const questionsList = document.getElementById('questionsList');
         
         if (!response.ok) {
-            console.log('API response not ok, status:', response.status);
             if (response.status === 401) {
-                console.log('User not authenticated, redirecting to auth page');
                 window.location.href = '/auth';
                 return;
             }
@@ -32,11 +25,8 @@ async function loadQuestions() {
         }
         
         const data = await response.json();
-        console.log('Questions API response data:', data);
         
         if (data && data.question && data.question.markdown && data.question.markdown.trim()) {
-            console.log('Displaying level questions');
-            
             const questions = data.question.markdown.split('\n\n').filter(question => question.trim());
             
             if (questions.length > 0) {
@@ -70,7 +60,6 @@ async function loadQuestions() {
                         </div>
                     `).join('');
                 } else {
-                    console.warn('Showdown library not loaded, displaying raw text');
                     questionsList.innerHTML = questions.map((question, index) => `
                         <div class="question-item">
                             <div class="question-header">
@@ -86,11 +75,9 @@ async function loadQuestions() {
                 questionsList.innerHTML = '<div class="no-questions"><p>No questions available yet</p></div>';
             }
         } else {
-            console.log('No question data in response');
             questionsList.innerHTML = '<div class="no-questions"><p>No questions available yet</p></div>';
         }
     } catch (error) {
-        console.error('Error loading questions:', error);
         document.getElementById('questionsList').innerHTML = '<div class="no-questions"><p>Failed to load questions</p></div>';
     }
 }
@@ -153,17 +140,13 @@ async function checkAdminAccess() {
 // Announcements functions
 async function loadAnnouncements() {
     try {
-        console.log('Loading announcements from /api/announcements...');
-        
         const response = await fetch('/api/announcements');
         
         if (!response.ok) {
-            console.log('Announcements API response not ok, status:', response.status);
             return;
         }
         
         const announcements = await response.json();
-        console.log('Announcements API response data:', announcements);
         
         const announcementsContainer = document.getElementById('announcementsContainer');
         
@@ -174,7 +157,6 @@ async function loadAnnouncements() {
             announcementsContainer.style.display = 'none';
         }
     } catch (error) {
-        console.error('Error loading announcements:', error);
         document.getElementById('announcementsContainer').style.display = 'none';
     }
 }
@@ -199,10 +181,73 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+async function loadHints() {
+    try {
+        const response = await fetch('/api/hints', {
+            headers: {
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+            }
+        });
+        
+        const hintsContainer = document.getElementById('hintsContainer');
+        
+        if (!response.ok) {
+            if (response.status === 401) {
+                window.location.href = '/auth';
+                return;
+            }
+            hintsContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">BULB</div><p>No hints available yet.</p></div>';
+            return;
+        }
+        
+        const hints = await response.json();
+        
+        if (hints && Array.isArray(hints) && hints.length > 0) {
+            displayHints(hints);
+        } else {
+            hintsContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">BULB</div><p>No hints available yet.</p></div>';
+        }
+    } catch (error) {
+        document.getElementById('hintsContainer').innerHTML = '<div class="empty-state"><div class="empty-icon">BULB</div><p>Failed to load hints.</p></div>';
+    }
+}
+
+function displayHints(hints) {
+    const hintsContainer = document.getElementById('hintsContainer');
+    
+    const hintsHTML = hints.map(hint => `
+        <div class="chat-message hint-message">
+            <div class="message-header">
+                <span class="message-author">${escapeHtml(hint.sentBy || 'Admin')}</span>
+                <span class="message-time">${formatTime(hint.timestamp)}</span>
+            </div>
+            <div class="message-content">
+                ${hint.message ? (typeof showdown !== 'undefined' ? 
+                    new showdown.Converter().makeHtml(hint.message) : 
+                    escapeHtml(hint.message)) : ''}
+            </div>
+        </div>
+    `).join('');
+    
+    hintsContainer.innerHTML = hintsHTML;
+}
+
+function formatTime(timestamp) {
+    if (!timestamp) return '';
+    try {
+        const date = new Date(timestamp);
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (error) {
+        return '';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     checkAdminAccess();
     loadQuestions();
     checkNotifications();
     loadAnnouncements();
+    loadHints();
     setInterval(checkNotifications, 30000);
+    setInterval(loadHints, 30000);
 });

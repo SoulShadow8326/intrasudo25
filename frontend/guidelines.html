@@ -100,10 +100,56 @@
 
     <script src="js/utils.js?v=2"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        async function initializeGuidelines() {
+            const session = await checkUserSession();
+            const isLoggedIn = !!session;
+            
             const agreementCheckbox = document.getElementById('agreementCheckbox');
             const getStartedButton = document.getElementById('getStartedButton');
             const agreementBox = document.querySelector('.guidelines-agreement');
+            const navLinks = document.querySelectorAll('.nav-link:not([onclick*="handleLogout"])');
+            const mobileNavLinks = document.querySelectorAll('.mobile-nav-links .nav-link:not([onclick*="handleLogout"])');
+            
+            if (isLoggedIn) {
+                agreementCheckbox.checked = true;
+                agreementBox.style.display = 'none';
+                return;
+            }
+            
+            const hasAgreed = localStorage.getItem('termsAgreed') === 'true';
+            if (hasAgreed) {
+                agreementCheckbox.checked = true;
+                enableNavLinks();
+            } else {
+                disableNavLinks();
+            }
+            
+            function disableNavLinks() {
+                [...navLinks, ...mobileNavLinks].forEach(link => {
+                    link.style.pointerEvents = 'none';
+                    link.style.opacity = '0.5';
+                    link.style.cursor = 'not-allowed';
+                });
+            }
+            
+            function enableNavLinks() {
+                [...navLinks, ...mobileNavLinks].forEach(link => {
+                    link.style.pointerEvents = 'auto';
+                    link.style.opacity = '1';
+                    link.style.cursor = 'pointer';
+                });
+            }
+            
+            agreementCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    localStorage.setItem('termsAgreed', 'true');
+                    enableNavLinks();
+                    agreementBox.classList.remove('highlight');
+                } else {
+                    localStorage.removeItem('termsAgreed');
+                    disableNavLinks();
+                }
+            });
             
             getStartedButton.addEventListener('click', function(e) {
                 if (!agreementCheckbox.checked) {
@@ -113,13 +159,26 @@
                     setTimeout(() => {
                         agreementBox.classList.remove('highlight');
                     }, 2000);
+                } else {
+                    localStorage.setItem('termsAgreed', 'true');
                 }
             });
             
-            agreementCheckbox.addEventListener('change', function() {
-                agreementBox.classList.remove('highlight');
+            [...navLinks, ...mobileNavLinks].forEach(link => {
+                link.addEventListener('click', function(e) {
+                    if (!agreementCheckbox.checked && !isLoggedIn) {
+                        e.preventDefault();
+                        agreementBox.classList.add('highlight');
+                        agreementBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        setTimeout(() => {
+                            agreementBox.classList.remove('highlight');
+                        }, 2000);
+                    }
+                });
             });
-        });
+        }
+        
+        document.addEventListener('DOMContentLoaded', initializeGuidelines);
     </script>
 </body>
 </html>

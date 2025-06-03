@@ -178,8 +178,38 @@ async function checkAuthRedirect() {
     if (!allowedUnauthPaths.includes(pathname)) {
         const session = await checkUserSession();
         if (!session) {
-            window.location.href = '/auth';
+            const hasAgreedToTerms = localStorage.getItem('termsAgreed') === 'true';
+            if (!hasAgreedToTerms) {
+                window.location.href = '/guidelines';
+            } else {
+                window.location.href = '/auth';
+            }
         }
+    } else if (pathname === '/guidelines') {
+        const session = await checkUserSession();
+        if (!session) {
+            initializeNavbarDisabling();
+        }
+    }
+}
+
+function initializeNavbarDisabling() {
+    const hasAgreed = localStorage.getItem('termsAgreed') === 'true';
+    
+    if (!hasAgreed) {
+        const navLinks = document.querySelectorAll('.nav-link:not([onclick*="handleLogout"])');
+        const mobileNavLinks = document.querySelectorAll('.mobile-nav-links .nav-link:not([onclick*="handleLogout"])');
+        
+        [...navLinks, ...mobileNavLinks].forEach(link => {
+            link.style.pointerEvents = 'none';
+            link.style.opacity = '0.5';
+            link.style.cursor = 'not-allowed';
+            
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                window.location.href = '/guidelines';
+            });
+        });
     }
 }
 
