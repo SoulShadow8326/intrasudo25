@@ -191,7 +191,7 @@ function handleLevelLoadError(error) {
         levelDescription.textContent = 'Authentication required. Please log in again.';
         setTimeout(() => {
             window.location.href = '/auth';
-        }, 2000);
+        }, 1000);
     } else {
         levelDescription.textContent = 'Failed to load level content. Please try refreshing the page.';
     }
@@ -219,22 +219,18 @@ async function handleSubmit() {
         setTimeout(() => {
             feedback.textContent = '';
             feedback.style.color = 'var(--primary)';
-        }, 3000);
+        }, 2000);
         return;
     }
 
-    // Guidelines-compliant answer formatting
-    // Convert to lowercase, remove spaces, keep alphanumeric and special characters
     answer = answer.toLowerCase().replace(/\s+/g, '');
-    
-    // Validate answer format
     if (!answer) {
         feedback.textContent = 'Answer cannot be empty after formatting. Please enter a valid answer.';
         feedback.style.color = '#dc3545';
         setTimeout(() => {
             feedback.textContent = '';
             feedback.style.color = 'var(--primary)';
-        }, 3000);
+        }, 2000);
         return;
     }
 
@@ -246,7 +242,6 @@ async function handleSubmit() {
 
     isSubmitting = true;
     
-    // Disable submit button to prevent double submissions
     const submitButton = document.querySelector('button[onclick="handleSubmit()"]');
     if (submitButton) {
         submitButton.disabled = true;
@@ -254,7 +249,6 @@ async function handleSubmit() {
     }
     
     try {
-        // Show formatted answer to user
         const originalAnswer = answerInput.value.trim();
         if (originalAnswer !== answer) {
             feedback.textContent = `Validating answer: "${answer}" (formatted from "${originalAnswer}")...`;
@@ -281,7 +275,7 @@ async function handleSubmit() {
                 feedback.style.color = '#dc3545';
                 setTimeout(() => {
                     window.location.href = '/auth';
-                }, 2000);
+                }, 1000);
                 return;
             }
             throw new Error(`Server error: ${response.status}`);
@@ -293,18 +287,17 @@ async function handleSubmit() {
             feedback.textContent = 'Correct! Loading next level...';
             feedback.style.color = '#28a745';
             
-            // Prevent further submissions and clear the current level
             currentLevel = null;
             
             setTimeout(() => {
                 window.location.reload();
-            }, 300);
+            }, 150);
         } else if (result.reload_page) {
-            feedback.textContent = result.message || 'Validating...';
+            feedback.textContent = result.message || 'Processing...';
             feedback.style.color = '#2977F5';
             setTimeout(() => {
                 window.location.reload();
-            }, 300);
+            }, 150);
         } else {
             feedback.textContent = result.message || 'Incorrect answer. Try again.';
             feedback.style.color = '#dc3545';
@@ -319,7 +312,7 @@ async function handleSubmit() {
                 feedback.textContent = '';
                 feedback.style.color = 'var(--primary)';
                 isSubmitting = false;
-            }, 3000);
+            }, 2000);
         }
     } catch (error) {
         feedback.textContent = 'Correct! Loading next level...';
@@ -333,7 +326,7 @@ async function handleSubmit() {
         
         setTimeout(() => {
             window.location.reload();
-        }, 300);
+        }, 150);
     }
 }
 
