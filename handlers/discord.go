@@ -531,7 +531,6 @@ func forwardToDiscord(userEmail, message string, level int) error {
 		return fmt.Errorf("discord bot returned status %d", resp.StatusCode)
 	}
 
-	// Parse response to get Discord message ID
 	var result struct {
 		Success      bool   `json:"success"`
 		Message      string `json:"message"`
@@ -542,9 +541,7 @@ func forwardToDiscord(userEmail, message string, level int) error {
 		return fmt.Errorf("failed to decode response: %v", err)
 	}
 
-	// If we got a Discord message ID, update it in our database
 	if result.Success && result.DiscordMsgID != "" {
-		// Find the latest lead message for this user at this level
 		findResult, err := database.Get("lead_messages", map[string]interface{}{
 			"userEmail": userEmail,
 			"level":     level,
@@ -554,10 +551,8 @@ func forwardToDiscord(userEmail, message string, level int) error {
 		}
 
 		if leadMessages, ok := findResult.([]database.LeadMessage); ok && len(leadMessages) > 0 {
-			// Get the last message (most recent)
 			lastMsg := leadMessages[len(leadMessages)-1]
 
-			// Update the DiscordMsgID
 			err = database.Update("lead_message", map[string]interface{}{
 				"id": lastMsg.ID,
 			}, map[string]interface{}{
@@ -568,7 +563,6 @@ func forwardToDiscord(userEmail, message string, level int) error {
 				return fmt.Errorf("failed to update Discord message ID: %v", err)
 			}
 
-			// Store a mapping for quicker lookup later
 			database.Create("message_mapping", map[string]interface{}{"userEmail": userEmail,
 				"dbMessageId":  lastMsg.ID,
 				"discordMsgId": result.DiscordMsgID,
@@ -679,7 +673,6 @@ func handleUpdateDiscordMsgID(w http.ResponseWriter, req DiscordBotRequest) {
 	fmt.Printf("Received update_discord_msg_id request for user: %s, level: %d, message: %s, discordMsgId: %s\n",
 		req.UserEmail, req.LevelNumber, req.Message, req.DiscordMsgID)
 
-	// First try to find the message by content (exact match on first 50 chars)
 	result, err := database.Get("lead_messages_by_content", map[string]interface{}{
 		"userEmail": req.UserEmail,
 		"level":     req.LevelNumber,
@@ -687,7 +680,6 @@ func handleUpdateDiscordMsgID(w http.ResponseWriter, req DiscordBotRequest) {
 	})
 
 	if err != nil || result == nil {
-		// If exact content match fails, try to find the most recent message from this user at this level
 		result, err = database.Get("lead_messages", map[string]interface{}{
 			"userEmail": req.UserEmail,
 			"level":     req.LevelNumber,
@@ -705,7 +697,6 @@ func handleUpdateDiscordMsgID(w http.ResponseWriter, req DiscordBotRequest) {
 	}
 
 	if leadMsgs, ok := result.([]database.LeadMessage); ok && len(leadMsgs) > 0 {
-		// Update the DiscordMsgID for the most recent matching message
 		latestMsg := leadMsgs[len(leadMsgs)-1]
 
 		fmt.Printf("Found lead message with ID %d for user %s\n", latestMsg.ID, req.UserEmail)
@@ -724,7 +715,6 @@ func handleUpdateDiscordMsgID(w http.ResponseWriter, req DiscordBotRequest) {
 			return
 		}
 
-		// Store a mapping for quicker lookup later
 		database.Create("message_mapping", map[string]interface{}{
 			"userEmail":    req.UserEmail,
 			"dbMessageId":  latestMsg.ID,
@@ -758,7 +748,6 @@ func handleLookupDiscordMsg(w http.ResponseWriter, req DiscordBotRequest) {
 		return
 	}
 
-	// Try to find the message in the database
 	result, err := database.Get("message_by_discord_id", map[string]interface{}{
 		"discordMsgId": req.DiscordMsgID,
 	})
@@ -784,7 +773,6 @@ func handleLookupDiscordMsg(w http.ResponseWriter, req DiscordBotRequest) {
 		return
 	}
 
-	// If we couldn't find it in the LeadMessage table directly, try the message_mapping table
 	mappingResult, err := database.Get("message_mapping", map[string]interface{}{
 		"discordMsgId": req.DiscordMsgID,
 	})

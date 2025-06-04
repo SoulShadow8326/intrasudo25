@@ -125,13 +125,10 @@ async def on_message(message):
     channel = message.channel
     
     if isinstance(channel, discord.TextChannel):
-        # Only process replies for lead channels, or admin messages for hint channels
         if channel.name.startswith('lead-level-'):
-            # Only process if it's a reply to an existing message
             if message.reference and message.reference.message_id:
                 await handle_lead_message(message)
         elif channel.name.startswith('hint-level-'):
-            # Only process if it's not from a user (admin/moderator messages)
             if not message.content.startswith('**From:**'):
                 await handle_hint_message(message)
 

@@ -646,27 +646,22 @@ function updateChatContainers(chats, hints) {
                 
                 if (x.isReply && x.sentBy) {
                     return `<div class="chat-message admin">
-                        <div class="chat-message-header">
-                            <span class="chat-message-time">${timestamp}</span>
-                        </div>
                         <div class="chat-message-content">
+                            <span class="chat-message-sender">admin</span>
                             <div class="chat-message-text">${escapeHtml(x.message)}</div>
                         </div>
                     </div>`;
                 } else if (isOwnMessage && !x.isReply) {
                     return `<div class="chat-message user">
-                        <div class="chat-message-header">
-                            <span class="chat-message-sender">You</span>
-                            <span class="chat-message-time">${timestamp}</span>
-                        </div>
                         <div class="chat-message-content">
+                            <span class="chat-message-sender">you</span>
                             <div class="chat-message-text">${escapeHtml(x.message)}</div>
                         </div>
                     </div>`;
                 } else {
                     return `<div class="chat-message lead">
                         <div class="chat-message-header">
-                            <span class="chat-message-sender">${escapeHtml(x.username || 'Lead')}</span>
+                            <span class="chat-message-sender">admin</span>
                             <span class="chat-message-time">${timestamp}</span>
                         </div>
                         <div class="chat-message-content">
@@ -690,7 +685,7 @@ function updateChatContainers(chats, hints) {
             hintsContainer.innerHTML = hints.map(hint => `
                 <div class="chat-message hint-message">
                     <div class="message-header">
-                        <span class="message-author">${escapeHtml(hint.sentBy || 'Admin')}</span>
+                        <span class="message-author">admin</span>
                         <span class="message-time">${formatTime(hint.timestamp)}</span>
                     </div>
                     <div class="message-content">
