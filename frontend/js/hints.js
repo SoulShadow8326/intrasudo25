@@ -196,7 +196,7 @@ async function loadHints() {
                 window.location.href = '/auth';
                 return;
             }
-            hintsContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">BULB</div><p>No hints available yet.</p></div>';
+            hintsContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">?</div><p>No hints available yet.</p></div>';
             return;
         }
         
@@ -205,10 +205,10 @@ async function loadHints() {
         if (hints && Array.isArray(hints) && hints.length > 0) {
             displayHints(hints);
         } else {
-            hintsContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">BULB</div><p>No hints available yet.</p></div>';
+            hintsContainer.innerHTML = '<div class="empty-state"><div class="empty-icon">?</div><p>No hints available yet.</p></div>';
         }
     } catch (error) {
-        document.getElementById('hintsContainer').innerHTML = '<div class="empty-state"><div class="empty-icon">BULB</div><p>Failed to load hints.</p></div>';
+        document.getElementById('hintsContainer').innerHTML = '<div class="empty-state"><div class="empty-icon">?</div><p>Failed to load hints.</p></div>';
     }
 }
 

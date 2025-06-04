@@ -682,7 +682,7 @@ function updateChatContainers(chats, hints) {
         if (hints.length === 0) {
             hintsContainer.innerHTML = `
                 <div class="empty-state">
-                    <div class="empty-icon">BULB</div>
+                    <div class="empty-icon">?</div>
                     <p>No hints available yet</p>
                 </div>
             `;
