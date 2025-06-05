@@ -75,11 +75,7 @@ async function checkNotifications() {
                 const logoNotification = document.getElementById('logoNotification');
                 
                 if (logoNotification && data && typeof data.count === 'number') {
-                    if (data.count > 0) {
-                        logoNotification.style.display = 'block';
-                    } else {
-                        logoNotification.style.display = 'none';
-                    }
+                    logoNotification.style.display = 'none';
                 }
             }
         }

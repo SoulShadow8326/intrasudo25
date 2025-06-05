@@ -92,11 +92,7 @@ async function checkNotifications() {
         const data = await response.json();
         const logoNotification = document.getElementById('logoNotification');
         if (logoNotification) {
-            if (data.count > 0) {
-                logoNotification.style.display = 'block';
-            } else {
-                logoNotification.style.display = 'none';
-            }
+            logoNotification.style.display = 'none';
         }
     } catch (error) {}
 }

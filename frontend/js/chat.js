@@ -111,7 +111,6 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeChatPopup();
     
     startChecksumPolling();
-    startNotificationPolling();
 });
 
 function setupChecksumHandler() {
@@ -126,9 +125,8 @@ function setupChecksumHandler() {
                     position: { x: "center", y: "top" }, 
                     message: "You have got a new message!" 
                 });
+                showNotificationDot();
             }
-            
-            updateNotificationDot(true);
         }
         if (ignore) {
             ignore = false;
@@ -221,7 +219,7 @@ async function checkChecksum() {
                 });
             }
             
-            updateNotificationDot(true);
+            showNotificationDot();
         }
         
     } catch (error) {
@@ -355,9 +353,7 @@ function setupChatSignalHandlers() {
     const chatCloseBtn = document.getElementById("chatCloseBtn");
     const chatMinimizeBtn = document.getElementById("chatMinimizeBtn");
     
-    if (!chatToggleBtn || !chatPopup) return;
-    
-    chatSignal.onChange = () => {
+    if (!chatToggleBtn || !chatPopup) return;        chatSignal.onChange = () => {
         if (chatSignal.Value() === "open") {
             chatPopup.style.display = "flex";
 
@@ -370,7 +366,7 @@ function setupChatSignalHandlers() {
                 chatToggleBtn.style.display = "none";
             }, 10);
 
-            updateNotificationDot(false);
+            hideNotificationDot();
             
             const activeTab = document.querySelector('.chat-tab.active');
             if (activeTab) {
@@ -384,6 +380,9 @@ function setupChatSignalHandlers() {
                     }
                 }
             }
+
+            // Immediately refresh chat content when opening to ensure latest messages are shown
+            refreshChatContent();
 
             const messagecontainer = document.getElementById("messagecontainer");
             setTimeout(() => {
@@ -409,6 +408,7 @@ function setupChatSignalHandlers() {
     if (chatToggleBtn) {
         chatToggleBtn.addEventListener("click", (e) => {
             chatSignal.setValue("open");
+            hideNotificationDot();
         });
     }
     
@@ -444,6 +444,11 @@ function setupVisibilityHandlers() {
         } else {
             lastActivity = Date.now();
             checkChecksum();
+            
+            // Refresh chat content if chat is open when page becomes visible
+            if (chatSignal.Value() === "open") {
+                refreshChatContent();
+            }
         }
     });
     
@@ -560,34 +565,16 @@ function updateNotificationBadges(hasNewLeads, hasNewHints) {
     const chatToggleBtn = document.getElementById("chatToggleBtn");
     
     if (leadsBadge) {
-        if (hasNewLeads) {
-            leadsBadge.style.display = 'inline-flex';
-            leadsBadge.classList.add('glowing');
-            setTimeout(() => leadsBadge.classList.remove('glowing'), 3000);
-        } else {
-            const leadsContent = document.getElementById('leadsContent');
-            if (!leadsContent || !leadsContent.classList.contains('active')) {
-                leadsBadge.style.display = 'none';
-            }
-        }
+        leadsBadge.style.display = 'none';
     }
     
     if (hintsBadge) {
-        if (hasNewHints) {
-            hintsBadge.style.display = 'inline-flex';
-            hintsBadge.classList.add('glowing');
-            setTimeout(() => hintsBadge.classList.remove('glowing'), 3000);
-        } else {
-            const hintsContent = document.getElementById('hintsContent');
-            if (!hintsContent || !hintsContent.classList.contains('active')) {
-                hintsBadge.style.display = 'none';
-            }
-        }
+        hintsBadge.style.display = 'none';
     }
     
     if (chatToggleBtn) {
         if (chatSignal.Value() !== "open" && (hasNewLeads || hasNewHints)) {
-            updateNotificationDot(true);
+            showNotificationDot();
         }
     }
 }
@@ -630,6 +617,11 @@ function switchChatTab(tabName) {
         }
     }
     
+    // Refresh content when switching tabs to ensure latest data is shown
+    if (chatSignal.Value() === "open") {
+        refreshChatContent();
+    }
+    
     setTimeout(() => {
         const container = selectedContent?.querySelector('.chat-messages-container');
         if (container) {
@@ -642,21 +634,6 @@ function updateChatContainers(chats, hints) {
     renderMessages(chats, 'leadsContainer');
     if (!window.location.pathname.endsWith('/hints.html')) {
         renderMessages(hints, 'hintsContainer');
-    }
-}
-
-function updateNotificationDot(show) {
-    const chatToggleBtn = document.getElementById("chatToggleBtn");
-    if (!chatToggleBtn) return;
-    
-    const existingDot = chatToggleBtn.querySelector('.notification-dot');
-    
-    if (show && !existingDot) {
-        const notificationDot = document.createElement('span');
-        notificationDot.className = 'notification-dot';
-        chatToggleBtn.appendChild(notificationDot);
-    } else if (!show && existingDot) {
-        existingDot.remove();
     }
 }
 
@@ -681,97 +658,41 @@ function updateBadgesInstantly(chats, hints) {
     const hintsBadge = document.getElementById('hintsBadge');
     
     if (leadsBadge) {
-        const unreadLeads = chats.filter(chat => chat.isReply && !chat.read).length;
-        if (unreadLeads > 0) {
-            leadsBadge.style.display = 'inline-flex';
-            leadsBadge.classList.add('glowing');
-            setTimeout(() => leadsBadge.classList.remove('glowing'), 3000);
-        } else {
-            const leadsContent = document.getElementById('leadsContent');
-            if (!leadsContent || !leadsContent.classList.contains('active')) {
-                leadsBadge.style.display = 'none';
-            }
-        }
+        leadsBadge.style.display = 'none';
     }
     
     if (hintsBadge) {
-        if (hints && hints.length > 0) {
-            hintsBadge.style.display = 'inline-flex';
-            hintsBadge.classList.add('glowing');
-            setTimeout(() => hintsBadge.classList.remove('glowing'), 3000);
-        } else {
-            const hintsContent = document.getElementById('hintsContent');
-            if (!hintsContent || !hintsContent.classList.contains('active')) {
-                hintsBadge.style.display = 'none';
-            }
-        }
+        hintsBadge.style.display = 'none';
     }
     
     if (chatSignal.Value() !== "open" && (chats.length > 0 || (hints && hints.length > 0))) {
-        updateNotificationDot(true);
+        showNotificationDot();
     } else if (chatSignal.Value() === "open") {
-        updateNotificationDot(false);
+        hideNotificationDot();
     }
 }
 
-let chatChecksum = localStorage.getItem('chatChecksum') || '';
-let notificationCheckInterval = null;
+let chatChecksum = '';
 
-function generateChecksum(data) {
-    let hash = 0;
-    const str = JSON.stringify(data);
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-    }
-    return hash.toString();
-}
-
-async function checkForNewMessages() {
-    try {
-        const response = await fetch('/api/check-messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                checksum: chatChecksum
-            })
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            if (data.hasUpdate) {
-                if (data.messages && data.messages.length > 0) {
-                    const newChecksum = generateChecksum(data.messages);
-                    if (newChecksum !== chatChecksum) {
-                        chatChecksum = newChecksum;
-                        localStorage.setItem('chatChecksum', chatChecksum);
-                        
-                        updateChatMessages(data.messages);
-                    }
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Error checking for messages:', error);
-    }
-}
-
-function startNotificationPolling() {
-    if (notificationCheckInterval) {
-        clearInterval(notificationCheckInterval);
-    }
+function showNotificationDot() {
+    const chatToggleBtn = document.getElementById("chatToggleBtn");
+    if (!chatToggleBtn) return;
     
-    checkForNewMessages();
-    notificationCheckInterval = setInterval(checkForNewMessages, 3000);
+    let dot = chatToggleBtn.querySelector('.notification-dot');
+    if (!dot) {
+        dot = document.createElement('span');
+        dot.className = 'notification-dot show';
+        chatToggleBtn.appendChild(dot);
+    }
 }
 
-function stopNotificationPolling() {
-    if (notificationCheckInterval) {
-        clearInterval(notificationCheckInterval);
-        notificationCheckInterval = null;
+function hideNotificationDot() {
+    const chatToggleBtn = document.getElementById("chatToggleBtn");
+    if (!chatToggleBtn) return;
+    
+    const dot = chatToggleBtn.querySelector('.notification-dot');
+    if (dot) {
+        dot.remove();
     }
 }
 
@@ -873,5 +794,50 @@ function updateChatMessages(messages) {
     }
     if (messages.hints) {
         renderMessages(messages.hints, 'hintsContainer');
+    }
+}
+
+async function refreshChatContent() {
+    try {
+        // Fetch latest leads/chat messages
+        const response = await fetch("/api/leads", {
+            headers: {
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+            }
+        });
+        
+        if (response.ok) {
+            const chats = await response.json();
+            renderMessages(chats || [], 'leadsContainer');
+        }
+
+        // Fetch latest hints (if not on hints page)
+        if (!window.location.pathname.endsWith('/hints.html')) {
+            const hintsResponse = await fetch("/api/hints", {
+                headers: {
+                    'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+                }
+            });
+            
+            if (hintsResponse.ok) {
+                const hints = await hintsResponse.json();
+                renderMessages(hints || [], 'hintsContainer');
+            }
+        }
+
+        // Scroll to bottom after loading content
+        setTimeout(() => {
+            const activeTab = document.querySelector('.chat-tab.active');
+            if (activeTab) {
+                const tabData = activeTab.getAttribute('data-tab');
+                const container = document.getElementById(tabData + 'Container');
+                if (container) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            }
+        }, 100);
+        
+    } catch (error) {
+        console.log('Failed to refresh chat content:', error);
     }
 }

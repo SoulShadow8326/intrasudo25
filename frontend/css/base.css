@@ -21,7 +21,7 @@ body {
     background: var(--background);
     color: var(--foreground);
     height: 100vh;
-    overflow: hidden;
+    overflow-x: hidden;
 }
 
 .main-container {
@@ -47,8 +47,7 @@ body {
 
 .page-container {
     padding-top: 60px;
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
     display: flex;
     flex-direction: column;
 }
