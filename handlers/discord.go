@@ -31,7 +31,7 @@ type DiscordBotRequest struct {
 	Message      string           `json:"message"`
 	LevelNumber  int              `json:"levelNumber"`
 	DiscordMsgID string           `json:"discordMsgId"`
-	ParentMsgID  int              `json:"parentMsgId"`
+	ParentMsgID  string           `json:"parentMsgId"`
 	SentBy       string           `json:"sentBy"`
 	MessageType  string           `json:"messageType,omitempty"`
 	Messages     []DiscordMessage `json:"messages,omitempty"`
@@ -83,6 +83,8 @@ func DiscordBotHandler(w http.ResponseWriter, r *http.Request) {
 		handleLeadReply(w, req)
 	case "hint_message":
 		handleHintMessage(w, req)
+	case "hint_message_deleted":
+		handleHintMessageDeleted(w, req)
 	case "update_discord_msg_id":
 		handleUpdateDiscordMsgID(w, req)
 	case "lookup_discord_msg":
@@ -123,6 +125,20 @@ func handleLeadMessage(w http.ResponseWriter, req DiscordBotRequest) {
 }
 
 func handleLeadReply(w http.ResponseWriter, req DiscordBotRequest) {
+	var parentMsgID int
+
+	if req.ParentMsgID != "" {
+		parentMsg, err := database.GetLeadMessageByDiscordID(req.ParentMsgID)
+		if err != nil {
+			json.NewEncoder(w).Encode(DiscordBotResponse{
+				Success: false,
+				Message: "Parent message not found",
+			})
+			return
+		}
+		parentMsgID = parentMsg.ID
+	}
+
 	leadMsg := database.LeadMessage{
 		UserEmail:    req.UserEmail,
 		Username:     req.SentBy,
@@ -130,7 +146,7 @@ func handleLeadReply(w http.ResponseWriter, req DiscordBotRequest) {
 		LevelNumber:  req.LevelNumber,
 		DiscordMsgID: req.DiscordMsgID,
 		IsReply:      true,
-		ParentMsgID:  req.ParentMsgID,
+		ParentMsgID:  parentMsgID,
 	}
 
 	err := database.Create("lead_message", leadMsg)
@@ -189,6 +205,22 @@ func handleHintMessage(w http.ResponseWriter, req DiscordBotRequest) {
 	json.NewEncoder(w).Encode(DiscordBotResponse{
 		Success: true,
 		Message: "Hint message saved and notifications sent",
+	})
+}
+
+func handleHintMessageDeleted(w http.ResponseWriter, req DiscordBotRequest) {
+	err := database.MarkHintMessageDeleted(req.DiscordMsgID)
+	if err != nil {
+		json.NewEncoder(w).Encode(DiscordBotResponse{
+			Success: false,
+			Message: "Failed to delete hint message",
+		})
+		return
+	}
+
+	json.NewEncoder(w).Encode(DiscordBotResponse{
+		Success: true,
+		Message: "Hint message deleted",
 	})
 }
 

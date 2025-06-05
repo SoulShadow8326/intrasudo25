@@ -409,7 +409,6 @@ function setupChatSignalHandlers() {
     if (chatToggleBtn) {
         chatToggleBtn.addEventListener("click", (e) => {
             chatSignal.setValue("open");
-            hideChatNotification();
         });
     }
     
@@ -685,7 +684,6 @@ function updateBadgesInstantly(chats, hints) {
         const unreadLeads = chats.filter(chat => chat.isReply && !chat.read).length;
         if (unreadLeads > 0) {
             leadsBadge.style.display = 'inline-flex';
-            leadsBadge.textContent = unreadLeads;
             leadsBadge.classList.add('glowing');
             setTimeout(() => leadsBadge.classList.remove('glowing'), 3000);
         } else {
@@ -699,7 +697,6 @@ function updateBadgesInstantly(chats, hints) {
     if (hintsBadge) {
         if (hints && hints.length > 0) {
             hintsBadge.style.display = 'inline-flex';
-            hintsBadge.textContent = hints.length;
             hintsBadge.classList.add('glowing');
             setTimeout(() => hintsBadge.classList.remove('glowing'), 3000);
         } else {
@@ -731,20 +728,6 @@ function generateChecksum(data) {
     return hash.toString();
 }
 
-function showChatNotification() {
-    const notificationDot = document.getElementById('chatNotificationDot');
-    if (notificationDot) {
-        notificationDot.classList.add('show');
-    }
-}
-
-function hideChatNotification() {
-    const notificationDot = document.getElementById('chatNotificationDot');
-    if (notificationDot) {
-        notificationDot.classList.remove('show');
-    }
-}
-
 async function checkForNewMessages() {
     try {
         const response = await fetch('/api/check-messages', {
@@ -765,10 +748,6 @@ async function checkForNewMessages() {
                     if (newChecksum !== chatChecksum) {
                         chatChecksum = newChecksum;
                         localStorage.setItem('chatChecksum', chatChecksum);
-                        
-                        if (chatSignal.Value() === 'close') {
-                            showChatNotification();
-                        }
                         
                         updateChatMessages(data.messages);
                     }

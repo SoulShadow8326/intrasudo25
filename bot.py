@@ -34,6 +34,17 @@ async def on_ready():
         print(f'Connected to guild: {guild.name}')
         await setup_channels(guild)
 
+@bot.event
+async def on_message_delete(message):
+    if message.author == bot.user:
+        return
+    
+    channel = message.channel
+    
+    if isinstance(channel, discord.TextChannel):
+        if channel.name.startswith('hint-level-'):
+            await handle_hint_message_deleted(message)
+
 async def setup_channels(guild):
     existing_channels = {}
     
@@ -139,7 +150,30 @@ async def handle_lead_message(message):
     except ValueError:
         return
     
-    await sync_channel_messages(message.channel, level_num, 'lead')
+    try:
+        replied_to_msg = await message.channel.fetch_message(message.reference.message_id)
+        if replied_to_msg and replied_to_msg.content.startswith('**From:**'):
+            content_lines = replied_to_msg.content.split('\n')
+            user_info = content_lines[0].replace('**From:**', '').strip()
+            user_email = user_info.split('(')[1].split(')')[0] if '(' in user_info else user_info
+            
+            data = {
+                'type': 'lead_reply',
+                'userEmail': user_email,
+                'sentBy': message.author.display_name,
+                'message': message.content,
+                'levelNumber': level_num,
+                'discordMsgId': str(message.id),
+                'parentMsgId': str(replied_to_msg.id)
+            }
+            
+            response = await send_to_api('discord-bot', data)
+            if response and response.get('success'):
+                print(f"Successfully forwarded lead reply for level {level_num}")
+            else:
+                print(f"Failed to forward lead reply for level {level_num}: {response}")
+    except Exception as e:
+        print(f"Error handling lead reply for level {level_num}: {e}")
 
 async def handle_hint_message(message):
     channel_name = message.channel.name
@@ -148,74 +182,43 @@ async def handle_hint_message(message):
     except ValueError:
         return
     
-    await sync_channel_messages(message.channel, level_num, 'hint')
-
-async def sync_channel_messages(channel, level_num, message_type):
     try:
-        messages = []
-        async for msg in channel.history(limit=None, oldest_first=True):
-            if msg.author.bot and msg.author != bot.user:
-                continue
-            
-            if message_type == 'lead':
-                content_lines = msg.content.split('\n')
-                if content_lines[0].startswith('**From:**'):
-                    user_info = content_lines[0].replace('**From:**', '').strip()
-                    user_email = user_info.split('(')[1].split(')')[0] if '(' in user_info else user_info
-                    username = user_info.split('(')[0].strip() if '(' in user_info else user_info
-                    actual_message = '\n'.join(content_lines[1:]).strip()
-                    
-                    messages.append({
-                        'discordMsgId': str(msg.id),
-                        'userEmail': user_email,
-                        'username': username,
-                        'message': actual_message,
-                        'isReply': False,
-                        'timestamp': msg.created_at.isoformat()
-                    })
-                elif msg.reference and msg.reference.message_id:
-                    try:
-                        replied_to_msg = await channel.fetch_message(msg.reference.message_id)
-                        if replied_to_msg and replied_to_msg.content.startswith('**From:**'):
-                            content_lines = replied_to_msg.content.split('\n')
-                            user_info = content_lines[0].replace('**From:**', '').strip()
-                            user_email = user_info.split('(')[1].split(')')[0] if '(' in user_info else user_info
-                            
-                            messages.append({
-                                'discordMsgId': str(msg.id),
-                                'userEmail': user_email,
-                                'username': msg.author.display_name,
-                                'message': msg.content,
-                                'isReply': True,
-                                'parentMsgId': str(replied_to_msg.id),
-                                'timestamp': msg.created_at.isoformat()
-                            })
-                    except:
-                        continue
-            elif message_type == 'hint':
-                if not msg.content.startswith('**From:**') and not msg.author.bot:
-                    messages.append({
-                        'discordMsgId': str(msg.id),
-                        'message': msg.content,
-                        'sentBy': msg.author.display_name,
-                        'timestamp': msg.created_at.isoformat()
-                    })
-        
         data = {
-            'type': 'sync_messages',
-            'messageType': message_type,
+            'type': 'hint_message',
+            'message': message.content,
+            'sentBy': message.author.display_name,
             'levelNumber': level_num,
-            'messages': messages
+            'discordMsgId': str(message.id)
         }
         
         response = await send_to_api('discord-bot', data)
         if response and response.get('success'):
-            print(f"Successfully synced {len(messages)} {message_type} messages for level {level_num}")
+            print(f"Successfully forwarded hint message for level {level_num}")
         else:
-            print(f"Failed to sync {message_type} messages for level {level_num}: {response}")
-            
+            print(f"Failed to forward hint message for level {level_num}: {response}")
     except Exception as e:
-        print(f"Error syncing {message_type} messages for level {level_num}: {e}")
+        print(f"Error handling hint message for level {level_num}: {e}")
+
+async def handle_hint_message_deleted(message):
+    channel_name = message.channel.name
+    try:
+        level_num = int(channel_name.split('-')[-1])
+    except ValueError:
+        return
+    
+    try:
+        data = {
+            'type': 'hint_message_deleted',
+            'discordMsgId': str(message.id)
+        }
+        
+        response = await send_to_api('discord-bot', data)
+        if response and response.get('success'):
+            print(f"Successfully deleted hint message for level {level_num}")
+        else:
+            print(f"Failed to delete hint message for level {level_num}: {response}")
+    except Exception as e:
+        print(f"Error handling hint message deletion for level {level_num}: {e}")
 
 @app.route('/discord/forward', methods=['POST'])
 def forward_message():

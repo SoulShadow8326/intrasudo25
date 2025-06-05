@@ -1310,3 +1310,22 @@ func DeleteAllMessagesForLevel(levelNumber int, messageType string) error {
 	_, err := db.Exec(query, levelNumber)
 	return err
 }
+
+func GetLeadMessageByDiscordID(discordMsgID string) (*LeadMessage, error) {
+	params := map[string]interface{}{
+		"discordMsgId": discordMsgID,
+	}
+	result, err := Get("message_by_discord_id", params)
+	if err != nil {
+		return nil, err
+	}
+	if leadMsg, ok := result.(LeadMessage); ok {
+		return &leadMsg, nil
+	}
+	return nil, fmt.Errorf("message not found")
+}
+
+func MarkHintMessageDeleted(discordMsgID string) error {
+	_, err := db.Exec("DELETE FROM hint_messages WHERE discord_msg_id = ?", discordMsgID)
+	return err
+}
