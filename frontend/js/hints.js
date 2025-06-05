@@ -218,7 +218,7 @@ function displayHints(hints) {
     const hintsHTML = hints.map(hint => `
         <div class="chat-message hint-message">
             <div class="message-header">
-                <span class="message-author">${escapeHtml(hint.sentBy || 'Admin')}</span>
+                <span class="message-author">Admin</span>
                 <span class="message-time">${formatTime(hint.timestamp)}</span>
             </div>
             <div class="message-content">

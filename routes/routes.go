@@ -195,6 +195,7 @@ func RegisterRoutes() http.Handler {
 	Mux.HandleFunc("/api/discord-bot", handlers.DiscordBotHandler)
 	Mux.HandleFunc("/api/levels", handlers.GetLevelsHandler)
 	Mux.HandleFunc("/api/chat/checksum", handlers.RequireAuth(handlers.ChatChecksumHandler))
+	Mux.HandleFunc("/api/check-messages", handlers.RequireAuth(handlers.CheckMessagesHandler))
 	Mux.HandleFunc("/api/leads", handlers.RequireAuth(handlers.LeadsHandler))
 	Mux.HandleFunc("/api/hints", handlers.RequireAuth(handlers.GetUserHintsHandler))
 	Mux.HandleFunc("/submit_message", handlers.RequireAuth(handlers.SubmitMessageHandler))
