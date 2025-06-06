@@ -1,11 +1,38 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"intrasudo25/config"
 	"intrasudo25/database"
 	"net/http"
 	"strconv"
 )
+
+// refreshDiscordChannels calls the Discord bot to refresh channels
+func refreshDiscordChannels() error {
+	botURL := config.GetDiscordBotURL()
+	if botURL == "" {
+		return fmt.Errorf("Discord bot URL not configured")
+	}
+
+	resp, err := http.Post(
+		fmt.Sprintf("%s/discord/refresh", botURL),
+		"application/json",
+		bytes.NewBuffer([]byte("{}")),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to refresh discord channels: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("discord bot returned status %d", resp.StatusCode)
+	}
+
+	return nil
+}
 
 func CreateLvlHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -59,6 +86,15 @@ func CreateLvlHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to create level"})
+		return
+	}
+
+	// Refresh Discord channels after creating a level
+	err = refreshDiscordChannels()
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to refresh Discord channels"})
 		return
 	}
 
@@ -120,6 +156,15 @@ func UpdateLvlHandler(w http.ResponseWriter, r *http.Request, id string) {
 		return
 	}
 
+	// Refresh Discord channels after updating a level
+	err = refreshDiscordChannels()
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to refresh Discord channels"})
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"message": "Level updated successfully"})
 }
@@ -153,6 +198,15 @@ func DeleteLvlHandler(w http.ResponseWriter, r *http.Request, id string) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to delete level"})
+		return
+	}
+
+	// Refresh Discord channels after deleting a level
+	err = refreshDiscordChannels()
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to refresh Discord channels"})
 		return
 	}
 

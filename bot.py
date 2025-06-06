@@ -46,31 +46,50 @@ async def on_message_delete(message):
             await handle_hint_message_deleted(message)
 
 async def setup_channels(guild):
-    existing_channels = {}
+    levels = await get_all_levels()
+    levels_set = set(levels)
+    
+    existing_discord_channels = {}
+    channels_to_delete = []
     
     for channel in guild.channels:
         if isinstance(channel, discord.TextChannel):
             if channel.name.startswith('lead-level-'):
                 try:
                     level_num = int(channel.name.split('-')[-1])
-                    lead_channels[level_num] = channel
-                    existing_channels[f'lead-{level_num}'] = True
-                    print(f'Found lead channel for level {level_num}: {channel.name}')
+                    if level_num in levels_set:
+                        lead_channels[level_num] = channel
+                        existing_discord_channels[f'lead-{level_num}'] = True
+                    else:
+                        channels_to_delete.append(channel)
                 except ValueError:
                     pass
             elif channel.name.startswith('hint-level-'):
                 try:
                     level_num = int(channel.name.split('-')[-1])
-                    hint_channels[level_num] = channel
-                    existing_channels[f'hint-{level_num}'] = True
-                    print(f'Found hint channel for level {level_num}: {channel.name}')
+                    if level_num in levels_set:
+                        hint_channels[level_num] = channel
+                        existing_discord_channels[f'hint-{level_num}'] = True
+                    else:
+                        channels_to_delete.append(channel)
                 except ValueError:
                     pass
     
-    levels = await get_all_levels()
+    for channel in channels_to_delete:
+        try:
+            level_num = int(channel.name.split('-')[-1])
+            channel_type = 'lead' if channel.name.startswith('lead-') else 'hint'
+            await channel.delete()
+            print(f'Deleted {channel_type} channel for level {level_num}')
+            if channel_type == 'lead' and level_num in lead_channels:
+                del lead_channels[level_num]
+            elif channel_type == 'hint' and level_num in hint_channels:
+                del hint_channels[level_num]
+        except Exception as e:
+            print(f'Failed to delete channel {channel.name}: {e}')
     
     for level in levels:
-        if f'lead-{level}' not in existing_channels:
+        if f'lead-{level}' not in existing_discord_channels:
             try:
                 channel = await guild.create_text_channel(f'lead-level-{level}')
                 lead_channels[level] = channel
@@ -78,7 +97,7 @@ async def setup_channels(guild):
             except Exception as e:
                 print(f'Failed to create lead channel for level {level}: {e}')
         
-        if f'hint-{level}' not in existing_channels:
+        if f'hint-{level}' not in existing_discord_channels:
             try:
                 channel = await guild.create_text_channel(f'hint-level-{level}')
                 hint_channels[level] = channel
@@ -284,11 +303,7 @@ def refresh_channels():
         print(f'Error refreshing channels: {e}')
         return jsonify({'success': False, 'message': 'Internal server error'}), 500
 
-async def periodic_channel_refresh():
-    while True:
-        await asyncio.sleep(300)
-        for guild in bot.guilds:
-            await setup_channels(guild)
+# Periodic channel refresh removed - now only refreshes on level creation/deletion
 
 def run_flask_app():
     app.run(host='0.0.0.0', port=BOT_PORT, debug=False)
@@ -300,13 +315,7 @@ def run_discord_bot():
     async def start_bot():
         await bot.start(DISCORD_TOKEN)
     
-    async def start_tasks():
-        await asyncio.gather(
-            start_bot(),
-            periodic_channel_refresh()
-        )
-    
-    loop.run_until_complete(start_tasks())
+    loop.run_until_complete(start_bot())
 
 if __name__ == '__main__':
     if not DISCORD_TOKEN:
