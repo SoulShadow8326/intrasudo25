@@ -525,7 +525,7 @@
     }
     
     .chat-tab .tab-text {
-        font-size: 12px;
+        font-size: 13px;
         line-height: 1;
         vertical-align: middle;
         display: flex;
@@ -537,7 +537,7 @@
         padding: 8px;
         min-width: 60px;
         flex: 1;
-        font-size: 12px;
+        font-size: 13px;
         align-items: center;
         justify-content: center;
         display: flex;
@@ -581,7 +581,7 @@
     .chat-message-content {
         padding: 8px 10px;
         border-radius: 14px;
-        font-size: 14px;
+        font-size: 15px;
     }
     
     .chat-message-avatar {
@@ -591,7 +591,7 @@
     }
     
     .chat-message-sender {
-        font-size: 12px;
+        font-size: 13px;
     }
     
     .chat-message-time {
