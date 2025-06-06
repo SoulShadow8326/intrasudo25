@@ -214,11 +214,9 @@
 
 .chat-tabs {
     display: flex;
-    gap: 6px;
+    gap: 15px;
     width: 100%;
-    padding: 10px 8px;
     background: rgba(20, 20, 20, 0.8);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .chat-tab {
@@ -235,7 +233,6 @@
     flex: 1;
     justify-content: center;
     min-height: 44px;
-    margin: 0 4px;
     color: #ffffff !important;
     font-weight: 600;
 }
