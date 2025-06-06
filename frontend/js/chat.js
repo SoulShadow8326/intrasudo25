@@ -753,6 +753,7 @@ function renderMessages(messages, containerId) {
                             new showdown.Converter().makeHtml(hint.message) : 
                             escapeHtml(hint.message)) : ''}
                     </div>
+                    <div class="message-time">${formatTime(hint.timestamp)}</div>
                 </div>
             `).join('');
         } else {

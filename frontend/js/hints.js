@@ -213,15 +213,12 @@ function displayHints(hints) {
     
     const hintsHTML = hints.map(hint => `
         <div class="chat-message hint-message">
-            <div class="message-header">
-                <span class="message-author">Admin</span>
-                <span class="message-time">${formatTime(hint.timestamp)}</span>
-            </div>
             <div class="message-content">
                 ${hint.message ? (typeof showdown !== 'undefined' ? 
                     new showdown.Converter().makeHtml(hint.message) : 
                     escapeHtml(hint.message)) : ''}
             </div>
+            <div class="message-time">${formatTime(hint.timestamp)}</div>
         </div>
     `).join('');
     

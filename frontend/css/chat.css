@@ -684,34 +684,18 @@
 
 
 .hint-message {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 100%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
     padding: 0;
-    margin-bottom: 8px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    margin-bottom: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(20px);
     transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     overflow: hidden;
     position: relative;
     animation: slideInMessage 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.hint-message::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b);
-    background-size: 200% 100%;
-    animation: shimmer 3s ease-in-out infinite;
-}
-
-@keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+    border-left: 3px solid #2977F5;
 }
 
 .hint-message:hover {
@@ -733,7 +717,12 @@
 }
 
 .hint-message .message-time {
-    display: none;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 400;
+    text-align: right;
+    padding: 8px 16px 12px;
+    margin: 0;
 }
 
 .hint-message .message-content {
