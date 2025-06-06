@@ -1243,9 +1243,9 @@ func ResetUserLevel(userEmail string) error {
 	}
 
 	notification := map[string]interface{}{
-		"user_email": userEmail,
-		"message":    "Your level has been reset to Level 1 by an administrator",
-		"type":       "info",
+		"userEmail": userEmail,
+		"message":   "Your level has been reset to Level 1 by an administrator",
+		"type":      "info",
 	}
 	Create("notification", notification)
 
