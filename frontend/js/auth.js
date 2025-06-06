@@ -263,12 +263,11 @@ async function checkExistingSession() {
             }
         }
     } catch (error) {
-        console.log('No existing session found');
+        
     }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Auth page loaded, setting up form handlers');
     
     const emailForm = document.getElementById('email-form');
     if (emailForm) {
@@ -303,6 +302,4 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    
-    checkExistingSession();
 });
