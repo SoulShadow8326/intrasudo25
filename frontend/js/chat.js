@@ -246,7 +246,6 @@ function setupMessageSubmission() {
                     if (leadsContainer) {
                         const userMessageHtml = `<div class="chat-message user">
                             <div class="chat-message-content">
-                                <span class="chat-message-sender">You</span>
                                 <div class="chat-message-text">${escapeHtml(text)}</div>
                             </div>
                         </div>`;
@@ -675,24 +674,16 @@ function updateBadgesInstantly(chats, hints) {
 let chatChecksum = '';
 
 function showNotificationDot() {
-    const chatToggleBtn = document.getElementById("chatToggleBtn");
-    if (!chatToggleBtn) return;
-    
-    let dot = chatToggleBtn.querySelector('.notification-dot');
-    if (!dot) {
-        dot = document.createElement('span');
-        dot.className = 'notification-dot show';
-        chatToggleBtn.appendChild(dot);
+    const notificationDot = document.getElementById("chatNotificationDot");
+    if (notificationDot) {
+        notificationDot.className = 'notification-dot show';
     }
 }
 
 function hideNotificationDot() {
-    const chatToggleBtn = document.getElementById("chatToggleBtn");
-    if (!chatToggleBtn) return;
-    
-    const dot = chatToggleBtn.querySelector('.notification-dot');
-    if (dot) {
-        dot.remove();
+    const notificationDot = document.getElementById("chatNotificationDot");
+    if (notificationDot) {
+        notificationDot.className = 'notification-dot';
     }
 }
 
@@ -728,14 +719,14 @@ function renderMessages(messages, containerId) {
             if (isAdminMessage) {
                 return `<div class="chat-message admin">
                     <div class="chat-message-content">
-                        <span class="chat-message-sender">Admin</span>
+                        <div class="chat-message-label">Admin</div>
                         <div class="chat-message-text">${escapeHtml(x.message)}</div>
                     </div>
                 </div>`;
             } else {
                 return `<div class="chat-message user">
                     <div class="chat-message-content">
-                        <span class="chat-message-sender">You</span>
+                        <div class="chat-message-label">You</div>
                         <div class="chat-message-text">${escapeHtml(x.message)}</div>
                     </div>
                 </div>`;
@@ -768,14 +759,14 @@ function renderMessages(messages, containerId) {
                 if (isAdminMessage) {
                     return `<div class="chat-message admin">
                         <div class="chat-message-content">
-                            <span class="chat-message-sender">Admin</span>
+                            <div class="chat-message-label">Admin</div>
                             <div class="chat-message-text">${escapeHtml(x.message)}</div>
                         </div>
                     </div>`;
                 } else {
                     return `<div class="chat-message user">
                         <div class="chat-message-content">
-                            <span class="chat-message-sender">You</span>
+                            <div class="chat-message-label">You</div>
                             <div class="chat-message-text">${escapeHtml(x.message)}</div>
                         </div>
                     </div>`;

@@ -76,21 +76,26 @@
 
     <div id="chatPopup">
         <div id="chatControls">
-            <div id="chatCloseBtn" class="chat-control-btn" title="Close">
-                <svg width="7" height="7" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M14 2L2 14" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round" />
-                    <path d="M2 2L14 14" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round" />
-                </svg>
+            <div class="chat-controls-left">
+                <div id="chatCloseBtn" class="chat-control-btn" title="Close">
+                    <svg width="7" height="7" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M14 2L2 14" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round" />
+                        <path d="M2 2L14 14" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="round" />
+                    </svg>
+                </div>
+                <div id="chatMinimizeBtn" class="chat-control-btn" title="Minimize">
+                    <svg width="7" height="7" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 8h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                </div>
+                <div id="chatMaximizeBtn" class="chat-control-btn" title="Fullscreen">
+                    <svg width="7" height="7" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="3" y="3" width="10" height="10" stroke="currentColor" stroke-width="2" fill="none" />
+                    </svg>
+                </div>
             </div>
-            <div id="chatMinimizeBtn" class="chat-control-btn" title="Minimize">
-                <svg width="7" height="7" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M4 8h8" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-                </svg>
-            </div>
-            <div id="chatMaximizeBtn" class="chat-control-btn" title="Fullscreen">
-                <svg width="7" height="7" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="3" y="3" width="10" height="10" stroke="currentColor" stroke-width="2" fill="none" />
-                </svg>
+            <div class="chat-controls-right">
+                <div class="notification-dot" id="chatNotificationDot"></div>
             </div>
         </div>
 
@@ -129,12 +134,12 @@
 
             <div class="chat-input-area">
                 <div class="input-wrapper">
-                    <textarea
+                    <input
+                        type="text"
                         placeholder="Ask a question..."
-                        rows="1"
                         id="leadInput"
-                        class="chat-input no-scrollbar"
-                        maxlength="512"></textarea>
+                        class="chat-input"
+                        maxlength="512">
                     
                     <button id="leadSendButton" class="send-button" title="Contact leads" disabled>
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 664 663" width="16" height="16">
