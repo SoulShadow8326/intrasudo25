@@ -20,6 +20,8 @@ let userId = null;
 let userRole = null;
 let userLevel = 1;
 let isAdmin = false;
+let chatStatus = 'active';
+let hasUnreadMessages = localStorage.getItem('hasUnreadMessages') === 'true';
 
 const chatSignal = Signal("chatOpenState", "close");
 let checksum = null;
@@ -113,6 +115,14 @@ document.addEventListener('DOMContentLoaded', function() {
     startChecksumPolling();
 });
 
+async function refreshChatContent() {
+    try {
+        await checkChecksum();
+    } catch (error) {
+        console.error('Failed to refresh chat content:', error);
+    }
+}
+
 function setupChecksumHandler() {
     if (!checksum) return;
     
@@ -125,7 +135,7 @@ function setupChecksumHandler() {
                     position: { x: "center", y: "top" }, 
                     message: "You have got a new message!" 
                 });
-                showNotificationDot();
+                showChatToggleNotificationDot();
             }
         }
         if (ignore) {
@@ -175,13 +185,18 @@ async function checkChecksum() {
         
         leads = true;
         
+        if (request.chatStatus) {
+            chatStatus = request.chatStatus;
+            updateChatStatusIndicator(chatStatus);
+        }
+        
         const leadsIndicator = document.getElementById("leads");
         const leadInput = document.getElementById("leadInput");
         const leadSendButton = document.getElementById("leadSendButton");
         
         if (leadsIndicator) leadsIndicator.style.backgroundColor = "#00da00";
-        if (leadInput) leadInput.disabled = false;
-        if (leadSendButton) leadSendButton.disabled = leadInput ? leadInput.value.trim().length === 0 : true;
+        if (leadInput) leadInput.disabled = chatStatus === 'locked';
+        if (leadSendButton) leadSendButton.disabled = chatStatus === 'locked' || (leadInput ? leadInput.value.trim().length === 0 : true);
         
         let hasNewLeads = false;
         let hasNewHints = false;
@@ -220,6 +235,9 @@ async function checkChecksum() {
             }
             
             showNotificationDot();
+            showChatToggleNotificationDot();
+            hasUnreadMessages = true;
+            localStorage.setItem('hasUnreadMessages', 'true');
         }
         
     } catch (error) {
@@ -233,7 +251,7 @@ function setupMessageSubmission() {
     if (leadSendButton && leadInput) {
         leadSendButton.addEventListener("click", async (x) => {
             var text = leadInput.value.trim().trim("\n");
-            if (text !== "") {
+            if (text !== "" && chatStatus !== 'locked') {
                 leadInput.value = "";
                 const leadMsgLen = document.getElementById("leadMsgLen");
                 if (leadMsgLen) leadMsgLen.innerText = "0";
@@ -334,16 +352,20 @@ function setupMessageSubmission() {
             if (leadMsgLen) leadMsgLen.innerText = e.target.value.trim().length;
             
             if (leadSendButton) {
-                leadSendButton.disabled = e.target.value.trim().length === 0;
+                leadSendButton.disabled = chatStatus === 'locked' || e.target.value.trim().length === 0;
             }
         });
     }
 }
 
 async function startChecksumPolling() {
+    if (hasUnreadMessages && chatSignal.Value() !== "open") {
+        showNotificationDot();
+        showChatToggleNotificationDot();
+    }
     await checkChecksum();
     first = false;
-    setInterval(checkChecksum, 500); // Reduced from 1000ms to 500ms for faster updates
+    setInterval(checkChecksum, 500);
 }
 
 function setupChatSignalHandlers() {
@@ -408,6 +430,9 @@ function setupChatSignalHandlers() {
         chatToggleBtn.addEventListener("click", (e) => {
             chatSignal.setValue("open");
             hideNotificationDot();
+            hideChatToggleNotificationDot();
+            hasUnreadMessages = false;
+            localStorage.setItem('hasUnreadMessages', 'false');
         });
     }
     
@@ -493,6 +518,8 @@ async function initializeChatPopup() {
         updateConnectionStatus(true);
         hideLoadingState();
         
+        updateChatStatusIndicator(chatStatus);
+        
     } catch (error) {
         updateConnectionStatus(false);
         showErrorState('Failed to initialize chat. Please refresh the page.');
@@ -574,6 +601,9 @@ function updateNotificationBadges(hasNewLeads, hasNewHints) {
     if (chatToggleBtn) {
         if (chatSignal.Value() !== "open" && (hasNewLeads || hasNewHints)) {
             showNotificationDot();
+            showChatToggleNotificationDot();
+            hasUnreadMessages = true;
+            localStorage.setItem('hasUnreadMessages', 'true');
         }
     }
 }
@@ -636,6 +666,57 @@ function updateChatContainers(chats, hints) {
     }
 }
 
+function renderMessages(messages, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    if (!messages || messages.length === 0) {
+        const emptyState = containerId === 'leadsContainer' 
+            ? `<div class="empty-state">
+                <div class="empty-icon">INBOX</div>
+                <p>No messages with admins yet.</p>
+               </div>`
+            : `<div class="empty-state">
+                <div class="empty-icon">?</div>
+                <p>No hints available yet.</p>
+               </div>`;
+        container.innerHTML = emptyState;
+        return;
+    }
+    
+    const messagesHTML = messages.map(message => {
+        if (containerId === 'hintsContainer') {
+            const content = message.message || message.content || '';
+            return `<div class="chat-message hint-message">
+                <div class="message-content">
+                    ${typeof showdown !== 'undefined' ? 
+                        new showdown.Converter().makeHtml(content) : 
+                        escapeHtml(content)}
+                </div>
+                <div class="message-time">${formatTime(message.timestamp || message.created_at)}</div>
+            </div>`;
+        } else {
+            const isAdmin = message.isReply === true || message.IsReply === true;
+            const messageClass = isAdmin ? 'admin' : 'user';
+            const content = message.message || message.content || '';
+            const senderLabel = isAdmin ? 'Admin' : 'You';
+            
+            return `<div class="chat-message ${messageClass}">
+                <div class="chat-message-content">
+                    <div class="chat-message-label">${senderLabel}</div>
+                    <div class="chat-message-text">${escapeHtml(content)}</div>
+                </div>
+            </div>`;
+        }
+    }).join('');
+    
+    container.innerHTML = messagesHTML;
+    
+    setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+    }, 50);
+}
+
 function formatTime(timestamp) {
     if (!timestamp) return '';
     try {
@@ -664,8 +745,14 @@ function updateBadgesInstantly(chats, hints) {
         hintsBadge.style.display = 'none';
     }
     
-    if (chatSignal.Value() !== "open" && (chats.length > 0 || (hints && hints.length > 0))) {
+    if (chats.length > 0 || (hints && hints.length > 0)) {
+        hasUnreadMessages = true;
+        localStorage.setItem('hasUnreadMessages', 'true');
+    }
+    
+    if (chatSignal.Value() !== "open" && hasUnreadMessages) {
         showNotificationDot();
+        showChatToggleNotificationDot();
     } else if (chatSignal.Value() === "open") {
         hideNotificationDot();
     }
@@ -687,149 +774,42 @@ function hideNotificationDot() {
     }
 }
 
-function renderMessages(messages, containerId) {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    
-    if (messages.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">${containerId === 'hintsContainer' ? '?' : 'INBOX'}</div>
-                <p>No ${containerId === 'hintsContainer' ? 'hints' : 'messages'} yet</p>
-            </div>
-        `;
-        return;
+function showChatToggleNotificationDot() {
+    const notificationDot = document.getElementById("chatToggleNotificationDot");
+    if (notificationDot) {
+        notificationDot.className = 'chat-toggle-notification-dot show';
     }
+}
+
+function hideChatToggleNotificationDot() {
+    const notificationDot = document.getElementById("chatToggleNotificationDot");
+    if (notificationDot) {
+        notificationDot.className = 'chat-toggle-notification-dot';
+    }
+}
+
+function updateChatStatusIndicator(status) {
+    const statusDotIndicator = document.getElementById("statusDotIndicator");
+    const statusText = document.getElementById("statusText");
     
-    // Check if we can optimize by only appending new messages
-    const existingMessages = container.querySelectorAll('.chat-message, .hint-message');
-    const shouldOptimize = existingMessages.length > 0 && messages.length > existingMessages.length;
-    
-    if (shouldOptimize && containerId === 'leadsContainer') {
-        // Only append new messages instead of re-rendering all
-        const newMessages = messages.slice(existingMessages.length);
-        const newHtml = newMessages.map(x => {
-            const isOwnMessage = x.userEmail && window.user && (
-                x.userEmail.toLowerCase() === window.user.email.toLowerCase() || 
-                x.userEmail.toLowerCase() === window.user.gmail?.toLowerCase()
-            );
-            
-            const isAdminMessage = x.isReply || x.sentBy || (x.userEmail && x.userEmail.includes('admin'));
-            
-            if (isAdminMessage) {
-                return `<div class="chat-message admin">
-                    <div class="chat-message-content">
-                        <div class="chat-message-label">Admin</div>
-                        <div class="chat-message-text">${escapeHtml(x.message)}</div>
-                    </div>
-                </div>`;
+    if (statusDotIndicator && statusText) {
+        statusDotIndicator.className = `status-dot-indicator ${status}`;
+        statusText.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+        
+        const leadInput = document.getElementById("leadInput");
+        const leadSendButton = document.getElementById("leadSendButton");
+        
+        if (leadInput) {
+            leadInput.disabled = status === 'locked';
+            if (status === 'locked') {
+                leadInput.placeholder = "Chat is locked by admin";
             } else {
-                return `<div class="chat-message user">
-                    <div class="chat-message-content">
-                        <div class="chat-message-label">You</div>
-                        <div class="chat-message-text">${escapeHtml(x.message)}</div>
-                    </div>
-                </div>`;
-            }
-        }).join('');
-        
-        container.innerHTML += newHtml;
-    } else {
-        // Full re-render for hints or when optimization isn't possible
-        if (containerId === 'hintsContainer') {
-            container.innerHTML = messages.map(hint => `
-                <div class="hint-message">
-                    <div class="message-content">
-                        ${hint.message ? (typeof showdown !== 'undefined' ? 
-                            new showdown.Converter().makeHtml(hint.message) : 
-                            escapeHtml(hint.message)) : ''}
-                    </div>
-                    <div class="message-time">${formatTime(hint.timestamp)}</div>
-                </div>
-            `).join('');
-        } else {
-            container.innerHTML = messages.map(x => {
-                const isOwnMessage = x.userEmail && window.user && (
-                    x.userEmail.toLowerCase() === window.user.email.toLowerCase() || 
-                    x.userEmail.toLowerCase() === window.user.gmail?.toLowerCase()
-                );
-                
-                const isAdminMessage = x.isReply || x.sentBy || (x.userEmail && x.userEmail.includes('admin'));
-                
-                if (isAdminMessage) {
-                    return `<div class="chat-message admin">
-                        <div class="chat-message-content">
-                            <div class="chat-message-label">Admin</div>
-                            <div class="chat-message-text">${escapeHtml(x.message)}</div>
-                        </div>
-                    </div>`;
-                } else {
-                    return `<div class="chat-message user">
-                        <div class="chat-message-content">
-                            <div class="chat-message-label">You</div>
-                            <div class="chat-message-text">${escapeHtml(x.message)}</div>
-                        </div>
-                    </div>`;
-                }
-            }).join('');
-        }
-    }
-    
-    setTimeout(() => {
-        container.scrollTop = container.scrollHeight;
-    }, 50); // Reduced from 100ms to 50ms for faster scrolling
-}
-
-function updateChatMessages(messages) {
-    if (messages.leads) {
-        renderMessages(messages.leads, 'leadsContainer');
-    }
-    if (messages.hints) {
-        renderMessages(messages.hints, 'hintsContainer');
-    }
-}
-
-async function refreshChatContent() {
-    try {
-        // Fetch latest leads/chat messages
-        const response = await fetch("/api/leads", {
-            headers: {
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
-            }
-        });
-        
-        if (response.ok) {
-            const chats = await response.json();
-            renderMessages(chats || [], 'leadsContainer');
-        }
-
-        // Fetch latest hints (if not on hints page)
-        if (!window.location.pathname.endsWith('/hints.html')) {
-            const hintsResponse = await fetch("/api/hints", {
-                headers: {
-                    'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
-                }
-            });
-            
-            if (hintsResponse.ok) {
-                const hints = await hintsResponse.json();
-                renderMessages(hints || [], 'hintsContainer');
+                leadInput.placeholder = "Type your message...";
             }
         }
-
-        // Scroll to bottom after loading content
-        setTimeout(() => {
-            const activeTab = document.querySelector('.chat-tab.active');
-            if (activeTab) {
-                const tabData = activeTab.getAttribute('data-tab');
-                const container = document.getElementById(tabData + 'Container');
-                if (container) {
-                    container.scrollTop = container.scrollHeight;
-                }
-            }
-        }, 100);
         
-    } catch (error) {
-        console.log('Failed to refresh chat content:', error);
+        if (leadSendButton) {
+            leadSendButton.disabled = status === 'locked' || (leadInput ? leadInput.value.trim().length === 0 : true);
+        }
     }
 }

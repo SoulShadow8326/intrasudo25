@@ -340,6 +340,10 @@ func createTables() {
 			level_number INTEGER NOT NULL,
 			timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
 		);`,
+		`CREATE TABLE IF NOT EXISTS system_settings (
+			"key" TEXT PRIMARY KEY,
+			"value" TEXT
+		);`,
 	}
 
 	for _, table := range tables {
@@ -799,6 +803,15 @@ func Get(entity string, params map[string]interface{}) (interface{}, error) {
 		}
 
 		return leadMessages, nil
+	case "system_setting":
+		if key, ok := params["key"].(string); ok {
+			var setting SystemSetting
+			err := db.QueryRow("SELECT \"key\", \"value\" FROM system_settings WHERE \"key\" = ?", key).Scan(&setting.Key, &setting.Value)
+			if err != nil {
+				return nil, err
+			}
+			return &setting, nil
+		}
 	}
 
 	return nil, fmt.Errorf("invalid get request")
@@ -869,6 +882,13 @@ func Create(entity string, data interface{}) error {
 				return err
 			}
 			return nil
+		}
+	case "system_setting":
+		if params, ok := data.(map[string]interface{}); ok {
+			key := params["key"].(string)
+			value := params["value"].(string)
+			_, err := db.Exec("INSERT INTO system_settings (\"key\", \"value\") VALUES (?, ?)", key, value)
+			return err
 		}
 	}
 	return fmt.Errorf("invalid create request")
@@ -955,6 +975,14 @@ func Update(entity string, params map[string]interface{}, data interface{}) erro
 					_, err := db.Exec("UPDATE lead_messages SET discord_msg_id = ? WHERE id = ?", discordMsgID, id)
 					return err
 				}
+			}
+		}
+	case "system_setting":
+		if key, ok := params["key"].(string); ok {
+			if updateData, ok := data.(map[string]interface{}); ok {
+				value := updateData["value"].(string)
+				_, err := db.Exec("UPDATE system_settings SET \"value\" = ? WHERE \"key\" = ?", value, key)
+				return err
 			}
 		}
 	}
@@ -1328,4 +1356,37 @@ func GetLeadMessageByDiscordID(discordMsgID string) (*LeadMessage, error) {
 func MarkHintMessageDeleted(discordMsgID string) error {
 	_, err := db.Exec("DELETE FROM hint_messages WHERE discord_msg_id = ?", discordMsgID)
 	return err
+}
+
+type SystemSetting struct {
+	Key   string `json:"key" db:"key"`
+	Value string `json:"value" db:"value"`
+}
+
+func GetChatStatus() string {
+	result, err := Get("system_setting", map[string]interface{}{"key": "chat_status"})
+	if err != nil {
+		return "active" // default to active if not found
+	}
+	if setting, ok := result.(*SystemSetting); ok {
+		return setting.Value
+	}
+	return "active"
+}
+
+func SetChatStatus(status string) error {
+	// Check if setting exists
+	_, err := Get("system_setting", map[string]interface{}{"key": "chat_status"})
+	if err != nil {
+		// Setting doesn't exist, create it
+		return Create("system_setting", map[string]interface{}{
+			"key":   "chat_status",
+			"value": status,
+		})
+	} else {
+		// Setting exists, update it
+		return Update("system_setting", map[string]interface{}{"key": "chat_status"}, map[string]interface{}{
+			"value": status,
+		})
+	}
 }

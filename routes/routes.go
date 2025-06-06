@@ -188,6 +188,12 @@ func RegisterRoutes() http.Handler {
 				}
 			}
 		}
+
+		if path == "/chat/status" {
+			if r.Method == "POST" {
+				handlers.ChatStatusHandler(w, r)
+			}
+		}
 	})
 
 	Mux.HandleFunc("/api/secret", handlers.CORS(handlers.GetSecretHandler))

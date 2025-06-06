@@ -8,7 +8,8 @@ async function initializeAdmin() {
             loadStats(),
             loadLevels(),
             loadUsers(),
-            loadAnnouncements()
+            loadAnnouncements(),
+            loadChatStatus()
         ]);
     } catch (error) {
         showNotification('Failed to load admin dashboard', 'error');
@@ -897,27 +898,88 @@ function escapeHtml(text) {
 
 async function resetMyLevel() {
     showConfirmModal(
-        'Reset My Level', 
-        'Are you sure you want to reset your level to 1? This action cannot be undone.',
+        'Reset Level',
+        'Are you sure you want to reset your game level to 1? This action cannot be undone.',
         async function() {
             try {
-                const csrfToken = getCookie('X-CSRF_COOKIE');
                 const response = await fetch('/api/admin/users/reset-my-level', {
                     method: 'POST',
                     headers: {
-                        'CSRFtok': csrfToken
+                        'CSRFtok': getCookie('X_CSRF_COOKIE') || userSession?.csrfToken || ''
                     }
                 });
 
                 if (response.ok) {
                     showNotification('Your level has been reset to 1', 'success');
-                    setTimeout(() => window.location.reload(), 1000);
                 } else {
-                    throw new Error('Failed to reset level');
+                    const error = await response.text();
+                    throw new Error(error);
                 }
             } catch (error) {
-                showNotification('Failed to reset your level. Please try again.', 'error');
+                showNotification('Failed to reset level', 'error');
             }
         }
     );
+}
+
+// Chat status management functions
+async function loadChatStatus() {
+    try {
+        const response = await fetch('/api/chat/checksum', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || ''
+            },
+            body: JSON.stringify({
+                leadsChecksum: '',
+                hintsChecksum: ''
+            })
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            updateChatStatusToggle(data.chatStatus || 'active');
+        }
+    } catch (error) {
+        console.error('Failed to load chat status:', error);
+    }
+}
+
+function updateChatStatusToggle(status) {
+    const toggle = document.getElementById('chatStatusToggle');
+    const label = document.getElementById('chatStatusLabel');
+    
+    if (toggle && label) {
+        toggle.checked = status === 'active';
+        label.textContent = status === 'active' ? 'Active' : 'Locked';
+        label.style.color = status === 'active' ? '#22c55e' : '#ef4444';
+    }
+}
+
+async function toggleChatStatus() {
+    const toggle = document.getElementById('chatStatusToggle');
+    const newStatus = toggle.checked ? 'active' : 'locked';
+    
+    try {
+        const response = await fetch('/api/admin/chat/status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || ''
+            },
+            body: JSON.stringify({ status: newStatus })
+        });
+        
+        if (response.ok) {
+            showNotification(`Chat ${newStatus === 'active' ? 'activated' : 'locked'} successfully`, 'success');
+            updateChatStatusToggle(newStatus);
+        } else {
+            throw new Error('Failed to update chat status');
+        }
+    } catch (error) {
+        showNotification('Failed to update chat status', 'error');
+        // Revert toggle state
+        toggle.checked = !toggle.checked;
+    }
 }

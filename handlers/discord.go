@@ -49,11 +49,12 @@ type ChatChecksumRequest struct {
 }
 
 type ChatChecksumResponse struct {
-	Changed   bool                   `json:"changed"`
-	Leads     []database.LeadMessage `json:"leads,omitempty"`
-	Hints     []database.HintMessage `json:"hints,omitempty"`
-	LeadsHash string                 `json:"leadsHash"`
-	HintsHash string                 `json:"hintsHash"`
+	Changed    bool                   `json:"changed"`
+	Leads      []database.LeadMessage `json:"leads,omitempty"`
+	Hints      []database.HintMessage `json:"hints,omitempty"`
+	LeadsHash  string                 `json:"leadsHash"`
+	HintsHash  string                 `json:"hintsHash"`
+	ChatStatus string                 `json:"chatStatus"`
 }
 
 func DiscordBotHandler(w http.ResponseWriter, r *http.Request) {
@@ -246,12 +247,14 @@ func ChatChecksumHandler(w http.ResponseWriter, r *http.Request) {
 
 	currentLeadsHash := calculateLeadsHash(user.Gmail)
 	currentHintsHash := calculateHintsHash(user.Gmail)
+	chatStatus := database.GetChatStatus()
 
 	if req.LeadsHash == currentLeadsHash && req.HintsHash == currentHintsHash {
 		json.NewEncoder(w).Encode(ChatChecksumResponse{
-			Changed:   false,
-			LeadsHash: currentLeadsHash,
-			HintsHash: currentHintsHash,
+			Changed:    false,
+			LeadsHash:  currentLeadsHash,
+			HintsHash:  currentHintsHash,
+			ChatStatus: chatStatus,
 		})
 		return
 	}
@@ -284,11 +287,12 @@ func ChatChecksumHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(ChatChecksumResponse{
-		Changed:   true,
-		Leads:     leads,
-		Hints:     hints,
-		LeadsHash: currentLeadsHash,
-		HintsHash: currentHintsHash,
+		Changed:    true,
+		Leads:      leads,
+		Hints:      hints,
+		LeadsHash:  currentLeadsHash,
+		HintsHash:  currentHintsHash,
+		ChatStatus: chatStatus,
 	})
 }
 
