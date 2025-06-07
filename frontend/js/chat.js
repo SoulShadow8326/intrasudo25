@@ -777,14 +777,16 @@ function hideNotificationDot() {
 function showChatToggleNotificationDot() {
     const notificationDot = document.getElementById("chatToggleNotificationDot");
     if (notificationDot) {
-        notificationDot.className = 'chat-toggle-notification-dot show';
+        notificationDot.classList.add('show');
+        localStorage.setItem('hasUnreadMessages', 'true');
     }
 }
 
 function hideChatToggleNotificationDot() {
     const notificationDot = document.getElementById("chatToggleNotificationDot");
     if (notificationDot) {
-        notificationDot.className = 'chat-toggle-notification-dot';
+        notificationDot.classList.remove('show');
+        localStorage.setItem('hasUnreadMessages', 'false');
     }
 }
 
