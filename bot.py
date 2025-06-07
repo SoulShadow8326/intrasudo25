@@ -5,7 +5,9 @@ import asyncio
 import json
 import os
 from dotenv import load_dotenv
-from flask import Flask, request, jsonify
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+import uvicorn
 import threading
 
 load_dotenv()
@@ -24,7 +26,13 @@ hint_channels = {}
 discord_msg_to_db = {}
 user_msg_to_discord = {}
 
-app = Flask(__name__)
+app = FastAPI()
+
+class ForwardMessageRequest(BaseModel):
+    userEmail: str
+    username: str
+    message: str
+    level: int
 
 @bot.event
 async def on_ready():
@@ -239,20 +247,19 @@ async def handle_hint_message_deleted(message):
     except Exception as e:
         print(f"Error handling hint message deletion for level {level_num}: {e}")
 
-@app.route('/discord/forward', methods=['POST'])
-def forward_message():
+@app.post('/discord/forward')
+async def forward_message(request: ForwardMessageRequest):
     try:
-        data = request.get_json()
-        user_email = data.get('userEmail')
-        username = data.get('username')
-        message = data.get('message')
-        level = data.get('level')
+        user_email = request.userEmail
+        username = request.username
+        message = request.message
+        level = request.level
         
         if not all([user_email, username, message, level is not None]):
-            return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+            raise HTTPException(status_code=400, detail='Missing required fields')
         
         if level not in lead_channels:
-            return jsonify({'success': False, 'message': f'No lead channel found for level {level}'}), 404
+            raise HTTPException(status_code=404, detail=f'No lead channel found for level {level}')
         
         channel = lead_channels[level]
         formatted_message = f"**From:** {username} ({user_email})\n{message}"
@@ -284,29 +291,29 @@ def forward_message():
                 print(f"Failed to update message ID in backend: {result}")
         asyncio.run_coroutine_threadsafe(send_update_to_api(), bot.loop)
         
-        return jsonify({'success': True, 'message': 'Message forwarded to Discord', 'discordMsgId': message_id})
+        return {'success': True, 'message': 'Message forwarded to Discord', 'discordMsgId': message_id}
     
     except Exception as e:
         print(f'Error forwarding message: {e}')
-        return jsonify({'success': False, 'message': 'Internal server error'}), 500
+        raise HTTPException(status_code=500, detail='Internal server error')
 
-@app.route('/discord/refresh', methods=['POST'])
-def refresh_channels():
+@app.post('/discord/refresh')
+async def refresh_channels():
     try:
         for guild in bot.guilds:
             asyncio.run_coroutine_threadsafe(
                 setup_channels(guild),
                 bot.loop
             )
-        return jsonify({'success': True, 'message': 'Channels refreshed'})
+        return {'success': True, 'message': 'Channels refreshed'}
     except Exception as e:
         print(f'Error refreshing channels: {e}')
-        return jsonify({'success': False, 'message': 'Internal server error'}), 500
+        raise HTTPException(status_code=500, detail='Internal server error')
 
 # Periodic channel refresh removed - now only refreshes on level creation/deletion
 
-def run_flask_app():
-    app.run(host='0.0.0.0', port=BOT_PORT, debug=False)
+def run_fastapi_app():
+    uvicorn.run(app, host='0.0.0.0', port=BOT_PORT, log_level='info')
 
 def run_discord_bot():
     loop = asyncio.new_event_loop()
@@ -326,10 +333,10 @@ if __name__ == '__main__':
         print("Please set DISCORD_BOT_TOKEN in your .env file")
         exit(1)
     
-    flask_thread = threading.Thread(target=run_flask_app)
-    flask_thread.daemon = True
-    flask_thread.start()
+    fastapi_thread = threading.Thread(target=run_fastapi_app)
+    fastapi_thread.daemon = True
+    fastapi_thread.start()
     
-    print(f'Flask server starting on port {BOT_PORT}')
+    print(f'FastAPI server starting on port {BOT_PORT}')
     
     run_discord_bot()
