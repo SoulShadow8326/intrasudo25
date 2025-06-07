@@ -191,12 +191,25 @@ func RegisterRoutes() http.Handler {
 
 		if path == "/chat/status" {
 			if r.Method == "POST" {
-				handlers.ChatStatusHandler(w, r)
+				handlers.ToggleChatStatusHandler(w, r)
+			} else if r.Method == "GET" {
+				handlers.GetChatStatusHandler(w, r)
 			}
 		}
 	})
 
 	Mux.HandleFunc("/api/secret", handlers.CORS(handlers.GetSecretHandler))
+
+	// Discord bot specific routes (with Discord bot token authentication)
+	Mux.HandleFunc("/api/discord/chat/status", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			handlers.GetChatStatusHandler(w, r)
+		} else if r.Method == "POST" {
+			handlers.ToggleChatStatusHandler(w, r)
+		} else {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 
 	Mux.HandleFunc("/api/discord-bot", handlers.DiscordBotHandler)
 	Mux.HandleFunc("/api/levels", handlers.GetLevelsHandler)

@@ -949,3 +949,62 @@ func handleSyncMessages(w http.ResponseWriter, req DiscordBotRequest) {
 		},
 	})
 }
+
+func GetChatStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	botToken := r.Header.Get("Authorization")
+	if botToken != "Bearer "+config.GetDiscordBotToken() {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	status := database.GetChatStatus()
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status": status,
+	})
+}
+
+func ToggleChatStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	botToken := r.Header.Get("Authorization")
+	if botToken != "Bearer "+config.GetDiscordBotToken() {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		Status string `json:"status"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if req.Status != "active" && req.Status != "locked" {
+		http.Error(w, "Status must be 'active' or 'locked'", http.StatusBadRequest)
+		return
+	}
+
+	err := database.SetChatStatus(req.Status)
+	if err != nil {
+		http.Error(w, "Failed to update chat status", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": fmt.Sprintf("Chat status updated to %s", req.Status),
+		"status":  req.Status,
+	})
+}

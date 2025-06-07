@@ -10,11 +10,10 @@ import (
 	"strconv"
 )
 
-// refreshDiscordChannels calls the Discord bot to refresh channels
 func refreshDiscordChannels() error {
 	botURL := config.GetDiscordBotURL()
 	if botURL == "" {
-		return fmt.Errorf("Discord bot URL not configured")
+		return fmt.Errorf("discord bot URL not configured")
 	}
 
 	resp, err := http.Post(

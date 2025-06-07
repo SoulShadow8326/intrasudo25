@@ -34,6 +34,37 @@ class ForwardMessageRequest(BaseModel):
     message: str
     level: int
 
+@bot.command(name='toggleChat')
+async def toggle_chat_status(ctx):
+    if not ctx.author.guild_permissions.administrator:
+        await ctx.send("You need administrator permissions to use this command.")
+        return
+    
+    try:
+        headers = {
+            'Authorization': f'Bearer {BOT_AUTH_TOKEN}',
+            'Content-Type': 'application/json'
+        }
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(f'{API_BASE_URL}/api/discord/chat/status', headers=headers) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    current_status = result.get('status', 'active')
+                    new_status = 'locked' if current_status == 'active' else 'active'
+                    
+                    data = {'status': new_status}
+                    async with session.post(f'{API_BASE_URL}/api/discord/chat/status', 
+                                          json=data, headers=headers) as post_response:
+                        if post_response.status == 200:
+                            await ctx.send(f"Chat status changed to: {new_status}")
+                        else:
+                            await ctx.send(f"Failed to change chat status: {post_response.status}")
+                else:
+                    await ctx.send(f"Failed to get current status: {response.status}")
+    except Exception as e:
+        await ctx.send(f"Error: {str(e)}")
+
 @bot.event
 async def on_ready():
     print(f'{bot.user} has connected to Discord!')
