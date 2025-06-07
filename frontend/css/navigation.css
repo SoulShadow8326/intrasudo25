@@ -129,7 +129,7 @@
     justify-content: center;
     align-items: center;
     cursor: pointer;
-    padding: 0;
+    padding: 8px;
     border: none;
     background: transparent;
     color: var(--foreground);
@@ -139,29 +139,20 @@
     position: absolute;
     right: 20px;
     top: 10px;
+    border-radius: 4px;
 }
 
-.mobile-menu-icon {
-    width: 32px;
-    height: 32px;
-    object-fit: contain;
-    transition: transform 0.3s ease;
-    opacity: 0.8;
-}
-
-.mobile-menu-toggle:hover .mobile-menu-icon {
-    transform: scale(1.1);
-    opacity: 1;
-}
-
-.mobile-menu-toggle.active .mobile-menu-icon {
-    transform: rotate(180deg);
-    opacity: 1;
+.mobile-menu-toggle svg {
+    transition: all 0.3s ease;
 }
 
 .mobile-menu-toggle:hover {
-    background: rgba(41, 119, 245, 0.2);
-    transform: translateY(-1px);
+    background: rgba(41, 119, 245, 0.1);
+    color: var(--primary);
+}
+
+.mobile-menu-toggle.active svg {
+    transform: rotate(90deg);
 }
 
 .mobile-nav-menu {
