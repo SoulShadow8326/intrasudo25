@@ -328,6 +328,8 @@ func SubmitAnswerFormHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	answer = strings.TrimSpace(answer)
+
 	loginData, err := database.Get("login", map[string]interface{}{"gmail": user.Gmail})
 	if err != nil {
 		http.Redirect(w, r, "/?error=level_error", http.StatusSeeOther)

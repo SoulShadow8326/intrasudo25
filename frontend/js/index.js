@@ -223,9 +223,28 @@ async function handleSubmit() {
         return;
     }
 
-    answer = answer.toLowerCase().replace(/\s+/g, '');
+    if (/\s/.test(answer)) {
+        feedback.textContent = 'Answer cannot contain spaces. Please enter a valid answer without spaces.';
+        feedback.style.color = '#dc3545';
+        setTimeout(() => {
+            feedback.textContent = '';
+            feedback.style.color = 'var(--primary)';
+        }, 2000);
+        return;
+    }
+
+    if (!/^[a-z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]*$/.test(answer)) {
+        feedback.textContent = 'Answer must be lowercase, alphanumeric with special characters only. No uppercase letters or spaces allowed.';
+        feedback.style.color = '#dc3545';
+        setTimeout(() => {
+            feedback.textContent = '';
+            feedback.style.color = 'var(--primary)';
+        }, 2000);
+        return;
+    }
+
     if (!answer) {
-        feedback.textContent = 'Answer cannot be empty after formatting. Please enter a valid answer.';
+        feedback.textContent = 'Answer cannot be empty. Please enter a valid answer.';
         feedback.style.color = '#dc3545';
         setTimeout(() => {
             feedback.textContent = '';

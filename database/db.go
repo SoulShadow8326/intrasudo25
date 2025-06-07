@@ -1133,6 +1133,24 @@ type SubmitAnswerResult struct {
 }
 
 func CheckAnswer(userEmail string, levelID int, answer string) (*SubmitAnswerResult, error) {
+	if strings.Contains(answer, " ") {
+		return &SubmitAnswerResult{
+			Correct: false,
+			Message: "Answer cannot contain spaces. Please enter a valid answer without spaces.",
+		}, nil
+	}
+
+	for _, char := range answer {
+		if char >= 'A' && char <= 'Z' {
+			return &SubmitAnswerResult{
+				Correct: false,
+				Message: "Answer must be lowercase only. Please enter the answer in lowercase.",
+			}, nil
+		}
+	}
+
+	answer = strings.TrimSpace(answer)
+
 	var currentLevel uint
 	err := db.QueryRow("SELECT \"on\" FROM logins WHERE gmail = ?", userEmail).Scan(&currentLevel)
 	if err != nil {
@@ -1168,7 +1186,7 @@ func CheckAnswer(userEmail string, levelID int, answer string) (*SubmitAnswerRes
 		}, nil
 	}
 
-	if strings.EqualFold(strings.TrimSpace(answer), strings.TrimSpace(correctAnswer)) {
+	if answer == strings.TrimSpace(correctAnswer) {
 		var maxLevelNumber int
 		err = db.QueryRow("SELECT MAX(level_number) FROM levels WHERE active = 1").Scan(&maxLevelNumber)
 		if err != nil {
