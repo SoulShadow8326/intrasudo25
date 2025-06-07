@@ -366,23 +366,13 @@
     }
     
     .level-heading {
-        font-size: 2rem;
-        margin-bottom: 1rem;
-        margin-top: 0 !important;
-        padding: 20px 0 !important;
-        position: fixed !important;
-        top: 60px !important;
-        left: 0 !important;
-        right: 0 !important;
-        width: 100% !important;
-        background: #0D0E11 !important;
-        z-index: 100 !important;
-        height: 80px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
+        font-size: 2rem !important;
+        margin: 0 !important;
+        padding: 0 !important;
         text-align: center !important;
         color: var(--foreground) !important;
+        width: 100% !important;
+        display: block !important;
     }
     
     .leaderboard-wrapper {
@@ -391,7 +381,7 @@
         width: 100%;
         min-width: 100%;
         max-width: 100%;
-        margin-top: 140px !important;
+        margin-top: 2rem !important;
     }
     
     .leaderboard-container {

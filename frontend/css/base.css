@@ -54,7 +54,7 @@ body {
 
 .main-content-pages {
     padding: 1rem 2%;
-    height: calc(100vh - 120px);
+    height: calc(100vh - 180px);
     width: 100%;
     display: flex;
     align-items: center;
@@ -70,16 +70,88 @@ body {
 }
 
 @media (max-width: 768px) {
+    .index-page .page-container {
+        padding-top: 60px !important;
+        height: 100vh !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    
+    .index-page .main-content-pages {
+        flex: 1 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 1rem !important;
+    }
+    
+    .index-page .main-content {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        gap: 2rem !important;
+        width: 100% !important;
+    }
+    
+    .index-page .level-heading {
+        font-size: 2rem !important;
+        text-align: center !important;
+        margin: 0 !important;
+    }
+    
+    .page-container {
+        padding-top: 60px !important;
+        min-height: 100vh !important;
+        height: 100vh !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        overflow: hidden !important;
+    }
+    
+    .main-content-pages {
+        flex: 1 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        padding: 2rem 1rem !important;
+        min-height: 0 !important;
+        height: auto !important;
+        overflow-y: visible !important;
+        padding-bottom: 60px !important;
+    }
+    
     .main-content {
-        overflow-x: hidden;
-        padding: 0 1rem;
+        width: 100% !important;
+        overflow-x: hidden !important;
+        padding: 0 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        gap: 2rem !important;
+        margin: auto !important;
     }
     
     .main-container {
-        padding: 0;
+        padding: 0 !important;
+        position: relative !important;
+        top: auto !important;
+        height: auto !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }
     
     .level-heading {
-        font-size: 2rem;
+        font-size: 2rem !important;
+        text-align: center !important;
+        margin: 0 auto !important;
+        width: 100% !important;
     }
 }
