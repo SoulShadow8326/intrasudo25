@@ -344,6 +344,13 @@ func createTables() {
 			"key" TEXT PRIMARY KEY,
 			"value" TEXT
 		);`,
+		`CREATE TABLE IF NOT EXISTS level_completions (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_email TEXT NOT NULL,
+			level_number INTEGER NOT NULL,
+			completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(user_email, level_number)
+		);`,
 	}
 
 	for _, table := range tables {
@@ -513,7 +520,14 @@ func Get(entity string, params map[string]interface{}) (interface{}, error) {
 			whereClause = " WHERE gmail NOT IN (" + strings.Join(placeholders, ",") + ")"
 		}
 
-		query := "SELECT gmail, 0 as score, \"on\" FROM logins" + whereClause + " ORDER BY \"on\" DESC"
+		baseQuery := `SELECT l.gmail, 0 as score, l."on" FROM logins l
+			LEFT JOIN level_completions lc ON l.gmail = lc.user_email AND lc.level_number = l."on" - 1`
+
+		if whereClause != "" {
+			baseQuery += " " + strings.Replace(whereClause, "gmail", "l.gmail", -1)
+		}
+
+		query := baseQuery + ` ORDER BY l."on" DESC, lc.completed_at ASC`
 		if limit > 0 {
 			query += fmt.Sprintf(" LIMIT %d", limit)
 		}
@@ -1160,6 +1174,12 @@ func CheckAnswer(userEmail string, levelID int, answer string) (*SubmitAnswerRes
 		if err != nil {
 			log.Printf("ERROR: Failed to get max level number: %v", err)
 			return nil, err
+		}
+
+		// Record level completion time
+		_, err = db.Exec("INSERT OR IGNORE INTO level_completions (user_email, level_number) VALUES (?, ?)", userEmail, levelID)
+		if err != nil {
+			log.Printf("ERROR: Failed to record level completion time: %v", err)
 		}
 
 		if levelID == maxLevelNumber {
