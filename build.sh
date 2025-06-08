@@ -24,11 +24,11 @@ pip install -r requirements.txt
 cd ..
 
 echo "Build complete!"
-echo "To run main server: cd dist && ./intrasudo25"
+echo "To run main server: cd dist && ./intrasudo25 -socket /tmp/intrasudo25.sock"
 echo "To run Discord bot: cd dist && python bot.py"
 echo ""
 echo "deployed with:"
-echo "- ./intrasudo25 (Go executable)"
+echo "- ./intrasudo25 (Go executable with Unix socket support)"
 echo "- ./bot.py (Python Discord bot)"
 echo "- ./data/ (database directory)"
 echo "- ./frontend/ (static files)"

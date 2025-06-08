@@ -13,7 +13,7 @@ import threading
 load_dotenv()
 
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
-API_BASE_URL = os.getenv('API_BASE_URL', 'http://localhost:8080')
+SOCKET_PATH = os.getenv('SOCKET_PATH', '/tmp/intrasudo25.sock')
 BOT_AUTH_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
 BOT_PORT = int(os.getenv('DISCORD_BOT_PORT', '8081'))
 
@@ -27,6 +27,9 @@ discord_msg_to_db = {}
 user_msg_to_discord = {}
 
 app = FastAPI()
+
+def get_unix_connector():
+    return aiohttp.UnixConnector(path=SOCKET_PATH)
 
 class ForwardMessageRequest(BaseModel):
     userEmail: str
@@ -46,15 +49,15 @@ async def toggle_chat_status(ctx):
             'Content-Type': 'application/json'
         }
         
-        async with aiohttp.ClientSession() as session:
-            async with session.get(f'{API_BASE_URL}/api/discord/chat/status', headers=headers) as response:
+        async with aiohttp.ClientSession(connector=get_unix_connector()) as session:
+            async with session.get('http://localhost/api/discord/chat/status', headers=headers) as response:
                 if response.status == 200:
                     result = await response.json()
                     current_status = result.get('status', 'active')
                     new_status = 'locked' if current_status == 'active' else 'active'
                     
                     data = {'status': new_status}
-                    async with session.post(f'{API_BASE_URL}/api/discord/chat/status', 
+                    async with session.post('http://localhost/api/discord/chat/status', 
                                           json=data, headers=headers) as post_response:
                         if post_response.status == 200:
                             await ctx.send(f"Chat status changed to: {new_status}")
@@ -146,12 +149,12 @@ async def setup_channels(guild):
 
 async def get_all_levels():
     try:
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(connector=get_unix_connector()) as session:
             headers = {
                 'Authorization': f'Bearer {BOT_AUTH_TOKEN}',
                 'Content-Type': 'application/json'
             }
-            async with session.get(f'{API_BASE_URL}/api/levels', headers=headers) as response:
+            async with session.get('http://localhost/api/levels', headers=headers) as response:
                 if response.status == 200:
                     data = await response.json()
                     return data.get('levels', [])
@@ -168,9 +171,9 @@ async def send_to_api(endpoint, data):
         'Content-Type': 'application/json'
     }
     
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(connector=get_unix_connector()) as session:
         try:
-            async with session.post(f'{API_BASE_URL}/api/{endpoint}', 
+            async with session.post(f'http://localhost/api/{endpoint}', 
                                   json=data, headers=headers) as response:
                 if response.status == 200:
                     result = await response.json()

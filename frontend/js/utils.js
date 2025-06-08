@@ -1,5 +1,3 @@
-
-
 async function getCurrentUser() {
     try {
         const response = await fetch('/api/user/session', {
@@ -45,7 +43,17 @@ async function checkUserSession() {
     return null;
 }
 
+let adminCheckCache = null;
+let adminCheckTime = 0;
+const ADMIN_CHECK_CACHE_DURATION = 60000;
+
 async function checkAdminAccess() {
+    const now = Date.now();
+    if (adminCheckCache && (now - adminCheckTime) < ADMIN_CHECK_CACHE_DURATION) {
+        updateAdminLinks(adminCheckCache.isAdmin);
+        return;
+    }
+    
     try {
         const response = await fetch('/api/user/session', {
             headers: {
@@ -56,32 +64,28 @@ async function checkAdminAccess() {
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('application/json')) {
                 const userData = await response.json();
-                if (userData.isAdmin) {
-                    const adminLink = document.getElementById('adminLink');
-                    const mobileAdminLink = document.getElementById('mobileAdminLink');
-                    if (adminLink) adminLink.style.display = 'inline-block';
-                    if (mobileAdminLink) mobileAdminLink.style.display = 'block';
-                } else {
-                    const adminLink = document.getElementById('adminLink');
-                    const mobileAdminLink = document.getElementById('mobileAdminLink');
-                    if (adminLink) adminLink.style.display = 'none';
-                    if (mobileAdminLink) mobileAdminLink.style.display = 'none';
-                }
+                adminCheckCache = userData;
+                adminCheckTime = now;
+                updateAdminLinks(userData.isAdmin);
             } else {
-                const adminLink = document.getElementById('adminLink');
-                const mobileAdminLink = document.getElementById('mobileAdminLink');
-                if (adminLink) adminLink.style.display = 'none';
-                if (mobileAdminLink) mobileAdminLink.style.display = 'none';
+                updateAdminLinks(false);
             }
         } else {
-            const adminLink = document.getElementById('adminLink');
-            const mobileAdminLink = document.getElementById('mobileAdminLink');
-            if (adminLink) adminLink.style.display = 'none';
-            if (mobileAdminLink) mobileAdminLink.style.display = 'none';
+            updateAdminLinks(false);
         }
     } catch (error) {
-        const adminLink = document.getElementById('adminLink');
-        const mobileAdminLink = document.getElementById('mobileAdminLink');
+        updateAdminLinks(false);
+    }
+}
+
+function updateAdminLinks(isAdmin) {
+    const adminLink = document.getElementById('adminLink');
+    const mobileAdminLink = document.getElementById('mobileAdminLink');
+    
+    if (isAdmin) {
+        if (adminLink) adminLink.style.display = 'inline-block';
+        if (mobileAdminLink) mobileAdminLink.style.display = 'block';
+    } else {
         if (adminLink) adminLink.style.display = 'none';
         if (mobileAdminLink) mobileAdminLink.style.display = 'none';
     }

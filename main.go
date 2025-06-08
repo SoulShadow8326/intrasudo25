@@ -2,9 +2,10 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"os"
 
 	"github.com/joho/godotenv"
 
@@ -17,14 +18,23 @@ func init() {
 }
 
 func main() {
-	port := flag.String("port", "8080", "Port to run the server on")
+	socketPath := flag.String("socket", "/tmp/intrasudo25.sock", "Unix socket path")
 	flag.Parse()
 
 	database.InitDB()
 
 	handler := routes.RegisterRoutes()
 
-	address := fmt.Sprintf(":%s", *port)
-	log.Printf("Server running on %s", address)
-	log.Fatal(http.ListenAndServe(address, handler))
+	os.Remove(*socketPath)
+
+	listener, err := net.Listen("unix", *socketPath)
+	if err != nil {
+		log.Fatalf("Failed to create unix socket: %v", err)
+	}
+	defer listener.Close()
+
+	os.Chmod(*socketPath, 0666)
+
+	log.Printf("Server running on unix socket %s", *socketPath)
+	log.Fatal(http.Serve(listener, handler))
 }

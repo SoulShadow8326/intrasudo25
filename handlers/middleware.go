@@ -18,6 +18,8 @@ type CustomHandler struct {
 }
 
 func (h *CustomHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "public, max-age=600")
+
 	_, pattern := h.Mux.Handler(r)
 	if pattern == "" {
 		NotFoundHandler(w, r)
