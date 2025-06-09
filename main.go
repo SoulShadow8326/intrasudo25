@@ -6,6 +6,8 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/joho/godotenv"
 
@@ -32,8 +34,18 @@ func main() {
 		log.Fatalf("Failed to create unix socket: %v", err)
 	}
 	defer listener.Close()
+	defer os.Remove(*socketPath)
 
 	os.Chmod(*socketPath, 0666)
+
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-c
+		listener.Close()
+		os.Remove(*socketPath)
+		os.Exit(0)
+	}()
 
 	log.Printf("Server running on unix socket %s", *socketPath)
 	log.Fatal(http.Serve(listener, handler))
