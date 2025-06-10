@@ -4,11 +4,37 @@ import (
 	"intrasudo25/config"
 	"intrasudo25/database"
 	"intrasudo25/handlers"
+	"mime"
 	"net/http"
+	"path/filepath"
 	"strings"
 )
 
 type CustomHandler = handlers.CustomHandler
+
+func customFileServer(root string) http.Handler {
+	fs := http.FileServer(http.Dir(root))
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ext := filepath.Ext(r.URL.Path)
+		switch ext {
+		case ".css":
+			w.Header().Set("Content-Type", "text/css")
+		case ".js":
+			w.Header().Set("Content-Type", "application/javascript")
+		case ".png":
+			w.Header().Set("Content-Type", "image/png")
+		case ".jpg", ".jpeg":
+			w.Header().Set("Content-Type", "image/jpeg")
+		case ".ico":
+			w.Header().Set("Content-Type", "image/x-icon")
+		default:
+			if mt := mime.TypeByExtension(ext); mt != "" {
+				w.Header().Set("Content-Type", mt)
+			}
+		}
+		fs.ServeHTTP(w, r)
+	})
+}
 
 func RegisterRoutes() http.Handler {
 	Mux := http.NewServeMux()
@@ -191,7 +217,7 @@ func RegisterRoutes() http.Handler {
 
 		if path == "/chat/status" {
 			if r.Method == "POST" {
-				handlers.ToggleChatStatusHandler(w, r)
+				handlers.AdminToggleChatStatusHandler(w, r)
 			} else if r.Method == "GET" {
 				handlers.GetChatStatusHandler(w, r)
 			}
@@ -219,11 +245,12 @@ func RegisterRoutes() http.Handler {
 	Mux.HandleFunc("/api/hints", handlers.RequireAuth(handlers.GetUserHintsHandler))
 	Mux.HandleFunc("/submit_message", handlers.RequireAuth(handlers.SubmitMessageHandler))
 
-	Mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./frontend/"))))
-	Mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("./frontend/assets/"))))
-	Mux.Handle("/css/", http.StripPrefix("/css/", http.FileServer(http.Dir("./frontend/css/"))))
-	Mux.Handle("/js/", http.StripPrefix("/js/", http.FileServer(http.Dir("./frontend/js/"))))
+	Mux.Handle("/static/", http.StripPrefix("/static/", customFileServer("./frontend/")))
+	Mux.Handle("/assets/", http.StripPrefix("/assets/", customFileServer("./frontend/assets/")))
+	Mux.Handle("/css/", http.StripPrefix("/css/", customFileServer("./frontend/css/")))
+	Mux.Handle("/js/", http.StripPrefix("/js/", customFileServer("./frontend/js/")))
 	Mux.HandleFunc("/styles.css", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/css")
 		http.ServeFile(w, r, "./frontend/styles.css")
 	})
 

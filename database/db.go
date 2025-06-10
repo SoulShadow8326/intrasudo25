@@ -207,6 +207,7 @@ func GetAllUsersForAdmin() ([]AdminUserResponse, error) {
 }
 
 func CreateLevelSimple(levelNum int, question, answer string, active bool) error {
+	fmt.Printf("Creating level: number=%d, question=%s, answer=%s, active=%t\n", levelNum, question, answer, active)
 	level := AdminLevel{
 		LevelNumber: levelNum,
 		Markdown:    question,
@@ -215,7 +216,11 @@ func CreateLevelSimple(levelNum int, question, answer string, active bool) error
 		Answer:      answer,
 		Active:      active,
 	}
-	return Create("level", level)
+	err := Create("level", level)
+	if err != nil {
+		fmt.Printf("Database error in CreateLevelSimple: %v\n", err)
+	}
+	return err
 }
 
 func UpdateLevelSimple(levelNum int, question, answer string, active bool) error {
@@ -1213,9 +1218,9 @@ func CheckAnswer(userEmail string, levelID int, answer string) (*SubmitAnswerRes
 		log.Printf("DEBUG CheckAnswer: User %s answered correctly for level %d, promoted to level %d", userEmail, levelID, levelID+1)
 
 		notification := map[string]interface{}{
-			"user_email": userEmail,
-			"message":    fmt.Sprintf("Congratulations! You completed Level %d", levelID),
-			"type":       "success",
+			"userEmail": userEmail,
+			"message":   fmt.Sprintf("Congratulations! You completed Level %d", levelID),
+			"type":      "success",
 		}
 		Create("notification", notification)
 

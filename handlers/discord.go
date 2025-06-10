@@ -1008,3 +1008,45 @@ func ToggleChatStatusHandler(w http.ResponseWriter, r *http.Request) {
 		"status":  req.Status,
 	})
 }
+
+func AdminToggleChatStatusHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		Status string `json:"status"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	validStatuses := []string{"active", "inactive", "locked"}
+	isValid := false
+	for _, status := range validStatuses {
+		if req.Status == status {
+			isValid = true
+			break
+		}
+	}
+
+	if !isValid {
+		http.Error(w, "Invalid status", http.StatusBadRequest)
+		return
+	}
+
+	err := database.Update("system_setting", map[string]interface{}{"key": "chat_status"}, map[string]interface{}{"value": req.Status})
+	if err != nil {
+		err = database.Create("system_setting", map[string]interface{}{"key": "chat_status", "value": req.Status})
+		if err != nil {
+			http.Error(w, "Failed to update chat status", http.StatusInternalServerError)
+			return
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": req.Status})
+}

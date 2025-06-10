@@ -82,9 +82,10 @@ func CreateLvlHandler(w http.ResponseWriter, r *http.Request) {
 	active := requestData.Active == "true"
 	err = database.CreateLevelSimple(levelNum, requestData.Markdown, requestData.Answer, active)
 	if err != nil {
+		fmt.Printf("Error creating level: %v\n", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to create level"})
+		json.NewEncoder(w).Encode(map[string]string{"error": fmt.Sprintf("Failed to create level: %v", err)})
 		return
 	}
 

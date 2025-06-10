@@ -7,9 +7,9 @@
     }
   ],
   "security": {
-    "ddos_threshold": 100,
-    "dos_threshold": 10,
-    "ban_duration": "10m",
+    "ddos_threshold": 10000,
+    "dos_threshold": 1000,
+    "ban_duration": "5m",
     "window_size": "1m",
     "js_challenge_secret": "challenge-secret-key-2025",
     "geo_blocking": {

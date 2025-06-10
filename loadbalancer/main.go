@@ -654,7 +654,7 @@ func (lb *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cacheKey := r.Method + ":" + r.URL.String()
-	if r.Method == "GET" {
+	if r.Method == "GET" && !strings.Contains(r.URL.Path, "/api/") {
 		if data, headers, found := lb.cache.Get(cacheKey); found {
 			for k, v := range headers {
 				w.Header().Set(k, v)
@@ -694,7 +694,7 @@ func (lb *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		backend.RecordSuccess()
 	}
 
-	if r.Method == "GET" && recorder.statusCode == http.StatusOK && recorder.body != nil {
+	if r.Method == "GET" && recorder.statusCode == http.StatusOK && recorder.body != nil && !strings.Contains(r.URL.Path, "/api/") && !strings.Contains(r.URL.Path, "/admin") {
 		headers := make(map[string]string)
 		for k, v := range recorder.Header() {
 			if len(v) > 0 {
