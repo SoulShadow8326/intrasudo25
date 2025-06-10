@@ -27,6 +27,7 @@ type SecurityConf struct {
 	DoSThreshold      int                   `json:"dos_threshold"`
 	BanDuration       time.Duration         `json:"ban_duration"`
 	WindowSize        time.Duration         `json:"window_size"`
+	MaxTrackedIPs     int                   `json:"max_tracked_ips"`
 	JSChallengeSecret string                `json:"js_challenge_secret"`
 	GeoBlocking       GeoBlockingConf       `json:"geo_blocking"`
 	UserAgentBlocking UserAgentBlockingConf `json:"user_agent_blocking"`

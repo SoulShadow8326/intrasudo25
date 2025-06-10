@@ -70,6 +70,7 @@ type SecurityManager struct {
 	dosThreshold  int
 	banDuration   time.Duration
 	windowSize    time.Duration
+	maxTrackedIPs int
 	hmacSecret    []byte
 	jsSecret      string
 	mu            sync.RWMutex
@@ -277,6 +278,7 @@ func NewSecurityManager(ddosThreshold, dosThreshold int, banDuration, windowSize
 		dosThreshold:  dosThreshold,
 		banDuration:   banDuration,
 		windowSize:    windowSize,
+		maxTrackedIPs: 1000,
 		hmacSecret:    hmacSecret,
 		jsSecret:      jsSecret,
 	}
@@ -297,6 +299,20 @@ func (sm *SecurityManager) IsBlocked(ip string) bool {
 func (sm *SecurityManager) CheckDDoS(ip string) bool {
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
+
+	if len(sm.rateLimiters) >= sm.maxTrackedIPs {
+		oldest := ""
+		oldestTime := time.Now()
+		for k, v := range sm.rateLimiters {
+			if v.lastRequest.Before(oldestTime) {
+				oldestTime = v.lastRequest
+				oldest = k
+			}
+		}
+		if oldest != "" {
+			delete(sm.rateLimiters, oldest)
+		}
+	}
 
 	if _, exists := sm.rateLimiters[ip]; !exists {
 		sm.rateLimiters[ip] = &RateLimitEntry{}
@@ -497,7 +513,7 @@ func NewLoadBalancer(targets []string, weights []int, config *Config) *LoadBalan
 }
 
 func (lb *LoadBalancer) cleanupLoop() {
-	ticker := time.NewTicker(10 * time.Minute)
+	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
 	for range ticker.C {
@@ -505,7 +521,7 @@ func (lb *LoadBalancer) cleanupLoop() {
 
 		lb.security.mu.Lock()
 		for ip, entry := range lb.security.rateLimiters {
-			if now.Sub(entry.lastRequest) > time.Hour {
+			if now.Sub(entry.lastRequest) > 10*time.Minute {
 				delete(lb.security.rateLimiters, ip)
 			}
 		}
