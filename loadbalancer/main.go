@@ -12,7 +12,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"sort"
 	"strings"
@@ -36,7 +35,7 @@ const (
 type Backend struct {
 	ID               string
 	URL              *url.URL
-	Proxy            *httputil.ReverseProxy
+	Proxy            http.Handler
 	mu               sync.RWMutex
 	alive            bool
 	weight           int
@@ -240,17 +239,24 @@ func NewBackend(id, addr string, weight int, timeout time.Duration) *Backend {
 		}
 	}
 
-	proxy := httputil.NewSingleHostReverseProxy(u)
+	client := &http.Client{
+		Timeout: timeout,
+	}
 
 	if isUnixSocket {
-		proxy.Transport = &http.Transport{
+		client.Transport = &http.Transport{
 			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 				return net.Dial("unix", socketPath)
 			},
 		}
 	}
 
-	return &Backend{
+	proxy := &customProxy{
+		target: u,
+		client: client,
+	}
+
+	backend := &Backend{
 		ID:               id,
 		URL:              u,
 		Proxy:            proxy,
@@ -268,6 +274,9 @@ func NewBackend(id, addr string, weight int, timeout time.Duration) *Backend {
 		lastStateChange:  time.Now(),
 		lastAccess:       time.Now(),
 	}
+
+	proxy.backend = backend
+	return backend
 }
 
 func NewSecurityManager(ddosThreshold, dosThreshold int, banDuration, windowSize time.Duration, hmacSecret []byte, jsSecret string) *SecurityManager {
@@ -885,4 +894,51 @@ func main() {
 	}
 
 	log.Fatal(server.ListenAndServe())
+}
+
+type customProxy struct {
+	backend *Backend
+	target  *url.URL
+	client  *http.Client
+}
+
+func (cp *customProxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	target := cp.target
+	if cp.backend.isUnixSocket {
+		target, _ = url.Parse("http://localhost")
+	}
+
+	req := &http.Request{
+		Method: r.Method,
+		URL: &url.URL{
+			Scheme:   target.Scheme,
+			Host:     target.Host,
+			Path:     r.URL.Path,
+			RawQuery: r.URL.RawQuery,
+		},
+		Header: make(http.Header),
+		Body:   r.Body,
+	}
+
+	for k, vv := range r.Header {
+		for _, v := range vv {
+			req.Header.Add(k, v)
+		}
+	}
+
+	resp, err := cp.client.Do(req)
+	if err != nil {
+		http.Error(w, "Bad Gateway", http.StatusBadGateway)
+		return
+	}
+	defer resp.Body.Close()
+
+	for k, vv := range resp.Header {
+		for _, v := range vv {
+			w.Header().Add(k, v)
+		}
+	}
+
+	w.WriteHeader(resp.StatusCode)
+	io.Copy(w, resp.Body)
 }
