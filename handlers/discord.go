@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"intrasudo25/config"
 	"intrasudo25/database"
+	"net"
 	"net/http"
 	"sort"
 	"strings"
@@ -247,7 +249,11 @@ func ChatChecksumHandler(w http.ResponseWriter, r *http.Request) {
 
 	currentLeadsHash := calculateLeadsHash(user.Gmail)
 	currentHintsHash := calculateHintsHash(user.Gmail)
-	chatStatus := database.GetChatStatus()
+
+	chatStatus := "active"
+	if user.On > 0 {
+		chatStatus = database.GetLevelChatStatus(int(user.On))
+	}
 
 	if req.LeadsHash == currentLeadsHash && req.HintsHash == currentHintsHash {
 		json.NewEncoder(w).Encode(ChatChecksumResponse{
@@ -475,6 +481,20 @@ func SubmitMessageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	chatStatus := "active"
+	if user.On > 0 {
+		chatStatus = database.GetLevelChatStatus(int(user.On))
+	}
+
+	if chatStatus == "locked" {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success": false,
+			"message": fmt.Sprintf("Chat is currently locked for level %d", user.On),
+		})
+		return
+	}
+
 	userLevel, err := database.Get("user_level", map[string]interface{}{"email": user.Gmail})
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
@@ -547,19 +567,58 @@ func forwardToDiscord(userEmail, message string, level int) error {
 		return fmt.Errorf("failed to marshal request: %v", err)
 	}
 
-	botURL := config.GetDiscordBotURL()
-	if !strings.HasPrefix(botURL, "http") {
-		botURL = "http://" + botURL
+	botSocketPath := config.GetDiscordBotURL()
+	if strings.HasPrefix(botSocketPath, "http") {
+		// Fallback to HTTP if configured that way
+		fmt.Printf("Forwarding message to Discord at %s/discord/forward\n", botSocketPath)
+		resp, err := http.Post(
+			fmt.Sprintf("%s/discord/forward", botSocketPath),
+			"application/json",
+			bytes.NewBuffer(reqBody),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to send request: %v", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("discord bot returned status %d", resp.StatusCode)
+		}
+
+		var result struct {
+			Success      bool   `json:"success"`
+			Message      string `json:"message"`
+			DiscordMsgID string `json:"discordMsgId"`
+		}
+
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			return fmt.Errorf("failed to decode response: %v", err)
+		}
+
+		if result.Success && result.DiscordMsgID != "" {
+			return updateDiscordMessageID(userEmail, level, result.DiscordMsgID)
+		}
+		return nil
 	}
 
-	fmt.Printf("Forwarding message to Discord at %s/discord/forward\n", botURL)
-	resp, err := http.Post(
-		fmt.Sprintf("%s/discord/forward", botURL),
+	// Use Unix socket connection
+	fmt.Printf("Forwarding message to Discord at socket %s\n", botSocketPath)
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				return net.Dial("unix", botSocketPath)
+			},
+		},
+	}
+
+	resp, err := client.Post(
+		"http://unix/discord/forward",
 		"application/json",
 		bytes.NewBuffer(reqBody),
 	)
 	if err != nil {
-		return fmt.Errorf("failed to send request: %v", err)
+		return fmt.Errorf("failed to send request via socket: %v", err)
 	}
 	defer resp.Body.Close()
 
@@ -578,34 +637,41 @@ func forwardToDiscord(userEmail, message string, level int) error {
 	}
 
 	if result.Success && result.DiscordMsgID != "" {
-		findResult, err := database.Get("lead_messages", map[string]interface{}{
-			"userEmail": userEmail,
-			"level":     level,
+		return updateDiscordMessageID(userEmail, level, result.DiscordMsgID)
+	}
+
+	return nil
+}
+
+func updateDiscordMessageID(userEmail string, level int, discordMsgID string) error {
+	findResult, err := database.Get("lead_messages", map[string]interface{}{
+		"userEmail": userEmail,
+		"level":     level,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get lead messages: %v", err)
+	}
+
+	if leadMessages, ok := findResult.([]database.LeadMessage); ok && len(leadMessages) > 0 {
+		lastMsg := leadMessages[len(leadMessages)-1]
+
+		err = database.Update("lead_message", map[string]interface{}{
+			"id": lastMsg.ID,
+		}, map[string]interface{}{
+			"discordMsgID": discordMsgID,
 		})
+
 		if err != nil {
-			return fmt.Errorf("failed to get lead messages: %v", err)
+			return fmt.Errorf("failed to update Discord message ID: %v", err)
 		}
 
-		if leadMessages, ok := findResult.([]database.LeadMessage); ok && len(leadMessages) > 0 {
-			lastMsg := leadMessages[len(leadMessages)-1]
-
-			err = database.Update("lead_message", map[string]interface{}{
-				"id": lastMsg.ID,
-			}, map[string]interface{}{
-				"discordMsgID": result.DiscordMsgID,
-			})
-
-			if err != nil {
-				return fmt.Errorf("failed to update Discord message ID: %v", err)
-			}
-
-			database.Create("message_mapping", map[string]interface{}{"userEmail": userEmail,
-				"dbMessageId":  lastMsg.ID,
-				"discordMsgId": result.DiscordMsgID,
-				"levelNumber":  level,
-				"timestamp":    lastMsg.Timestamp,
-			})
-		}
+		database.Create("message_mapping", map[string]interface{}{
+			"userEmail":    userEmail,
+			"dbMessageId":  lastMsg.ID,
+			"discordMsgId": discordMsgID,
+			"levelNumber":  level,
+			"timestamp":    lastMsg.Timestamp,
+		})
 	}
 
 	return nil
@@ -654,13 +720,42 @@ func GetLevelsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func RefreshDiscordChannels() error {
-	resp, err := http.Post(
-		fmt.Sprintf("%s/discord/refresh", config.GetDiscordBotURL()),
+	botSocketPath := config.GetDiscordBotURL()
+
+	if strings.HasPrefix(botSocketPath, "http") {
+		// Fallback to HTTP if configured that way
+		resp, err := http.Post(
+			fmt.Sprintf("%s/discord/refresh", botSocketPath),
+			"application/json",
+			bytes.NewBuffer([]byte("{}")),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to refresh discord channels: %v", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("discord bot returned status %d", resp.StatusCode)
+		}
+		return nil
+	}
+
+	// Use Unix socket connection
+	client := &http.Client{
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				return net.Dial("unix", botSocketPath)
+			},
+		},
+	}
+
+	resp, err := client.Post(
+		"http://unix/discord/refresh",
 		"application/json",
 		bytes.NewBuffer([]byte("{}")),
 	)
 	if err != nil {
-		return fmt.Errorf("failed to refresh discord channels: %v", err)
+		return fmt.Errorf("failed to refresh discord channels via socket: %v", err)
 	}
 	defer resp.Body.Close()
 
@@ -962,7 +1057,28 @@ func GetChatStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	status := database.GetChatStatus()
+	result, err := database.Get("level", map[string]interface{}{"all": true})
+	if err != nil {
+		http.Error(w, "Failed to get levels", http.StatusInternalServerError)
+		return
+	}
+
+	allActive := true
+	if levelData, ok := result.([]database.AdminLevel); ok {
+		for _, level := range levelData {
+			status := database.GetLevelChatStatus(level.LevelNumber)
+			if status == "locked" {
+				allActive = false
+				break
+			}
+		}
+	}
+
+	status := "active"
+	if !allActive {
+		status = "locked"
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"status": status,
@@ -995,11 +1111,27 @@ func ToggleChatStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := database.SetChatStatus(req.Status)
+	result, err := database.Get("level", map[string]interface{}{"all": true})
 	if err != nil {
-		http.Error(w, "Failed to update chat status", http.StatusInternalServerError)
+		fmt.Printf("ERROR: Failed to get levels: %v\n", err)
+		http.Error(w, "Failed to get levels", http.StatusInternalServerError)
 		return
 	}
+
+	var successCount, errorCount int
+	if levelData, ok := result.([]database.AdminLevel); ok {
+		for _, level := range levelData {
+			err := database.SetLevelChatStatus(level.LevelNumber, req.Status)
+			if err != nil {
+				fmt.Printf("ERROR: Failed to update chat status for level %d: %v\n", level.LevelNumber, err)
+				errorCount++
+			} else {
+				successCount++
+			}
+		}
+	}
+
+	fmt.Printf("INFO: Updated %d levels to %s status (%d errors)\n", successCount, req.Status, errorCount)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
@@ -1009,14 +1141,21 @@ func ToggleChatStatusHandler(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func AdminToggleChatStatusHandler(w http.ResponseWriter, r *http.Request) {
+func ToggleLevelChatStatusHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
+	botToken := r.Header.Get("Authorization")
+	if botToken != "Bearer "+config.GetDiscordBotToken() {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
 	var req struct {
 		Status string `json:"status"`
+		Level  int    `json:"level"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -1024,29 +1163,30 @@ func AdminToggleChatStatusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	validStatuses := []string{"active", "inactive", "locked"}
-	isValid := false
-	for _, status := range validStatuses {
-		if req.Status == status {
-			isValid = true
-			break
-		}
-	}
-
-	if !isValid {
-		http.Error(w, "Invalid status", http.StatusBadRequest)
+	if req.Status != "active" && req.Status != "locked" {
+		http.Error(w, "Status must be 'active' or 'locked'", http.StatusBadRequest)
 		return
 	}
 
-	err := database.Update("system_setting", map[string]interface{}{"key": "chat_status"}, map[string]interface{}{"value": req.Status})
-	if err != nil {
-		err = database.Create("system_setting", map[string]interface{}{"key": "chat_status", "value": req.Status})
-		if err != nil {
-			http.Error(w, "Failed to update chat status", http.StatusInternalServerError)
-			return
-		}
+	if req.Level <= 0 {
+		http.Error(w, "Level must be a positive integer", http.StatusBadRequest)
+		return
 	}
 
+	err := database.SetLevelChatStatus(req.Level, req.Status)
+	if err != nil {
+		fmt.Printf("ERROR: Failed to update chat status for level %d: %v\n", req.Level, err)
+		http.Error(w, "Failed to update level chat status", http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Printf("INFO: Chat status for level %d updated to %s\n", req.Level, req.Status)
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": req.Status})
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success": true,
+		"message": fmt.Sprintf("Chat status for level %d updated to %s", req.Level, req.Status),
+		"status":  req.Status,
+		"level":   req.Level,
+	})
 }

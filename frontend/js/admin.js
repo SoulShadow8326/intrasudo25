@@ -8,8 +8,7 @@ async function initializeAdmin() {
             loadStats(),
             loadLevels(),
             loadUsers(),
-            loadAnnouncements(),
-            loadChatStatus()
+            loadAnnouncements()
         ]);
     } catch (error) {
         showNotification('Failed to load admin dashboard', 'error');
@@ -920,66 +919,4 @@ async function resetMyLevel() {
             }
         }
     );
-}
-
-// Chat status management functions
-async function loadChatStatus() {
-    try {
-        const response = await fetch('/api/chat/checksum', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || ''
-            },
-            body: JSON.stringify({
-                leadsChecksum: '',
-                hintsChecksum: ''
-            })
-        });
-        
-        if (response.ok) {
-            const data = await response.json();
-            updateChatStatusToggle(data.chatStatus || 'active');
-        }
-    } catch (error) {
-        console.error('Failed to load chat status:', error);
-    }
-}
-
-function updateChatStatusToggle(status) {
-    const toggle = document.getElementById('chatStatusToggle');
-    const label = document.getElementById('chatStatusLabel');
-    
-    if (toggle && label) {
-        toggle.checked = status === 'active';
-        label.textContent = status === 'active' ? 'Active' : 'Locked';
-        label.style.color = status === 'active' ? '#22c55e' : '#ef4444';
-    }
-}
-
-async function toggleChatStatus() {
-    const toggle = document.getElementById('chatStatusToggle');
-    const newStatus = toggle.checked ? 'active' : 'locked';
-    
-    try {
-        const response = await fetch('/api/admin/chat/status', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || ''
-            },
-            body: JSON.stringify({ status: newStatus })
-        });
-        
-        if (response.ok) {
-            showNotification(`Chat ${newStatus === 'active' ? 'activated' : 'locked'} successfully`, 'success');
-            updateChatStatusToggle(newStatus);
-        } else {
-            throw new Error('Failed to update chat status');
-        }
-    } catch (error) {
-        showNotification('Failed to update chat status', 'error');
-        // Revert toggle state
-        toggle.checked = !toggle.checked;
-    }
 }

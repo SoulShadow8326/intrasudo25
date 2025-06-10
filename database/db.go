@@ -1402,10 +1402,11 @@ type SystemSetting struct {
 	Value string `json:"value" db:"value"`
 }
 
-func GetChatStatus() string {
-	result, err := Get("system_setting", map[string]interface{}{"key": "chat_status"})
+func GetLevelChatStatus(level int) string {
+	key := fmt.Sprintf("chat_status_level_%d", level)
+	result, err := Get("system_setting", map[string]interface{}{"key": key})
 	if err != nil {
-		return "active" // default to active if not found
+		return "active"
 	}
 	if setting, ok := result.(*SystemSetting); ok {
 		return setting.Value
@@ -1413,18 +1414,16 @@ func GetChatStatus() string {
 	return "active"
 }
 
-func SetChatStatus(status string) error {
-	// Check if setting exists
-	_, err := Get("system_setting", map[string]interface{}{"key": "chat_status"})
+func SetLevelChatStatus(level int, status string) error {
+	key := fmt.Sprintf("chat_status_level_%d", level)
+	_, err := Get("system_setting", map[string]interface{}{"key": key})
 	if err != nil {
-		// Setting doesn't exist, create it
 		return Create("system_setting", map[string]interface{}{
-			"key":   "chat_status",
+			"key":   key,
 			"value": status,
 		})
 	} else {
-		// Setting exists, update it
-		return Update("system_setting", map[string]interface{}{"key": "chat_status"}, map[string]interface{}{
+		return Update("system_setting", map[string]interface{}{"key": key}, map[string]interface{}{
 			"value": status,
 		})
 	}

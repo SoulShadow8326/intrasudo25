@@ -214,14 +214,6 @@ func RegisterRoutes() http.Handler {
 				}
 			}
 		}
-
-		if path == "/chat/status" {
-			if r.Method == "POST" {
-				handlers.AdminToggleChatStatusHandler(w, r)
-			} else if r.Method == "GET" {
-				handlers.GetChatStatusHandler(w, r)
-			}
-		}
 	})
 
 	Mux.HandleFunc("/api/secret", handlers.CORS(handlers.GetSecretHandler))
@@ -232,6 +224,14 @@ func RegisterRoutes() http.Handler {
 			handlers.GetChatStatusHandler(w, r)
 		} else if r.Method == "POST" {
 			handlers.ToggleChatStatusHandler(w, r)
+		} else {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
+	Mux.HandleFunc("/api/discord/chat/level/status", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			handlers.ToggleLevelChatStatusHandler(w, r)
 		} else {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}

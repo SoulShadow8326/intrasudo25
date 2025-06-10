@@ -2,27 +2,57 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"intrasudo25/config"
 	"intrasudo25/database"
+	"net"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func refreshDiscordChannels() error {
-	botURL := config.GetDiscordBotURL()
-	if botURL == "" {
-		return fmt.Errorf("discord bot URL not configured")
+	botSocketPath := config.GetDiscordBotURL()
+	if botSocketPath == "" {
+		return fmt.Errorf("discord bot URL/socket path not configured")
 	}
 
-	resp, err := http.Post(
-		fmt.Sprintf("%s/discord/refresh", botURL),
+	if strings.HasPrefix(botSocketPath, "http") {
+		// Fallback to HTTP if configured that way
+		resp, err := http.Post(
+			fmt.Sprintf("%s/discord/refresh", botSocketPath),
+			"application/json",
+			bytes.NewBuffer([]byte("{}")),
+		)
+		if err != nil {
+			return fmt.Errorf("failed to refresh discord channels: %v", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return fmt.Errorf("discord bot returned status %d", resp.StatusCode)
+		}
+		return nil
+	}
+
+	// Use Unix socket connection
+	client := &http.Client{
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				return net.Dial("unix", botSocketPath)
+			},
+		},
+	}
+
+	resp, err := client.Post(
+		"http://unix/discord/refresh",
 		"application/json",
 		bytes.NewBuffer([]byte("{}")),
 	)
 	if err != nil {
-		return fmt.Errorf("failed to refresh discord channels: %v", err)
+		return fmt.Errorf("failed to refresh discord channels via socket: %v", err)
 	}
 	defer resp.Body.Close()
 
@@ -393,52 +423,4 @@ func ResetUserLevelHandler(w http.ResponseWriter, r *http.Request, email string)
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"message": "User level reset successfully"})
-}
-
-// ChatStatusHandler toggles the chat status between active and locked
-func ChatStatusHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Method not allowed"})
-		return
-	}
-
-	user, err := GetUserFromSession(r)
-	if err != nil || user == nil || !isAdminEmail(user.Gmail) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusForbidden)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Access denied"})
-		return
-	}
-
-	var requestData struct {
-		Status string `json:"status"`
-	}
-
-	err = json.NewDecoder(r.Body).Decode(&requestData)
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Invalid request data"})
-		return
-	}
-
-	if requestData.Status != "active" && requestData.Status != "locked" {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Status must be 'active' or 'locked'"})
-		return
-	}
-
-	err = database.SetChatStatus(requestData.Status)
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to update chat status"})
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"message": "Chat status updated successfully", "status": requestData.Status})
 }
