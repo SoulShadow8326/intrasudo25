@@ -486,7 +486,7 @@ func NewLoadBalancer(targets []string, weights []int, config *Config) *LoadBalan
 		}
 
 		timeout := 10 * time.Second
-		if len(config.Backends) > i {
+		if i < len(config.Backends) {
 			timeout = config.Backends[i].Timeout
 		}
 

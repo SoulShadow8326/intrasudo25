@@ -1059,8 +1059,6 @@ func GetCurrentLevelForUser(userEmail string) (*GameLevel, error) {
 		return nil, fmt.Errorf("user not found or no level assigned")
 	}
 
-	log.Printf("DEBUG: User %s is on level %d", userEmail, user.On)
-
 	var maxLevelNumber int
 	err = db.QueryRow("SELECT MAX(level_number) FROM levels WHERE active = 1").Scan(&maxLevelNumber)
 	if err != nil {
@@ -1119,8 +1117,6 @@ func GetCurrentLevelForUser(userEmail string) (*GameLevel, error) {
 			return nil, fmt.Errorf("level not found or not active")
 		}
 	}
-
-	log.Printf("DEBUG: Found level %d for user %s: %s", level.LevelNumber, userEmail, level.Markdown)
 
 	gameLevel := &GameLevel{
 		ID:          level.LevelNumber,

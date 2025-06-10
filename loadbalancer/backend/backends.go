@@ -10,10 +10,12 @@ import (
 
 func main() {
 	ports := []string{"9001", "9002", "9003"}
+	delays := []int{50, 100, 150}
 	var wg sync.WaitGroup
 
-	for _, p := range ports {
+	for i, p := range ports {
 		port := p
+		delay := delays[i]
 		wg.Add(1)
 
 		go func() {
@@ -21,7 +23,7 @@ func main() {
 			mux := http.NewServeMux()
 
 			mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-				time.Sleep(time.Duration(([]int{50, 100, 150})[len(port)-4]) * time.Millisecond)
+				time.Sleep(time.Duration(delay) * time.Millisecond)
 				fmt.Fprintf(w, "Response from backend server on port %s\n", port)
 			})
 
