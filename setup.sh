@@ -12,6 +12,12 @@ rm -f loadbalancer/loadbalancer
 echo "Installing Python dependencies..."
 pip3 install -r requirements.txt
 
+echo "Setting up database..."
+mkdir -p ./data
+if [ ! -f "./data/data.db" ]; then
+    touch ./data/data.db
+fi
+
 echo "Initializing Go modules..."
 go mod tidy
 
