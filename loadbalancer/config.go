@@ -2,8 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
-	"net/http"
 	"os"
 	"time"
 )
@@ -207,47 +205,4 @@ func LoadConfig(filename string) (*Config, error) {
 	}
 
 	return &config, nil
-}
-
-func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	response := map[string]string{
-		"status":    "healthy",
-		"timestamp": time.Now().UTC().Format(time.RFC3339),
-		"service":   "SoulLoad",
-	}
-	json.NewEncoder(w).Encode(response)
-}
-
-func metricsHandler(lb *LoadBalancer) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/plain")
-
-		lb.mu.RLock()
-		defer lb.mu.RUnlock()
-
-		for _, backend := range lb.backends {
-			backend.mu.RLock()
-			fmt.Fprintf(w, "# HELP backend_requests_total Total requests to backend\n")
-			fmt.Fprintf(w, "# TYPE backend_requests_total counter\n")
-			fmt.Fprintf(w, "backend_requests_total{backend=\"%s\"} %d\n", backend.ID, backend.totalRequests)
-
-			fmt.Fprintf(w, "# HELP backend_failures_total Total failures for backend\n")
-			fmt.Fprintf(w, "# TYPE backend_failures_total counter\n")
-			fmt.Fprintf(w, "backend_failures_total{backend=\"%s\"} %d\n", backend.ID, backend.failCount)
-
-			fmt.Fprintf(w, "# HELP backend_response_time_ms Response time in milliseconds\n")
-			fmt.Fprintf(w, "# TYPE backend_response_time_ms gauge\n")
-			fmt.Fprintf(w, "backend_response_time_ms{backend=\"%s\"} %f\n", backend.ID, float64(backend.responseTime.Nanoseconds())/1e6)
-
-			alive := 0
-			if backend.alive {
-				alive = 1
-			}
-			fmt.Fprintf(w, "# HELP backend_alive Backend alive status\n")
-			fmt.Fprintf(w, "# TYPE backend_alive gauge\n")
-			fmt.Fprintf(w, "backend_alive{backend=\"%s\"} %d\n", backend.ID, alive)
-			backend.mu.RUnlock()
-		}
-	}
 }

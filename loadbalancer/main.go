@@ -2,16 +2,15 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"os"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -26,6 +25,9 @@ type Backend struct {
 	timeout       time.Duration
 	isUnixSocket  bool
 	socketPath    string
+	totalRequests int64
+	failCount     int64
+	responseTime  time.Duration
 }
 
 func (b *Backend) IsAlive() bool {
@@ -37,7 +39,20 @@ func (b *Backend) IsAlive() bool {
 func (b *Backend) SetAlive(up bool) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+	if !up {
+		atomic.AddInt64(&b.failCount, 1)
+	}
 	b.alive = up
+}
+
+func (b *Backend) IncrementRequests() {
+	atomic.AddInt64(&b.totalRequests, 1)
+}
+
+func (b *Backend) UpdateResponseTime(duration time.Duration) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.responseTime = duration
 }
 
 func NewBackend(id, addr string, weight int, timeout time.Duration) *Backend {
@@ -102,7 +117,6 @@ func NewBackend(id, addr string, weight int, timeout time.Duration) *Backend {
 
 type LoadBalancer struct {
 	backends []*Backend
-	counter  uint64
 	mu       sync.RWMutex
 }
 
@@ -214,45 +228,17 @@ func (lb *LoadBalancer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	backend.IncrementRequests()
+
+	start := time.Now()
 	ctx, cancel := context.WithTimeout(r.Context(), backend.timeout)
 	defer cancel()
 	r = r.WithContext(ctx)
 
 	backend.Proxy.ServeHTTP(w, r)
-}
 
-type Config struct {
-	Backends      []BackendConfig `json:"backends"`
-	LoadBalancing LBConfig        `json:"load_balancing"`
-	Server        ServerConfig    `json:"server"`
-}
-
-type BackendConfig struct {
-	Address string `json:"address"`
-	Weight  int    `json:"weight"`
-}
-
-type LBConfig struct {
-	Strategy string `json:"strategy"`
-}
-
-type ServerConfig struct {
-	Port string `json:"port"`
-}
-
-func LoadConfig(filename string) (*Config, error) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	var config Config
-	err = json.Unmarshal(data, &config)
-	if err != nil {
-		return nil, err
-	}
-
-	return &config, nil
+	duration := time.Since(start)
+	backend.UpdateResponseTime(duration)
 }
 
 func main() {
