@@ -1213,6 +1213,15 @@ func CheckAnswer(userEmail string, levelID int, answer string) (*SubmitAnswerRes
 
 		log.Printf("DEBUG CheckAnswer: User %s answered correctly for level %d, promoted to level %d", userEmail, levelID, levelID+1)
 
+		// Delete lead messages for the completed level since user won't be revisiting it
+		err = DeleteUserMessagesForLevel(userEmail, levelID, "lead")
+		if err != nil {
+			log.Printf("WARNING: Failed to delete lead messages for user %s level %d: %v", userEmail, levelID, err)
+			// Don't return error here as this is cleanup and shouldn't prevent level advancement
+		} else {
+			log.Printf("DEBUG: Successfully deleted lead messages for user %s level %d", userEmail, levelID)
+		}
+
 		notification := map[string]interface{}{
 			"userEmail": userEmail,
 			"message":   fmt.Sprintf("Congratulations! You completed Level %d", levelID),
@@ -1375,6 +1384,21 @@ func DeleteAllMessagesForLevel(levelNumber int, messageType string) error {
 	}
 
 	_, err := db.Exec(query, levelNumber)
+	return err
+}
+
+func DeleteUserMessagesForLevel(userEmail string, levelNumber int, messageType string) error {
+	var query string
+
+	if messageType == "lead" {
+		query = "DELETE FROM lead_messages WHERE user_email = ? AND level_number = ?"
+	} else if messageType == "hint" {
+		query = "DELETE FROM hint_messages WHERE user_email = ? AND level_number = ?"
+	} else {
+		return fmt.Errorf("invalid message type: %s", messageType)
+	}
+
+	_, err := db.Exec(query, userEmail, levelNumber)
 	return err
 }
 
