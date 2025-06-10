@@ -12,6 +12,8 @@ type Config struct {
 	Cache         CacheConf       `json:"cache"`
 	LoadBalancing LBConfig        `json:"load_balancing"`
 	Server        ServerConfig    `json:"server"`
+	Monitoring    MonitoringConf  `json:"monitoring"`
+	Features      FeaturesConf    `json:"features"`
 }
 
 type BackendConfig struct {
@@ -21,21 +23,41 @@ type BackendConfig struct {
 }
 
 type SecurityConf struct {
-	DDoSThreshold     int           `json:"ddos_threshold"`
-	DoSThreshold      int           `json:"dos_threshold"`
-	BanDuration       time.Duration `json:"ban_duration"`
-	WindowSize        time.Duration `json:"window_size"`
-	JSChallengeSecret string        `json:"js_challenge_secret"`
+	DDoSThreshold     int                   `json:"ddos_threshold"`
+	DoSThreshold      int                   `json:"dos_threshold"`
+	BanDuration       time.Duration         `json:"ban_duration"`
+	WindowSize        time.Duration         `json:"window_size"`
+	JSChallengeSecret string                `json:"js_challenge_secret"`
+	GeoBlocking       GeoBlockingConf       `json:"geo_blocking"`
+	UserAgentBlocking UserAgentBlockingConf `json:"user_agent_blocking"`
+}
+
+type GeoBlockingConf struct {
+	Enabled          bool     `json:"enabled"`
+	BlockedCountries []string `json:"blocked_countries"`
+}
+
+type UserAgentBlockingConf struct {
+	Enabled         bool     `json:"enabled"`
+	BlockedPatterns []string `json:"blocked_patterns"`
 }
 
 type CacheConf struct {
-	RedisAddr  string        `json:"redis_addr"`
-	DefaultTTL time.Duration `json:"default_ttl"`
+	RedisAddr         string        `json:"redis_addr"`
+	DefaultTTL        time.Duration `json:"default_ttl"`
+	MaxSize           string        `json:"max_size"`
+	EnableCompression bool          `json:"enable_compression"`
 }
 
 type LBConfig struct {
-	Strategy            string        `json:"strategy"`
-	HealthCheckInterval time.Duration `json:"health_check_interval"`
+	Strategy            string             `json:"strategy"`
+	HealthCheckInterval time.Duration      `json:"health_check_interval"`
+	CircuitBreaker      CircuitBreakerConf `json:"circuit_breaker"`
+}
+
+type CircuitBreakerConf struct {
+	FailureThreshold int           `json:"failure_threshold"`
+	ResetTimeout     time.Duration `json:"reset_timeout"`
 }
 
 type ServerConfig struct {
@@ -43,6 +65,23 @@ type ServerConfig struct {
 	ReadTimeout  time.Duration `json:"read_timeout"`
 	WriteTimeout time.Duration `json:"write_timeout"`
 	IdleTimeout  time.Duration `json:"idle_timeout"`
+	EnableSSL    bool          `json:"enable_ssl"`
+	CertFile     string        `json:"cert_file"`
+	KeyFile      string        `json:"key_file"`
+}
+
+type MonitoringConf struct {
+	EnableTracing      bool          `json:"enable_tracing"`
+	EnableMetrics      bool          `json:"enable_metrics"`
+	PrometheusEndpoint string        `json:"prometheus_endpoint"`
+	TraceRetention     time.Duration `json:"trace_retention"`
+}
+
+type FeaturesConf struct {
+	WebSocketSupport bool `json:"websocket_support"`
+	Compression      bool `json:"compression"`
+	RequestLogging   bool `json:"request_logging"`
+	AdminAPI         bool `json:"admin_api"`
 }
 
 func (bc *BackendConfig) UnmarshalJSON(data []byte) error {
@@ -187,6 +226,54 @@ func (svc *ServerConfig) UnmarshalJSON(data []byte) error {
 			return err
 		}
 		svc.IdleTimeout = duration
+	}
+
+	return nil
+}
+
+func (cb *CircuitBreakerConf) UnmarshalJSON(data []byte) error {
+	type Alias CircuitBreakerConf
+	aux := &struct {
+		ResetTimeout string `json:"reset_timeout"`
+		*Alias
+	}{
+		Alias: (*Alias)(cb),
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	if aux.ResetTimeout != "" {
+		duration, err := time.ParseDuration(aux.ResetTimeout)
+		if err != nil {
+			return err
+		}
+		cb.ResetTimeout = duration
+	}
+
+	return nil
+}
+
+func (mc *MonitoringConf) UnmarshalJSON(data []byte) error {
+	type Alias MonitoringConf
+	aux := &struct {
+		TraceRetention string `json:"trace_retention"`
+		*Alias
+	}{
+		Alias: (*Alias)(mc),
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	if aux.TraceRetention != "" {
+		duration, err := time.ParseDuration(aux.TraceRetention)
+		if err != nil {
+			return err
+		}
+		mc.TraceRetention = duration
 	}
 
 	return nil

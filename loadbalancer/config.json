@@ -11,20 +11,49 @@
     "dos_threshold": 10,
     "ban_duration": "10m",
     "window_size": "1m",
-    "js_challenge_secret": "challenge-secret-key"
+    "js_challenge_secret": "challenge-secret-key-2025",
+    "geo_blocking": {
+      "enabled": true,
+      "blocked_countries": ["CN", "RU"]
+    },
+    "user_agent_blocking": {
+      "enabled": true,
+      "blocked_patterns": ["bot", "crawler", "spider", "scraper"]
+    }
   },
   "cache": {
     "redis_addr": "localhost:6379",
-    "default_ttl": "5m"
+    "default_ttl": "5m",
+    "max_size": "100MB",
+    "enable_compression": true
   },
   "load_balancing": {
     "strategy": "weighted_round_robin",
-    "health_check_interval": "5s"
+    "health_check_interval": "5s",
+    "circuit_breaker": {
+      "failure_threshold": 5,
+      "reset_timeout": "30s"
+    }
   },
   "server": {
     "port": ":3000",
     "read_timeout": "15s",
     "write_timeout": "15s",
-    "idle_timeout": "60s"
+    "idle_timeout": "60s",
+    "enable_ssl": false,
+    "cert_file": "",
+    "key_file": ""
+  },
+  "monitoring": {
+    "enable_tracing": true,
+    "enable_metrics": true,
+    "prometheus_endpoint": "/metrics",
+    "trace_retention": "1h"
+  },
+  "features": {
+    "websocket_support": true,
+    "compression": true,
+    "request_logging": true,
+    "admin_api": true
   }
 }
