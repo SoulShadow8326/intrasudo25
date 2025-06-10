@@ -48,7 +48,6 @@ type Backend struct {
 	failCount        int64
 	responseTime     time.Duration
 	retryWindow      time.Duration
-	lastFailTime     time.Time
 	strictMode       bool
 	circuitState     int32
 	failureThreshold int
@@ -56,8 +55,6 @@ type Backend struct {
 	lastStateChange  time.Time
 	successCount     int64
 	avgLatency       time.Duration
-	p95Latency       time.Duration
-	activeConns      int64
 	lastAccess       time.Time
 }
 
@@ -720,12 +717,6 @@ func getClientIP(r *http.Request) string {
 	}
 
 	return strings.Split(r.RemoteAddr, ":")[0]
-}
-
-func generateRequestID() string {
-	bytes := make([]byte, 8)
-	rand.Read(bytes)
-	return hex.EncodeToString(bytes)
 }
 
 func main() {
