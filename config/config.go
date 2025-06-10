@@ -55,5 +55,13 @@ func GetDiscordBotToken() string {
 }
 
 func GetDiscordBotURL() string {
-	return os.Getenv("DISCORD_BOT_URL")
+	url := os.Getenv("DISCORD_BOT_URL")
+	if url == "" {
+		socketPath := os.Getenv("BOT_SOCKET_PATH")
+		if socketPath == "" {
+			socketPath = "/tmp/discord_bot.sock"
+		}
+		return socketPath
+	}
+	return url
 }

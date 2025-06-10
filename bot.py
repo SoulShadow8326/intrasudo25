@@ -45,49 +45,39 @@ async def forward_message(request):
         channel = lead_channels[level]
         formatted_message = f"**From:** {username} ({user_email})\n{message}"
         
-        future = asyncio.run_coroutine_threadsafe(
-            channel.send(formatted_message),
-            bot.loop
-        )
-        
-        discord_message = future.result()
-        message_id = str(discord_message.id)
-        
-        user_msg_to_discord[f"{user_email}_{level}_{message[:20]}"] = message_id
-        print(f"Created mapping for user message: {user_email}_{level}_{message[:20]} -> Discord ID: {message_id}")
-        
-        async def send_update_to_api():
-            update_data = {
-                'type': 'update_discord_msg_id',
-                'userEmail': user_email,
-                'message': message[:50],
-                'levelNumber': level,
-                'discordMsgId': message_id
-            }
-            result = await send_to_api('discord-bot', update_data)
-            if result and result.get('success'):
-                db_msg_id = result.get('data', {}).get('id')
-                if db_msg_id:
-                    discord_msg_to_db[discord_message.id] = db_msg_id
-                    print(f"Stored mapping: Discord msg {discord_message.id} -> DB msg {db_msg_id}")
-            else:
-                print(f"Failed to update message ID in backend: {result}")
-        
-        asyncio.run_coroutine_threadsafe(send_update_to_api(), bot.loop)
-        
-        return JSONResponse({'success': True, 'message': 'Message forwarded to Discord', 'discordMsgId': message_id})
+        try:
+            discord_message = await channel.send(formatted_message)
+            message_id = str(discord_message.id)
+            
+            user_msg_to_discord[f"{user_email}_{level}_{message[:20]}"] = message_id
+            
+            async def send_update_to_api():
+                update_data = {
+                    'type': 'update_discord_msg_id',
+                    'userEmail': user_email,
+                    'message': message[:50],
+                    'levelNumber': level,
+                    'discordMsgId': message_id
+                }
+                result = await send_to_api('discord-bot', update_data)
+                if result and result.get('success'):
+                    db_msg_id = result.get('data', {}).get('id')
+                    if db_msg_id:
+                        discord_msg_to_db[discord_message.id] = db_msg_id
+            
+            asyncio.create_task(send_update_to_api())
+            
+            return JSONResponse({'success': True, 'message': 'Message forwarded to Discord', 'discordMsgId': message_id})
+        except Exception as e:
+            return JSONResponse({'error': 'Failed to send to Discord'}, status_code=500)
     
     except Exception as e:
-        print(f'Error forwarding message: {e}')
         return JSONResponse({'error': 'Internal server error'}, status_code=500)
 
 async def refresh_channels(request):
     try:
         for guild in bot.guilds:
-            asyncio.run_coroutine_threadsafe(
-                setup_channels(guild),
-                bot.loop
-            )
+            await setup_channels(guild)
         return JSONResponse({'success': True, 'message': 'Channels refreshed'})
     except Exception as e:
         print(f'Error refreshing channels: {e}')
@@ -129,10 +119,8 @@ async def lock_chat(ctx, level=None):
                 if response.status == 200:
                     target = f"level {level}" if level != "all" else "all levels"
                     await ctx.send(f"Chat locked for {target}")
-                    print(f"Discord: Chat locked for {target}")
                 else:
                     await ctx.send(f"Failed to lock chat: {response.status}")
-                    print(f"Discord: Failed to lock chat for {target}: {response.status}")
     except Exception as e:
         await ctx.send(f"Error: {str(e)}")
 
@@ -172,11 +160,9 @@ async def activate_chat(ctx, level=None):
                     else:
                         target = f"level {level}"
                     await ctx.send(f"Chat activated for {target}")
-                    print(f"Discord: Chat activated for {target}")
                 else:
                     target = f"level {level}" if level and level != "all" else "all levels"
                     await ctx.send(f"Failed to activate chat: {response.status}")
-                    print(f"Discord: Failed to activate chat for {target}: {response.status}")
     except Exception as e:
         await ctx.send(f"Error: {str(e)}")
 
@@ -234,30 +220,27 @@ async def setup_channels(guild):
             level_num = int(channel.name.split('-')[-1])
             channel_type = 'lead' if channel.name.startswith('lead-') else 'hint'
             await channel.delete()
-            print(f'Deleted {channel_type} channel for level {level_num}')
             if channel_type == 'lead' and level_num in lead_channels:
                 del lead_channels[level_num]
             elif channel_type == 'hint' and level_num in hint_channels:
                 del hint_channels[level_num]
         except Exception as e:
-            print(f'Failed to delete channel {channel.name}: {e}')
+            pass
     
     for level in levels:
         if f'lead-{level}' not in existing_discord_channels:
             try:
                 channel = await guild.create_text_channel(f'lead-level-{level}')
                 lead_channels[level] = channel
-                print(f'Created lead channel for level {level}')
             except Exception as e:
-                print(f'Failed to create lead channel for level {level}: {e}')
+                pass
         
         if f'hint-{level}' not in existing_discord_channels:
             try:
                 channel = await guild.create_text_channel(f'hint-level-{level}')
                 hint_channels[level] = channel
-                print(f'Created hint channel for level {level}')
             except Exception as e:
-                print(f'Failed to create hint channel for level {level}: {e}')
+                pass
 
 async def get_all_levels():
     try:
@@ -271,10 +254,8 @@ async def get_all_levels():
                     data = await response.json()
                     return data.get('levels', [])
                 else:
-                    print(f'Failed to fetch levels: {response.status}')
                     return []
     except Exception as e:
-        print(f'Error fetching levels: {e}')
         return []
 
 async def send_to_api(endpoint, data):
@@ -289,14 +270,11 @@ async def send_to_api(endpoint, data):
                                   json=data, headers=headers) as response:
                 if response.status == 200:
                     result = await response.json()
-                    print(f"API response for {endpoint}: {result}")
                     return result
                 else:
                     error_text = await response.text()
-                    print(f'API Error: {response.status} - {error_text}')
                     return None
         except Exception as e:
-            print(f'Request failed: {e}')
             return None
 
 @bot.event
@@ -342,11 +320,11 @@ async def handle_lead_message(message):
             
             response = await send_to_api('discord-bot', data)
             if response and response.get('success'):
-                print(f"Successfully forwarded lead reply for level {level_num}")
+                pass
             else:
-                print(f"Failed to forward lead reply for level {level_num}: {response}")
+                pass
     except Exception as e:
-        print(f"Error handling lead reply for level {level_num}: {e}")
+        pass
 
 async def handle_hint_message(message):
     channel_name = message.channel.name
@@ -366,11 +344,11 @@ async def handle_hint_message(message):
         
         response = await send_to_api('discord-bot', data)
         if response and response.get('success'):
-            print(f"Successfully forwarded hint message for level {level_num}")
+            pass
         else:
-            print(f"Failed to forward hint message for level {level_num}: {response}")
+            pass
     except Exception as e:
-        print(f"Error handling hint message for level {level_num}: {e}")
+        pass
 
 async def handle_hint_message_deleted(message):
     channel_name = message.channel.name
@@ -387,11 +365,11 @@ async def handle_hint_message_deleted(message):
         
         response = await send_to_api('discord-bot', data)
         if response and response.get('success'):
-            print(f"Successfully deleted hint message for level {level_num}")
+            pass
         else:
-            print(f"Failed to delete hint message for level {level_num}: {response}")
+            pass
     except Exception as e:
-        print(f"Error handling hint message deletion for level {level_num}: {e}")
+        pass
 
 async def refresh_channels(request):
     try:

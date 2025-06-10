@@ -38,6 +38,10 @@ func refreshDiscordChannels() error {
 	}
 
 	// Use Unix socket connection
+	if botSocketPath == "" {
+		return fmt.Errorf("bot socket path not configured")
+	}
+
 	client := &http.Client{
 		Transport: &http.Transport{
 			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {

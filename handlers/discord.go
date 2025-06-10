@@ -438,7 +438,6 @@ func handleSendLead(w http.ResponseWriter, r *http.Request, user *database.Login
 
 		err = forwardToDiscord(user.Gmail, req.Message, level)
 		if err != nil {
-			fmt.Printf("Failed to forward message to Discord: %v\n", err)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -526,7 +525,6 @@ func SubmitMessageHandler(w http.ResponseWriter, r *http.Request) {
 
 		err = forwardToDiscord(user.Gmail, req.Message, level)
 		if err != nil {
-			fmt.Printf("Failed to forward message to Discord: %v\n", err)
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -600,9 +598,10 @@ func forwardToDiscord(userEmail, message string, level int) error {
 		}
 		return nil
 	}
-
 	// Use Unix socket connection
-	fmt.Printf("Forwarding message to Discord at socket %s\n", botSocketPath)
+	if botSocketPath == "" {
+		return fmt.Errorf("bot socket path not configured")
+	}
 
 	client := &http.Client{
 		Transport: &http.Transport{
@@ -738,6 +737,10 @@ func RefreshDiscordChannels() error {
 			return fmt.Errorf("discord bot returned status %d", resp.StatusCode)
 		}
 		return nil
+	}
+
+	if botSocketPath == "" {
+		return fmt.Errorf("bot socket path not configured")
 	}
 
 	// Use Unix socket connection
