@@ -1,0 +1,30 @@
+{
+  "backends": [
+    {
+      "address": "unix:///tmp/intrasudo25.sock",
+      "weight": 1,
+      "timeout": "10s"
+    }
+  ],
+  "security": {
+    "ddos_threshold": 100,
+    "dos_threshold": 10,
+    "ban_duration": "10m",
+    "window_size": "1m",
+    "js_challenge_secret": "challenge-secret-key"
+  },
+  "cache": {
+    "redis_addr": "localhost:6379",
+    "default_ttl": "5m"
+  },
+  "load_balancing": {
+    "strategy": "weighted_round_robin",
+    "health_check_interval": "5s"
+  },
+  "server": {
+    "port": ":3000",
+    "read_timeout": "15s",
+    "write_timeout": "15s",
+    "idle_timeout": "60s"
+  }
+}
