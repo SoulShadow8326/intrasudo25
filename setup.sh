@@ -18,7 +18,4 @@ if [ ! -f "./data/data.db" ]; then
     touch ./data/data.db
 fi
 
-echo "Initializing Go modules..."
-go mod tidy
-
 echo "Setup complete. Run ./run.sh to start all services."
