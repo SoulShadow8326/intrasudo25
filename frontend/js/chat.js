@@ -673,12 +673,12 @@ function renderMessages(messages, containerId) {
     if (!messages || messages.length === 0) {
         const emptyState = containerId === 'leadsContainer' 
             ? `<div class="empty-state">
-                <div class="empty-icon">INBOX</div>
-                <p>No messages with admins yet.</p>
+                <p>Directly contact admins to confirm your leads</p>
+                <small>Start a conversation with the admin team for assistance</small>
                </div>`
             : `<div class="empty-state">
-                <div class="empty-icon">?</div>
-                <p>No hints available yet.</p>
+                <p>Get relevant info about levels directly from the admins</p>
+                <small>Hints and guidance will appear here when available</small>
                </div>`;
         container.innerHTML = emptyState;
         return;
