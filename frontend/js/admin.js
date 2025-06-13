@@ -84,7 +84,6 @@ async function loadLevels() {
 function renderLevels(levels) {
     const list = document.getElementById('levelsList');
     
-    // Store levels data for editing
     levelsData = {};
     levels.forEach(level => {
         levelsData[level.id] = level;
@@ -93,33 +92,68 @@ function renderLevels(levels) {
     list.innerHTML = levels.map(level => {
         const questions = level.question.split('\n\n').filter(q => q.trim());
         return `
-            <div class="level-item" data-level-id="${level.id}">
-                <div class="level-info">
-                    <div class="level-number">${level.number}</div>
-                    <div class="level-details">
-                        <h4 class="level-title">${level.title}</h4>
-                        <div class="level-meta">
-                            <span class="status-badge ${level.active ? 'status-active' : 'status-inactive'}">
-                                ${level.active ? 'Active' : 'Inactive'}
-                            </span>
-                            <button class="btn-expand" onclick="toggleLevelExpand(this)">
-                                <span class="expand-text">Show Questions</span>
-                                <span class="expand-icon">▼</span>
-                            </button>
-                        </div>
+            <div class="level-card" data-level-id="${level.id}">
+                <div class="level-card-header">
+                    <div class="level-info-inline">
+                        <div class="level-number-badge">${level.number}</div>
+                        <h4 class="level-title-inline">Level ${level.number}</h4>
+                    </div>
+                    <div class="level-actions-compact">
+                        <button class="btn-secondary" onclick="toggleEditLevel(${level.id})">Edit</button>
+                        <button class="btn-danger" onclick="deleteLevel(${level.id})">Delete</button>
                     </div>
                 </div>
-                <div class="level-actions">
-                    <button class="btn-secondary" onclick="editLevel(this)">Edit</button>
-                    <button class="btn-danger" onclick="deleteLevel(${level.id})">Delete</button>
+                
+                <div class="level-status-badge ${level.active ? 'status-active' : 'status-inactive'}">
+                    ${level.active ? 'Active' : 'Inactive'}
                 </div>
-                <div class="level-questions-expanded" style="display: none;">
-                    ${questions.map((q, index) => `
-                        <div class="question-item">
-                            <h5>Question ${index + 1}</h5>
-                            <p>${q.trim()}</p>
+                
+                <div class="level-content">
+                    <div class="level-questions-preview">
+                        ${questions.map((q, index) => `
+                            <div class="question-preview">
+                                <div class="question-label">Hint ${index + 1}</div>
+                                <p class="question-text">${q.trim()}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="level-answer-section">
+                        <div class="answer-label">Answer</div>
+                        <p class="answer-text">${level.answer}</p>
+                    </div>
+                </div>
+
+                <div class="edit-form-inline" id="editForm_${level.id}">
+                    <div class="form-group">
+                        <label class="form-label">Level Number:</label>
+                        <input type="number" class="form-input" id="editNumber_${level.id}" value="${level.number}" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Hints:</label>
+                        <div class="edit-questions-container" id="editQuestions_${level.id}">
+                            ${questions.map((q, index) => `
+                                <div class="edit-question-group">
+                                    <textarea class="form-input form-textarea edit-question-input" placeholder="Enter hint ${index + 1}">${q.trim()}</textarea>
+                                    <button type="button" class="btn-remove-question" onclick="removeQuestionField(this)">×</button>
+                                </div>
+                            `).join('')}
                         </div>
-                    `).join('')}
+                        <button type="button" class="btn-add-question-inline" onclick="addQuestionField(${level.id})">+ Add Hint</button>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Answer:</label>
+                        <input type="text" class="form-input" id="editAnswer_${level.id}" value="${level.answer}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="editActive_${level.id}" ${level.active ? 'checked' : ''}> Active
+                        </label>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn-secondary" onclick="cancelEditLevel(${level.id})">Cancel</button>
+                        <button class="btn-primary" onclick="updateLevel(${level.id})">Update Level</button>
+                    </div>
                 </div>
             </div>
         `;
@@ -145,7 +179,7 @@ async function createLevel() {
     }
 
     if (questions.length === 0) {
-        showNotification('Please add at least one question.', 'error');
+        showNotification('Please add at least one hint.', 'error');
         return;
     }
 
@@ -206,106 +240,6 @@ async function deleteLevel(levelId) {
             }
         }
     );
-}
-
-function editLevel(button) {
-    const levelItem = button.closest('.level-item');
-    const levelId = levelItem.dataset.levelId;
-    const level = levelsData[levelId];
-    
-    if (!level) {
-        showNotification('Level data not found. Please refresh the page.', 'error');
-        return;
-    }
-    
-    document.getElementById('editLevelNumber').value = level.number;
-    document.getElementById('editLevelAnswer').value = level.answer;
-    document.getElementById('editLevelActive').checked = level.active;
-    document.getElementById('editLevelForm').dataset.levelId = levelId;
-    
-    const container = document.getElementById('editQuestionsContainer');
-    const questions = level.question.split('\n\n').filter(q => q.trim());
-    
-    container.innerHTML = '';
-    questions.forEach((q, index) => {
-        const group = document.createElement('div');
-        group.className = 'question-input-group';
-        group.innerHTML = `
-            <textarea class="form-input form-textarea level-question" placeholder="Enter the level question or description">${q.trim()}</textarea>
-            ${index === 0 ? 
-                '<button type="button" class="btn-add-question" onclick="addEditQuestionInput()">+</button>' :
-                '<button type="button" class="btn-remove-question" onclick="removeEditQuestionInput(this)">-</button>'
-            }
-        `;
-        container.appendChild(group);
-    });
-    
-    if (questions.length === 0) {
-        const group = document.createElement('div');
-        group.className = 'question-input-group';
-        group.innerHTML = `
-            <textarea class="form-input form-textarea level-question" placeholder="Enter the level question or description"></textarea>
-            <button type="button" class="btn-add-question" onclick="addEditQuestionInput()">+</button>
-        `;
-        container.appendChild(group);
-    }
-    
-    document.getElementById('addLevelForm').classList.remove('show');
-    document.getElementById('editLevelForm').style.display = 'block';
-}
-
-async function updateLevel() {
-    const levelId = document.getElementById('editLevelForm').dataset.levelId;
-    const questionInputs = document.querySelectorAll('#editQuestionsContainer .level-question');
-    const levelAnswer = document.getElementById('editLevelAnswer').value.trim();
-    const levelActive = document.getElementById('editLevelActive').checked;
-
-    if (!levelAnswer) {
-        showNotification('Please fill in the answer.', 'error');
-        return;
-    }
-
-    const questions = [];
-    for (let input of questionInputs) {
-        const question = input.value.trim();
-        if (question) {
-            questions.push(question);
-        }
-    }
-
-    if (questions.length === 0) {
-        showNotification('Please add at least one question.', 'error');
-        return;
-    }
-
-    const requestData = {
-        markdown: questions.join('\n\n'),
-        answer: levelAnswer,
-        active: levelActive.toString()
-    };
-
-    try {
-        const response = await fetch(`/api/admin/levels/${levelId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || ''
-            },
-            body: JSON.stringify(requestData)
-        });
-
-        if (response.ok) {
-            showNotification('Level updated successfully!', 'success');
-            cancelEditLevel();
-            loadLevels();
-            loadStats();
-        } else {
-            const errorData = await response.json();
-            showNotification(errorData.error || 'Failed to update level', 'error');
-        }
-    } catch (error) {
-        showNotification('Failed to update level. Please try again.', 'error');
-    }
 }
 
 async function loadUsers() {
@@ -919,4 +853,103 @@ async function resetMyLevel() {
             }
         }
     );
+}
+
+function toggleEditLevel(levelId) {
+    const editForm = document.getElementById(`editForm_${levelId}`);
+    const allEditForms = document.querySelectorAll('.edit-form-inline');
+    
+    allEditForms.forEach(form => {
+        if (form.id !== `editForm_${levelId}`) {
+            form.classList.remove('show');
+        }
+    });
+    
+    editForm.classList.toggle('show');
+}
+
+function cancelEditLevel(levelId) {
+    const editForm = document.getElementById(`editForm_${levelId}`);
+    editForm.classList.remove('show');
+}
+
+function addQuestionField(levelId) {
+    const container = document.getElementById(`editQuestions_${levelId}`);
+    const questionCount = container.children.length;
+    
+    const questionGroup = document.createElement('div');
+    questionGroup.className = 'edit-question-group';
+    questionGroup.innerHTML = `
+        <textarea class="form-input form-textarea edit-question-input" placeholder="Enter hint ${questionCount + 1}"></textarea>
+        <button type="button" class="btn-remove-question" onclick="removeQuestionField(this)">×</button>
+    `;
+    
+    container.appendChild(questionGroup);
+}
+
+function removeQuestionField(button) {
+    const questionGroup = button.parentElement;
+    const container = questionGroup.parentElement;
+    
+    if (container.children.length > 1) {
+        questionGroup.remove();
+    } else {
+        showNotification('At least one hint is required', 'error');
+    }
+}
+
+async function updateLevel(levelId) {
+    const questionInputs = document.querySelectorAll(`#editQuestions_${levelId} .edit-question-input`);
+    const levelNumber = document.getElementById(`editNumber_${levelId}`).value;
+    const levelAnswer = document.getElementById(`editAnswer_${levelId}`).value.trim();
+    const levelActive = document.getElementById(`editActive_${levelId}`).checked;
+
+    if (!levelNumber || !levelAnswer) {
+        showNotification('Please fill in level number and answer.', 'error');
+        return;
+    }
+
+    const questions = [];
+    for (let input of questionInputs) {
+        const question = input.value.trim();
+        if (question) {
+            questions.push(question);
+        }
+    }
+
+    if (questions.length === 0) {
+        showNotification('Please add at least one hint.', 'error');
+        return;
+    }
+
+    const requestData = {
+        level_number: levelNumber,
+        title: `Level ${levelNumber}`,
+        markdown: questions.join('\n\n'),
+        answer: levelAnswer,
+        active: levelActive.toString()
+    };
+
+    try {
+        const response = await fetch(`/api/admin/levels/${levelId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'CSRFtok': getCookie('X_CSRF_COOKIE') || userSession?.csrfToken || ''
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        if (response.ok) {
+            showNotification('Level updated successfully!', 'success');
+            cancelEditLevel(levelId);
+            loadLevels();
+            loadStats();
+        } else {
+            const errorData = await response.json();
+            showNotification(errorData.error || 'Failed to update level', 'error');
+        }
+    } catch (error) {
+        showNotification('Failed to update level. Please try again.', 'error');
+    }
 }
