@@ -21,9 +21,22 @@
 
 .nav-center {
     flex: 1;
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
     gap: 2rem;
-    justify-content: center;
+    align-items: center;
+}
+
+.nav-center > :nth-child(1) {
+    justify-self: end;
+}
+
+.nav-center > :nth-child(2) {
+    justify-self: center;
+}
+
+.nav-center > :nth-child(3) {
+    justify-self: start;
 }
 
 .nav-right {

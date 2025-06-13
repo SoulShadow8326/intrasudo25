@@ -81,6 +81,10 @@ func HintsHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "./frontend/hints.html")
 }
 
+func AnnouncementsHandler(w http.ResponseWriter, r *http.Request) {
+	http.ServeFile(w, r, "./frontend/hints.html")
+}
+
 func GuidelinesHandler(w http.ResponseWriter, r *http.Request) {
 	_, err := GetUserFromSession(r)
 	isLoggedIn := err == nil

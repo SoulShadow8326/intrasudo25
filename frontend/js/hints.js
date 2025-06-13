@@ -179,7 +179,7 @@ function escapeHtml(text) {
 
 async function loadHints() {
     try {
-        const response = await fetch('/api/hints', {
+        const response = await fetch('/api/announcements', {
             headers: {
                 'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
             }

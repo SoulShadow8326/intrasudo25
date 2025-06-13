@@ -153,7 +153,7 @@ function setupChecksumHandler() {
             const data = await response.json();
             const chats = data || [];
             
-            const hintsResponse = await fetch("/api/hints"); 
+            const hintsResponse = await fetch("/api/announcements"); 
             if (!hintsResponse.ok) {
                 return;
             }

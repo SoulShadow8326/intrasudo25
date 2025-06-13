@@ -52,7 +52,10 @@ func RegisterRoutes() http.Handler {
 	})
 
 	Mux.HandleFunc("/leaderboard", handlers.RequireAuth(handlers.LeaderboardHandler))
-	Mux.HandleFunc("/hints", handlers.HintsHandler)
+	Mux.HandleFunc("/announcements", handlers.AnnouncementsHandler)
+	Mux.HandleFunc("/hints", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/announcements", http.StatusMovedPermanently)
+	})
 	Mux.HandleFunc("/guidelines", handlers.GuidelinesHandler)
 
 	Mux.HandleFunc("/admin", handlers.RequireAdmin(config.GetAdminEmails())(handlers.AdminDashboardHandler))
@@ -242,7 +245,6 @@ func RegisterRoutes() http.Handler {
 	Mux.HandleFunc("/api/chat/checksum", handlers.RequireAuth(handlers.ChatChecksumHandler))
 	Mux.HandleFunc("/api/check-messages", handlers.RequireAuth(handlers.CheckMessagesHandler))
 	Mux.HandleFunc("/api/leads", handlers.RequireAuth(handlers.LeadsHandler))
-	Mux.HandleFunc("/api/hints", handlers.RequireAuth(handlers.GetUserHintsHandler))
 	Mux.HandleFunc("/submit_message", handlers.RequireAuth(handlers.SubmitMessageHandler))
 
 	Mux.Handle("/static/", http.StripPrefix("/static/", customFileServer("./frontend/")))

@@ -396,7 +396,7 @@ async function updateHintsDisplay() {
         
         if (hintsSpan) {
             try {
-                const response = await fetch('/api/hints', {
+                const response = await fetch('/api/announcements', {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
