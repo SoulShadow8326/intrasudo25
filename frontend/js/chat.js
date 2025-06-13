@@ -250,6 +250,15 @@ function setupMessageSubmission() {
     
     if (leadSendButton && leadInput) {
         leadSendButton.addEventListener("click", async (x) => {
+            if (chatStatus === 'locked') {
+                var notyf = window.notyf || { error: function() {} };
+                notyf.error({ 
+                    position: { x: "center", y: "top" }, 
+                    message: "Chat is currently locked by admin" 
+                });
+                return;
+            }
+            
             var text = leadInput.value.trim().trim("\n");
             if (text !== "" && chatStatus !== 'locked') {
                 leadInput.value = "";
@@ -338,6 +347,15 @@ function setupMessageSubmission() {
         
         leadInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey && leadInput.value.trim()) {
+                if (chatStatus === 'locked') {
+                    e.preventDefault();
+                    var notyf = window.notyf || { error: function() {} };
+                    notyf.error({ 
+                        position: { x: "center", y: "top" }, 
+                        message: "Chat is currently locked by admin" 
+                    });
+                    return;
+                }
                 e.preventDefault();
                 leadSendButton.click();
             }
@@ -800,18 +818,77 @@ function updateChatStatusIndicator(status) {
         
         const leadInput = document.getElementById("leadInput");
         const leadSendButton = document.getElementById("leadSendButton");
+        const chatInputArea = document.querySelector(".chat-input-area");
+        const leadsContainer = document.getElementById("leadsContainer");
         
         if (leadInput) {
             leadInput.disabled = status === 'locked';
             if (status === 'locked') {
                 leadInput.placeholder = "Chat is locked by admin";
+                leadInput.style.opacity = "0.5";
+                leadInput.style.cursor = "not-allowed";
             } else {
                 leadInput.placeholder = "Type your message...";
+                leadInput.style.opacity = "1";
+                leadInput.style.cursor = "text";
             }
         }
         
         if (leadSendButton) {
             leadSendButton.disabled = status === 'locked' || (leadInput ? leadInput.value.trim().length === 0 : true);
+            if (status === 'locked') {
+                leadSendButton.style.opacity = "0.3";
+                leadSendButton.style.cursor = "not-allowed";
+            } else {
+                leadSendButton.style.opacity = "1";
+                leadSendButton.style.cursor = "pointer";
+            }
+        }
+        
+        if (chatInputArea) {
+            let lockOverlay = chatInputArea.querySelector('.chat-locked-overlay');
+            if (status === 'locked') {
+                if (!lockOverlay) {
+                    lockOverlay = document.createElement('div');
+                    lockOverlay.className = 'chat-locked-overlay';
+                    lockOverlay.innerHTML = `
+                        <div class="locked-message">
+                            <div class="locked-text">Chat is currently locked</div>
+                            <div class="locked-subtext">Admins have disabled messaging</div>
+                        </div>
+                    `;
+                    chatInputArea.appendChild(lockOverlay);
+                }
+                chatInputArea.style.position = "relative";
+            } else {
+                if (lockOverlay) {
+                    lockOverlay.remove();
+                }
+            }
+        }
+        
+        if (leadsContainer) {
+            let lockNotice = leadsContainer.querySelector('.chat-locked-notice');
+            if (status === 'locked') {
+                if (!lockNotice && (!leadsContainer.children.length || leadsContainer.innerHTML.includes('empty-state'))) {
+                    lockNotice = document.createElement('div');
+                    lockNotice.className = 'chat-locked-notice';
+                    lockNotice.innerHTML = `
+                        <div class="locked-notice-content">
+                            <div class="locked-notice-title">Chat Unavailable</div>
+                            <div class="locked-notice-text">Admins have locked the chat. You cannot send or receive messages at this time.</div>
+                        </div>
+                    `;
+                    if (leadsContainer.innerHTML.includes('empty-state')) {
+                        leadsContainer.innerHTML = '';
+                    }
+                    leadsContainer.appendChild(lockNotice);
+                }
+            } else {
+                if (lockNotice) {
+                    lockNotice.remove();
+                }
+            }
         }
     }
 }
