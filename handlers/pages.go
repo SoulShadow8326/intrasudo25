@@ -74,12 +74,6 @@ func renderTemplate(w http.ResponseWriter, templateName string, data PageData) {
 }
 
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
-	_, err := GetUserFromSession(r)
-	if err != nil {
-		http.Redirect(w, r, "/auth", http.StatusSeeOther)
-		return
-	}
-
 	http.ServeFile(w, r, "./frontend/index.html")
 }
 

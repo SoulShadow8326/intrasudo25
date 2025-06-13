@@ -42,7 +42,7 @@ func RegisterRoutes() http.Handler {
 	Mux.HandleFunc("/landing", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./frontend/landing.html")
 	})
-	Mux.HandleFunc("/home", handlers.IndexHandler)
+	Mux.HandleFunc("/home", handlers.RequireAuth(handlers.IndexHandler))
 	Mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/landing", http.StatusSeeOther)
 	})
