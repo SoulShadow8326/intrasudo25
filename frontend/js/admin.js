@@ -271,6 +271,7 @@ function renderUsers(users) {
                     <div class="user-actions">
                         ${!user.IsAdmin ? `
                             <button class="btn-secondary" onclick="resetUserLevel('${user.Gmail}')">Reset Level</button>
+                            <button class="btn-warning" onclick="banUserEmail('${user.Gmail}')">Ban Email</button>
                             <button class="btn-danger" onclick="deleteUser('${user.Gmail}')">Delete</button>
                         ` : ''}
                     </div>
@@ -302,6 +303,32 @@ async function deleteUser(email) {
                 }
             } catch (error) {
                 showNotification('Failed to delete user. Please try again.', 'error');
+            }
+        }
+    );
+}
+
+async function banUserEmail(email) {
+    showConfirmModal(
+        'Ban Email', 
+        `Are you sure you want to ban the email ${email}? This will prevent this email from registering or logging in.`,
+        async function() {
+            try {
+                const response = await fetch(`/api/admin/users/${encodeURIComponent(email)}/ban`, {
+                    method: 'POST',
+                    headers: {
+                        'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+                    }
+                });
+
+                if (response.ok) {
+                    showNotification('Email banned successfully!', 'success');
+                    loadUsers();
+                } else {
+                    throw new Error('Failed to ban email');
+                }
+            } catch (error) {
+                showNotification('Failed to ban email. Please try again.', 'error');
             }
         }
     );
@@ -717,7 +744,7 @@ async function updateAnnouncement() {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'CSRFtok': getCookie('X-CSRF_COOKIE') || userSession?.csrfToken || ''
+                'CSRFtok': getCookie('X_CSRF_COOKIE') || userSession?.csrfToken || ''
             },
             body: JSON.stringify({ heading: newHeading })
         });

@@ -150,7 +150,7 @@ func sendLoginCodeEmail(email string, name string, loginCode string) error {
 		"\r\n" +
 		greeting + "\r\n" +
 		"\r\n" +
-		"Your permanent 4-digit login code for Intra Sudo 2025 is: " + loginCode + "\r\n" +
+		"Your permanent 8-digit login code for Intra Sudo 2025 is: " + loginCode + "\r\n" +
 		"\r\n" +
 		"Keep this code safe - you'll use it every time you log in.\r\n" +
 		"\r\n" +
@@ -317,6 +317,18 @@ func EmailOnly(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	isBanned, banErr := database.IsEmailBanned(gmail)
+	if banErr != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Database error"})
+		return
+	}
+	if isBanned {
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]string{"error": "This email has been banned from the platform"})
+		return
+	}
+
 	adminEmails := config.GetAdminEmails()
 	isAdmin := false
 	for _, adminEmail := range adminEmails {
@@ -353,7 +365,7 @@ func EmailOnly(w http.ResponseWriter, r *http.Request) {
 		h := sha256.New()
 		h.Write([]byte(codeSource))
 		fullHash := fmt.Sprintf("%x", h.Sum(nil))
-		permanentLoginCode := fullHash[len(fullHash)-4:]
+		permanentLoginCode := fullHash[len(fullHash)-8:]
 
 		hashedPass, err := hash("email_verified_user")
 		if err != nil {

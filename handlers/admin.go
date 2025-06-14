@@ -428,3 +428,38 @@ func ResetUserLevelHandler(w http.ResponseWriter, r *http.Request, email string)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"message": "User level reset successfully"})
 }
+
+func BanUserEmailHandler(w http.ResponseWriter, r *http.Request, email string) {
+	user, err := GetUserFromSession(r)
+	if err != nil || user == nil || !isAdminEmail(user.Gmail) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Access denied"})
+		return
+	}
+
+	if user.Gmail == email {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Cannot ban your own email"})
+		return
+	}
+
+	if isAdminEmail(email) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Cannot ban admin email"})
+		return
+	}
+
+	err = database.BanEmail(email, user.Gmail)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to ban email"})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Email banned successfully"})
+}

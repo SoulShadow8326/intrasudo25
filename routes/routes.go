@@ -193,6 +193,10 @@ func RegisterRoutes() http.Handler {
 						if r.Method == "POST" {
 							handlers.ResetUserLevelHandler(w, r, email)
 						}
+					} else if len(parts) >= 2 && parts[1] == "ban" {
+						if r.Method == "POST" {
+							handlers.BanUserEmailHandler(w, r, email)
+						}
 					} else if r.Method == "DELETE" {
 						handlers.DeleteUserHandler(w, r, email)
 					}

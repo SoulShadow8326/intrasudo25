@@ -33,15 +33,27 @@ async function checkAdminAccess() {
         if (response.ok) {
             const userData = await response.json();
             if (userData.isAdmin) {
-                document.getElementById('adminLink').style.display = 'inline-block';
+                const adminLink = document.getElementById('adminLink');
+                if (adminLink) {
+                    adminLink.style.display = 'inline-block';
+                }
             } else {
-                document.getElementById('adminLink').style.display = 'none';
+                const adminLink = document.getElementById('adminLink');
+                if (adminLink) {
+                    adminLink.style.display = 'none';
+                }
             }
         } else {
-            document.getElementById('adminLink').style.display = 'none';
+            const adminLink = document.getElementById('adminLink');
+            if (adminLink) {
+                adminLink.style.display = 'none';
+            }
         }
     } catch (error) {
-        document.getElementById('adminLink').style.display = 'none';
+        const adminLink = document.getElementById('adminLink');
+        if (adminLink) {
+            adminLink.style.display = 'none';
+        }
     }
 }
 

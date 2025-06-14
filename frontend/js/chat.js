@@ -383,7 +383,7 @@ async function startChecksumPolling() {
     }
     await checkChecksum();
     first = false;
-    setInterval(checkChecksum, 500);
+    setInterval(checkChecksum, 5000);
 }
 
 function setupChatSignalHandlers() {

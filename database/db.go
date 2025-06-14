@@ -362,6 +362,11 @@ func createTables() {
 			completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			UNIQUE(user_email, level_number)
 		);`,
+		`CREATE TABLE IF NOT EXISTS banned_emails (
+			email TEXT PRIMARY KEY,
+			banned_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			banned_by TEXT NOT NULL
+		);`,
 	}
 
 	for _, table := range tables {
@@ -1459,4 +1464,18 @@ func SetLevelChatStatus(level int, status string) error {
 			"value": status,
 		})
 	}
+}
+
+func BanEmail(email, bannedBy string) error {
+	_, err := db.Exec("INSERT OR REPLACE INTO banned_emails (email, banned_by, banned_at) VALUES (?, ?, CURRENT_TIMESTAMP)", email, bannedBy)
+	return err
+}
+
+func IsEmailBanned(email string) (bool, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM banned_emails WHERE email = ?", email).Scan(&count)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }

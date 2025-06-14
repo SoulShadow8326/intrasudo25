@@ -6,12 +6,12 @@ async function handleEmailSubmit(event) {
     const email = document.getElementById('email').value.trim();
     
     if (!email) {
-        showError('emailError', 'Please enter your email address');
+        showNotification('Please enter your email address', 'error');
         return;
     }
     
     if (!validateEmail(email)) {
-        showError('emailError', 'Please enter a valid email address');
+        showNotification('Please enter a valid email address', 'error');
         return;
     }
     
@@ -38,15 +38,14 @@ async function handleEmailSubmit(event) {
         
         if (response.ok) {
             userEmail = email;
-            hideError('emailError');
             
             if (data.existing_user === "true") {
-                showPopup('info', 'Account Found', 'You already have an account. Please enter your permanent 4-digit login code to continue.', () => {
+                showPopup('info', 'Account Found', 'You already have an account. Please enter your permanent 8-digit login code to continue.', () => {
                     showCodeForm();
                 });
             } else {
                 // For new users, show success message and code form
-                showSuccess('emailSuccess', 'Code sent! Check your email for your permanent 4-digit login code.');
+                showNotification('Code sent! Check your email for your permanent 8-digit login code.', 'success');
                 setTimeout(() => {
                     showCodeForm();
                 }, 1500); // Short delay to show the success message
@@ -55,13 +54,13 @@ async function handleEmailSubmit(event) {
             if (data.cooldown === "true") {
                 showPopup('warning', 'Please Wait', data.error);
             } else {
-                showError('emailError', data.error || 'Failed to send login code');
+                showNotification(data.error || 'Failed to send login code', 'error');
             }
         }
         
     } catch (error) {
         console.error('Email submission error:', error);
-        showError('emailError', `Network error: ${error.message || 'Please try again.'}`);
+        showNotification(`Network error: ${error.message || 'Please try again.'}`, 'error');
     } finally {
         setEmailLoading(false);
     }
@@ -72,8 +71,8 @@ async function handleCodeSubmit(event) {
     
     const code = document.getElementById('verification-code').value.trim();
     
-    if (!code || code.length !== 4) {
-        showError('codeError', 'Please enter your 4-digit login code');
+    if (!code || code.length !== 8) {
+        showNotification('Please enter your 8-digit login code', 'error');
         return;
     }
     
@@ -100,14 +99,13 @@ async function handleCodeSubmit(event) {
         console.log('Code verification response data:', data);
         
         if (response.ok) {
-            hideError('codeError');
             window.location.href = '/home';
         } else {
-            showError('codeError', data.error || 'Invalid verification code');
+            showNotification(data.error || 'Invalid verification code', 'error');
         }
         
     } catch (error) {
-        showError('codeError', `Network error: ${error.message || 'Please try again.'}`);
+        showNotification(`Network error: ${error.message || 'Please try again.'}`, 'error');
     } finally {
         setCodeLoading(false);
     }
@@ -132,20 +130,6 @@ function showEmailForm() {
     document.getElementById('email-form').style.display = 'block';
     document.getElementById('email').value = '';
     document.getElementById('verification-code').value = '';
-    
-    // Hide all error and success messages
-    hideError('emailError');
-    hideError('codeError');
-    const emailSuccess = document.getElementById('emailSuccess');
-    const codeSuccess = document.getElementById('codeSuccess');
-    if (emailSuccess) {
-        emailSuccess.className = 'auth-success';
-        emailSuccess.style.display = 'none';
-    }
-    if (codeSuccess) {
-        codeSuccess.className = 'auth-success';
-        codeSuccess.style.display = 'none';
-    }
     
     userEmail = '';
     document.getElementById('email').focus();
@@ -178,42 +162,6 @@ function setCodeLoading(loading) {
         codeButton.disabled = false;
         codeButtonText.textContent = 'Sign In';
         codeButton.classList.remove('loading');
-    }
-}
-
-function showError(elementId, message) {
-    const errorElement = document.getElementById(elementId);
-    errorElement.textContent = message;
-    errorElement.className = 'auth-error show';
-    
-    // Add smooth animation
-    setTimeout(() => {
-        errorElement.style.opacity = '1';
-        errorElement.style.transform = 'translateY(0)';
-    }, 10);
-}
-
-function hideError(elementId) {
-    const errorElement = document.getElementById(elementId);
-    errorElement.className = 'auth-error';
-    errorElement.style.opacity = '0';
-    errorElement.style.transform = 'translateY(-10px)';
-    
-    setTimeout(() => {
-        errorElement.style.display = 'none';
-    }, 300);
-}
-
-function showSuccess(elementId, message) {
-    const successElement = document.getElementById(elementId);
-    if (successElement) {
-        successElement.textContent = message;
-        successElement.className = 'auth-success show';
-        
-        setTimeout(() => {
-            successElement.style.opacity = '1';
-            successElement.style.transform = 'translateY(0)';
-        }, 10);
     }
 }
 
@@ -287,19 +235,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const emailInput = document.getElementById('email');
     if (emailInput) {
         emailInput.focus();
-        emailInput.addEventListener('input', () => {
-            if (emailInput.value.trim() === '') {
-                hideError('emailError');
-            }
-        });
+        emailInput.addEventListener('input', () => {});
     }
     
     const codeInput = document.getElementById('verification-code');
     if (codeInput) {
-        codeInput.addEventListener('input', () => {
-            if (codeInput.value.trim() === '') {
-                hideError('codeError');
-            }
-        });
+        codeInput.addEventListener('input', () => {});
     }
 });
