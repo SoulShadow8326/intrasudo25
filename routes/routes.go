@@ -47,9 +47,9 @@ func RegisterRoutes() http.Handler {
 		http.ServeFile(w, r, "./frontend/landing.html")
 	}))
 	Mux.HandleFunc("/playground", handlers.TimeGateMiddleware(handlers.RequireAuth(handlers.IndexHandler)))
-	Mux.HandleFunc("/home", handlers.TimeGateMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	Mux.HandleFunc("/home", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/playground", http.StatusMovedPermanently)
-	}))
+	})
 	Mux.HandleFunc("/", handlers.TimeGateMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/landing", http.StatusSeeOther)
 	}))

@@ -247,7 +247,9 @@ function formatTime(timestamp) {
 
 document.addEventListener('DOMContentLoaded', function() {
     checkAdminAccess();
-    loadQuestions();
+    if (document.getElementById('questionsList')) {
+        loadQuestions();
+    }
     checkNotifications();
     loadAnnouncements();
     loadHints();

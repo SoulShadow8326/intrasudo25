@@ -99,7 +99,7 @@ async function handleCodeSubmit(event) {
         console.log('Code verification response data:', data);
         
         if (response.ok) {
-            window.location.href = '/home';
+            window.location.href = '/playground';
         } else {
             showNotification(data.error || 'Invalid verification code', 'error');
         }
@@ -206,7 +206,7 @@ async function checkExistingSession() {
         if (response.ok) {
             const data = await response.json();
             if (data.userId) {
-                window.location.href = '/home';
+                window.location.href = '/playground';
                 return;
             }
         }
@@ -216,6 +216,7 @@ async function checkExistingSession() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    checkExistingSession();
     
     const emailForm = document.getElementById('email-form');
     if (emailForm) {
