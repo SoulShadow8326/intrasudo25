@@ -757,9 +757,8 @@
 .hint-message .message-content a {
     color: #2a77f5;
     text-decoration: none;
-    border-bottom: 1px solid transparent;
-    transition: all 0.3s ease;
-    font-weight: 500;
+    border-bottom: 1px solid rgba(42, 119, 245, 0.3);
+    transition: all 0.2s ease;
 }
 
 .hint-message .message-content a:hover {
@@ -906,6 +905,38 @@
     font-size: 14px;
     line-height: 1.4;
     color: inherit;
+}
+
+.chat-message-text strong {
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.chat-message-text em {
+    font-style: italic;
+    color: #e0e0e0;
+}
+
+.chat-message-text code {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', monospace;
+    font-size: 0.9em;
+    color: #4fc3f7;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.chat-message-text a {
+    color: #2a77f5;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(42, 119, 245, 0.3);
+    transition: all 0.2s ease;
+}
+
+.chat-message-text a:hover {
+    color: #4fc3f7;
+    border-bottom-color: #4fc3f7;
 }
 
 .chat-message-label {
@@ -1063,11 +1094,9 @@
 }
 
 .send-button:disabled {
-    background: #2a77f5 !important;
-    border-color: #2a77f5 !important;
-    color: #ffffff !important;
-    opacity: 0.6;
-    cursor: not-allowed;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    color: rgba(255, 255, 255, 0.3) !important;
+    cursor: not-allowed !important;
 }
 
 .chat-toggle-notification-dot {

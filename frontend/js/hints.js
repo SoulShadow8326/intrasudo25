@@ -163,7 +163,7 @@ function displayAnnouncements(announcements) {
     const announcementsHTML = announcements.map(announcement => `
         <div class="announcement-banner">
             <h2 class="announcement-heading">
-                ${escapeHtml(announcement.heading)}
+                ${parseMarkdown(announcement.heading)}
             </h2>
         </div>
     `).join('');
@@ -171,10 +171,20 @@ function displayAnnouncements(announcements) {
     announcementsList.innerHTML = announcementsHTML;
 }
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+function parseMarkdown(text) {
+    if (!text) return '';
+    
+    let html = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/`(.*?)`/g, '<code>$1</code>')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+        .replace(/\n/g, '<br>');
+    
+    return html;
 }
 
 async function loadHints() {
@@ -216,7 +226,7 @@ function displayHints(hints) {
             <div class="message-content">
                 ${hint.message ? (typeof showdown !== 'undefined' ? 
                     new showdown.Converter().makeHtml(hint.message) : 
-                    escapeHtml(hint.message)) : ''}
+                    parseMarkdown(hint.message)) : ''}
             </div>
             <div class="message-time">${formatTime(hint.timestamp)}</div>
         </div>

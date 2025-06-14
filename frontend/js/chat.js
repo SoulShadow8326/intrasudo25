@@ -273,7 +273,7 @@ function setupMessageSubmission() {
                     if (leadsContainer) {
                         const userMessageHtml = `<div class="chat-message user">
                             <div class="chat-message-content">
-                                <div class="chat-message-text">${escapeHtml(text)}</div>
+                                <div class="chat-message-text">${parseMarkdown(text)}</div>
                             </div>
                         </div>`;
                         leadsContainer.innerHTML += userMessageHtml;
@@ -311,7 +311,7 @@ function setupMessageSubmission() {
                             const adminMessageHtml = `<div class="chat-message admin">
                                 <div class="chat-message-content">
                                     <span class="chat-message-sender">Admin</span>
-                                    <div class="chat-message-text">${escapeHtml(data.response)}</div>
+                                    <div class="chat-message-text">${parseMarkdown(data.response)}</div>
                                 </div>
                             </div>`;
                             leadsContainer.innerHTML += adminMessageHtml;
@@ -709,7 +709,7 @@ function renderMessages(messages, containerId) {
                 <div class="message-content">
                     ${typeof showdown !== 'undefined' ? 
                         new showdown.Converter().makeHtml(content) : 
-                        escapeHtml(content)}
+                        parseMarkdown(content)}
                 </div>
                 <div class="message-time">${formatTime(message.timestamp || message.created_at)}</div>
             </div>`;
@@ -722,7 +722,7 @@ function renderMessages(messages, containerId) {
             return `<div class="chat-message ${messageClass}">
                 <div class="chat-message-content">
                     <div class="chat-message-label">${senderLabel}</div>
-                    <div class="chat-message-text">${escapeHtml(content)}</div>
+                    <div class="chat-message-text">${parseMarkdown(content)}</div>
                 </div>
             </div>`;
         }
@@ -745,10 +745,20 @@ function formatTime(timestamp) {
     }
 }
 
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+function parseMarkdown(text) {
+    if (!text) return '';
+    
+    let html = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/`(.*?)`/g, '<code>$1</code>')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+        .replace(/\n/g, '<br>');
+    
+    return html;
 }
 
 function updateBadgesInstantly(chats, hints) {
