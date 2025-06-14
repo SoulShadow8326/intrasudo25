@@ -677,7 +677,7 @@
     background: linear-gradient(135deg, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.5) 100%);
     padding: 6px 10px;
     border-radius: 10px;
-    font-family: 'JetBrains Mono', 'Fira Code', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
     font-size: 14px;
     color: rgba(255, 255, 255, 0.98);
     border: 1px solid rgba(255, 255, 255, 0.2);
@@ -937,6 +937,14 @@
 .chat-message-text a:hover {
     color: #4fc3f7;
     border-bottom-color: #4fc3f7;
+}
+
+.chat-message-text .markdown-img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 8px 0;
+    display: block;
 }
 
 .chat-message-label {

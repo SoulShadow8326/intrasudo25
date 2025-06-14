@@ -234,3 +234,20 @@ async function handleLogout() {
         window.location.href = '/auth';
     }
 }
+
+function parseMarkdown(text) {
+    if (!text) return '';
+    
+    let html = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/`(.*?)`/g, '<code>$1</code>')
+        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="markdown-img">')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+        .replace(/\n/g, '<br>');
+    
+    return html;
+}

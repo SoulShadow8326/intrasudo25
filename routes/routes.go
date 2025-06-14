@@ -39,7 +39,6 @@ func customFileServer(root string) http.Handler {
 func RegisterRoutes() http.Handler {
 	Mux := http.NewServeMux()
 
-	// Time-gated routes (protected by countdown)
 	Mux.HandleFunc("/landing", handlers.TimeGateMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 		w.Header().Set("Pragma", "no-cache")
@@ -71,7 +70,6 @@ func RegisterRoutes() http.Handler {
 		handlers.GuidelinesHandler(w, r)
 	}))
 
-	// Status page (not time-gated)
 	Mux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 		w.Header().Set("Pragma", "no-cache")
@@ -79,7 +77,6 @@ func RegisterRoutes() http.Handler {
 		http.ServeFile(w, r, "./frontend/status.html")
 	})
 
-	// 404 page (not time-gated)
 	Mux.HandleFunc("/404", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./frontend/404.html")
 	})
@@ -257,7 +254,6 @@ func RegisterRoutes() http.Handler {
 
 	Mux.HandleFunc("/api/secret", handlers.CORS(handlers.GetSecretHandler))
 
-	// Discord bot specific routes (with Discord bot token authentication)
 	Mux.HandleFunc("/api/discord/chat/status", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == "GET" {
 			handlers.GetChatStatusHandler(w, r)

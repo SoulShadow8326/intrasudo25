@@ -403,3 +403,12 @@
     color: #4fc3f7;
     border-bottom-color: #4fc3f7;
 }
+
+.hint-content .markdown-img,
+.announcement-content .markdown-img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 8px 0;
+    display: block;
+}
