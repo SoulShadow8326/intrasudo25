@@ -22,21 +22,24 @@
 .nav-center {
     flex: 1;
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: minmax(120px, 1fr) auto minmax(120px, 1fr);
     gap: 2rem;
     align-items: center;
 }
 
 .nav-center > :nth-child(1) {
     justify-self: end;
+    text-align: right;
 }
 
 .nav-center > :nth-child(2) {
     justify-self: center;
+    text-align: center;
 }
 
 .nav-center > :nth-child(3) {
     justify-self: start;
+    text-align: left;
 }
 
 .nav-right {
