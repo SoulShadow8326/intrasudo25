@@ -41,6 +41,9 @@ func RegisterRoutes() http.Handler {
 
 	// Time-gated routes (protected by countdown)
 	Mux.HandleFunc("/landing", handlers.TimeGateMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
 		http.ServeFile(w, r, "./frontend/landing.html")
 	}))
 	Mux.HandleFunc("/playground", handlers.TimeGateMiddleware(handlers.RequireAuth(handlers.IndexHandler)))
@@ -50,13 +53,23 @@ func RegisterRoutes() http.Handler {
 	Mux.HandleFunc("/", handlers.TimeGateMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/landing", http.StatusSeeOther)
 	}))
-	Mux.HandleFunc("/auth", handlers.TimeGateMiddleware(handlers.AuthPageHandler))
+	Mux.HandleFunc("/auth", handlers.TimeGateMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
+		handlers.AuthPageHandler(w, r)
+	}))
 	Mux.HandleFunc("/leaderboard", handlers.TimeGateMiddleware(handlers.RequireAuth(handlers.LeaderboardHandler)))
 	Mux.HandleFunc("/announcements", handlers.TimeGateMiddleware(handlers.AnnouncementsHandler))
 	Mux.HandleFunc("/hints", handlers.TimeGateMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/announcements", http.StatusMovedPermanently)
 	}))
-	Mux.HandleFunc("/guidelines", handlers.TimeGateMiddleware(handlers.GuidelinesHandler))
+	Mux.HandleFunc("/guidelines", handlers.TimeGateMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
+		handlers.GuidelinesHandler(w, r)
+	}))
 
 	// Status page (not time-gated)
 	Mux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {

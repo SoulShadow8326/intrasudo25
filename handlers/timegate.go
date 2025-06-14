@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"intrasudo25/config"
 	"net/http"
 	"strings"
@@ -10,7 +11,10 @@ import (
 
 func TimeGateMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Printf("TimeGate: Path=%s\n", r.URL.Path)
+
 		if !config.IsCountdownEnabled() {
+			fmt.Printf("TimeGate: Countdown disabled\n")
 			next(w, r)
 			return
 		}
@@ -20,6 +24,7 @@ func TimeGateMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			adminEmails := config.GetAdminEmails()
 			for _, adminEmail := range adminEmails {
 				if strings.EqualFold(user.Gmail, adminEmail) {
+					fmt.Printf("TimeGate: Admin bypass for %s\n", user.Gmail)
 					next(w, r)
 					return
 				}
@@ -31,14 +36,20 @@ func TimeGateMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		startTime := config.GetCompetitionStartTime()
 		endTime := config.GetCompetitionEndTime()
 
+		fmt.Printf("TimeGate: Now=%s Start=%s End=%s\n", now, startTime, endTime)
+		fmt.Printf("TimeGate: Before=%t After=%t\n", now.Before(startTime), now.After(endTime))
+
 		if now.Before(startTime) || now.After(endTime) {
-			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+			fmt.Printf("TimeGate: Redirecting to /status\n")
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, private")
 			w.Header().Set("Pragma", "no-cache")
 			w.Header().Set("Expires", "0")
-			http.Redirect(w, r, "/status", http.StatusSeeOther)
+			w.Header().Set("Location", "/status")
+			w.WriteHeader(http.StatusSeeOther)
 			return
 		}
 
+		fmt.Printf("TimeGate: Allowing access\n")
 		next(w, r)
 	}
 }

@@ -39,41 +39,20 @@
 
     <script>
         fetch('/api/countdown-status?' + Date.now())
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.text();
-            })
-            .then(text => {
-                let data;
-                try {
-                    data = JSON.parse(text);
-                } catch (e) {
-                    throw new Error('Response is not valid JSON: ' + text.substring(0, 100));
-                }
-                
+            .then(response => response.json())
+            .then(data => {
                 const subtitle = document.getElementById('status-subtitle');
                 const content = document.getElementById('status-content');
                 
-                if (data.status === 'not_started') {
-                    subtitle.textContent = data.message;
-                    content.innerHTML = `<p class="landing-text">${data.details}</p>`;
-                } else if (data.status === 'ended') {
-                    subtitle.textContent = data.message;
-                    content.innerHTML = `<p class="landing-text">${data.details}</p>`;
-                } else if (data.status === 'active') {
-                    window.location.href = '/landing';
-                } else {
-                    window.location.href = '/landing';
-                }
+                subtitle.textContent = data.message;
+                content.innerHTML = `<p class="landing-text">${data.details}</p>`;
             })
             .catch(error => {
                 console.error('Error checking status:', error);
                 const subtitle = document.getElementById('status-subtitle');
                 const content = document.getElementById('status-content');
                 subtitle.textContent = 'Error';
-                content.innerHTML = `<p class="landing-text">Error: ${error.message}</p>`;
+                content.innerHTML = `<p class="landing-text">Unable to check competition status.</p>`;
             });
     </script>
 </body>
