@@ -7,7 +7,7 @@
     }
   ],
   "security": {
-    "ddos_threshold": 1000,
+    "ddos_threshold": 5000,
     "dos_threshold": 500,
     "ban_duration": "5m",
     "window_size": "1m",
