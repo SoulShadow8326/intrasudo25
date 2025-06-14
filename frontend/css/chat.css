@@ -777,6 +777,18 @@
     color: rgba(255, 255, 255, 0.9);
 }
 
+.hint-message .message-content .markdown-img {
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    max-height: 300px;
+    border-radius: 8px;
+    margin: 8px 0;
+    display: block;
+    object-fit: contain;
+    box-sizing: border-box;
+}
+
 #hintsContent .chat-messages-container {
     flex: 1;
     overflow-y: auto;

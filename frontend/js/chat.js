@@ -711,7 +711,6 @@ function renderMessages(messages, containerId) {
                         new showdown.Converter().makeHtml(content) : 
                         parseMarkdown(content)}
                 </div>
-                <div class="message-time">${formatTime(message.timestamp || message.created_at)}</div>
             </div>`;
         } else {
             const isAdmin = message.isReply === true || message.IsReply === true;
