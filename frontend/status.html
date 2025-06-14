@@ -38,22 +38,35 @@
     </footer>
 
     <script>
-        fetch('/api/countdown-status?' + Date.now())
-            .then(response => response.json())
-            .then(data => {
+        // Initial status check
+        async function checkStatus() {
+            try {
+                const response = await fetch('/api/countdown-status?' + Date.now());
+                const data = await response.json();
+                
                 const subtitle = document.getElementById('status-subtitle');
                 const content = document.getElementById('status-content');
                 
                 subtitle.textContent = data.message;
                 content.innerHTML = `<p class="landing-text">${data.details}</p>`;
-            })
-            .catch(error => {
+                
+                // If status is active, redirect to landing
+                if (data.status === 'active') {
+                    console.log('Competition is active, redirecting to landing...');
+                    window.location.href = '/landing';
+                }
+            } catch (error) {
                 console.error('Error checking status:', error);
                 const subtitle = document.getElementById('status-subtitle');
                 const content = document.getElementById('status-content');
                 subtitle.textContent = 'Error';
                 content.innerHTML = `<p class="landing-text">Unable to check competition status.</p>`;
-            });
+            }
+        }
+
+        // Initial check
+        checkStatus();
     </script>
+    <script src="js/countdown.js"></script>
 </body>
 </html>

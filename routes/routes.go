@@ -146,6 +146,7 @@ func RegisterRoutes() http.Handler {
 		w.Write([]byte(`{"test": "success"}`))
 	})
 	Mux.HandleFunc("/api/countdown-status", handlers.CountdownStatusHandler)
+	Mux.HandleFunc("/api/countdown-checksum", handlers.CountdownChecksumHandler)
 	Mux.HandleFunc("/api/question", handlers.GetQuestionHandler)
 	Mux.HandleFunc("/api/announcements", handlers.GetAnnouncementsForPublicHandler)
 	Mux.HandleFunc("/api/submit", handlers.SubmitAnswer)

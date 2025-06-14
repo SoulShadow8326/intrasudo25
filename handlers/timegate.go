@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"intrasudo25/config"
@@ -77,6 +78,9 @@ func CountdownStatusHandler(w http.ResponseWriter, r *http.Request) {
 	startTime := config.GetCompetitionStartTime()
 	endTime := config.GetCompetitionEndTime()
 
+	fmt.Printf("DEBUG CountdownStatus: Now=%s Start=%s End=%s\n", now.Format("2006-01-02 15:04:05"), startTime.Format("2006-01-02 15:04:05"), endTime.Format("2006-01-02 15:04:05"))
+	fmt.Printf("DEBUG CountdownStatus: Before=%t After=%t\n", now.Before(startTime), now.After(endTime))
+
 	var response CountdownStatus
 
 	if now.Before(startTime) {
@@ -95,5 +99,40 @@ func CountdownStatusHandler(w http.ResponseWriter, r *http.Request) {
 		response.Details = "Welcome to Intra Sudo v6.0!"
 	}
 
+	fmt.Printf("DEBUG CountdownStatus: Final status=%s\n", response.Status)
 	json.NewEncoder(w).Encode(response)
+}
+
+type CountdownChecksum struct {
+	Checksum string `json:"checksum"`
+}
+
+func CountdownChecksumHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if !config.IsCountdownEnabled() {
+		checksum := fmt.Sprintf("%x", md5.Sum([]byte("active")))
+		json.NewEncoder(w).Encode(CountdownChecksum{Checksum: checksum})
+		return
+	}
+
+	location, _ := time.LoadLocation("Asia/Kolkata")
+	now := time.Now().In(location)
+	startTime := config.GetCompetitionStartTime()
+	endTime := config.GetCompetitionEndTime()
+
+	var status string
+	if now.Before(startTime) {
+		status = "not_started"
+	} else if now.After(endTime) {
+		status = "ended"
+	} else {
+		status = "active"
+	}
+
+	// Create checksum based on status and timestamps to detect changes
+	checksumData := fmt.Sprintf("%s-%s-%s", status, startTime.Format(time.RFC3339), endTime.Format(time.RFC3339))
+	checksum := fmt.Sprintf("%x", md5.Sum([]byte(checksumData)))
+
+	json.NewEncoder(w).Encode(CountdownChecksum{Checksum: checksum})
 }
