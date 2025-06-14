@@ -707,9 +707,7 @@ function renderMessages(messages, containerId) {
             const content = message.message || message.content || '';
             return `<div class="chat-message hint-message">
                 <div class="message-content">
-                    ${typeof showdown !== 'undefined' ? 
-                        new showdown.Converter().makeHtml(content) : 
-                        parseMarkdown(content)}
+                    ${parseMarkdown(content)}
                 </div>
             </div>`;
         } else {
