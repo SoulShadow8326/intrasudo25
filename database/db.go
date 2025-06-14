@@ -216,9 +216,15 @@ func CreateLevelSimple(levelNum int, question, answer string, active bool) error
 		Answer:      answer,
 		Active:      active,
 	}
+
 	err := Create("level", level)
 	if err != nil {
-		fmt.Printf("Database error in CreateLevelSimple: %v\n", err)
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			err = Update("level", map[string]interface{}{"number": levelNum}, level)
+		}
+		if err != nil {
+			fmt.Printf("Database error in CreateLevelSimple: %v\n", err)
+		}
 	}
 	return err
 }
@@ -1033,6 +1039,7 @@ type GameLevel struct {
 	ID           int    `json:"id"`
 	Number       int    `json:"number"`
 	Description  string `json:"description"`
+	Markdown     string `json:"markdown,omitempty"`
 	MediaURL     string `json:"mediaUrl,omitempty"`
 	MediaType    string `json:"mediaType,omitempty"`
 	AllCompleted bool   `json:"allCompleted,omitempty"`
@@ -1122,6 +1129,7 @@ func GetCurrentLevelForUser(userEmail string) (*GameLevel, error) {
 		ID:          level.LevelNumber,
 		Number:      level.LevelNumber,
 		Description: level.Markdown,
+		Markdown:    level.Markdown,
 	}
 
 	return gameLevel, nil

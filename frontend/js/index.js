@@ -104,6 +104,11 @@ function updateLevelDisplay() {
             levelTitle.textContent = 'Congratulations!';
         }
         
+        const levelQuestion = document.getElementById('levelQuestion');
+        if (levelQuestion) {
+            levelQuestion.style.display = 'none';
+        }
+        
         const levelContent = document.getElementById('levelContent');
         const completionMessage = document.createElement('div');
         completionMessage.id = 'levelDescription';
@@ -142,6 +147,16 @@ function updateLevelDisplay() {
         levelTitle.textContent = `Level ${currentLevel.number}`;
     }
     
+    const levelQuestion = document.getElementById('levelQuestion');
+    if (levelQuestion) {
+        if (currentLevel.markdown && currentLevel.markdown.trim()) {
+            levelQuestion.textContent = currentLevel.markdown.trim();
+            levelQuestion.style.display = 'block';
+        } else {
+            levelQuestion.style.display = 'none';
+        }
+    }
+    
     if (currentLevel.mediaUrl) {
         if (mediaContainer) {
             if (currentLevel.mediaType === 'image') {
@@ -174,6 +189,11 @@ function handleLevelLoadError(error) {
     
     if (levelTitle) {
         levelTitle.textContent = 'Level Not Found';
+    }
+    
+    const levelQuestion = document.getElementById('levelQuestion');
+    if (levelQuestion) {
+        levelQuestion.style.display = 'none';
     }
         
     if (!levelDescription) {
