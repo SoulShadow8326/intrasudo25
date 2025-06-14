@@ -236,7 +236,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     checkNotifications();
     loadAnnouncements();
-    loadHints();
     setInterval(checkNotifications, 30000);
-    setInterval(loadHints, 30000);
 });
