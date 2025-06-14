@@ -86,7 +86,21 @@ func CountdownStatusHandler(w http.ResponseWriter, r *http.Request) {
 	if now.Before(startTime) {
 		response.Status = "not_started"
 		response.Message = "Intra Sudo v6.0 has not begun yet"
-		startDateFormatted := startTime.Format("January 2nd, 2006")
+		day := startTime.Day()
+		var suffix string
+		switch {
+		case day >= 11 && day <= 13:
+			suffix = "th"
+		case day%10 == 1:
+			suffix = "st"
+		case day%10 == 2:
+			suffix = "nd"
+		case day%10 == 3:
+			suffix = "rd"
+		default:
+			suffix = "th"
+		}
+		startDateFormatted := startTime.Format("January 2") + suffix + startTime.Format(", 2006")
 		startTimeFormatted := startTime.Format("3:04 PM")
 		response.Details = "The competition will start on " + startDateFormatted + " at " + startTimeFormatted + " IST. Please check back then!"
 	} else if now.After(endTime) {
