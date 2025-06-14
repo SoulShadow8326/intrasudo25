@@ -32,7 +32,10 @@ func TimeGateMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		endTime := config.GetCompetitionEndTime()
 
 		if now.Before(startTime) || now.After(endTime) {
-			http.Redirect(w, r, "/status", http.StatusTemporaryRedirect)
+			w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+			w.Header().Set("Pragma", "no-cache")
+			w.Header().Set("Expires", "0")
+			http.Redirect(w, r, "/status", http.StatusSeeOther)
 			return
 		}
 
