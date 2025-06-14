@@ -39,27 +39,34 @@ func customFileServer(root string) http.Handler {
 func RegisterRoutes() http.Handler {
 	Mux := http.NewServeMux()
 
-	Mux.HandleFunc("/landing", func(w http.ResponseWriter, r *http.Request) {
+	// Time-gated routes (protected by countdown)
+	Mux.HandleFunc("/landing", handlers.TimeGateMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./frontend/landing.html")
-	})
-	Mux.HandleFunc("/playground", handlers.RequireAuth(handlers.IndexHandler))
-	Mux.HandleFunc("/home", func(w http.ResponseWriter, r *http.Request) {
+	}))
+	Mux.HandleFunc("/playground", handlers.TimeGateMiddleware(handlers.RequireAuth(handlers.IndexHandler)))
+	Mux.HandleFunc("/home", handlers.TimeGateMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/playground", http.StatusMovedPermanently)
-	})
-	Mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	}))
+	Mux.HandleFunc("/", handlers.TimeGateMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/landing", http.StatusSeeOther)
+	}))
+	Mux.HandleFunc("/auth", handlers.TimeGateMiddleware(handlers.AuthPageHandler))
+	Mux.HandleFunc("/leaderboard", handlers.TimeGateMiddleware(handlers.RequireAuth(handlers.LeaderboardHandler)))
+	Mux.HandleFunc("/announcements", handlers.TimeGateMiddleware(handlers.AnnouncementsHandler))
+	Mux.HandleFunc("/hints", handlers.TimeGateMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/announcements", http.StatusMovedPermanently)
+	}))
+	Mux.HandleFunc("/guidelines", handlers.TimeGateMiddleware(handlers.GuidelinesHandler))
+
+	// Status page (not time-gated)
+	Mux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./frontend/status.html")
 	})
-	Mux.HandleFunc("/auth", handlers.AuthPageHandler)
+
+	// 404 page (not time-gated)
 	Mux.HandleFunc("/404", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./frontend/404.html")
 	})
-
-	Mux.HandleFunc("/leaderboard", handlers.RequireAuth(handlers.LeaderboardHandler))
-	Mux.HandleFunc("/announcements", handlers.AnnouncementsHandler)
-	Mux.HandleFunc("/hints", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/announcements", http.StatusMovedPermanently)
-	})
-	Mux.HandleFunc("/guidelines", handlers.GuidelinesHandler)
 
 	Mux.HandleFunc("/admin", handlers.RequireAdmin(config.GetAdminEmails())(handlers.AdminDashboardHandler))
 	Mux.HandleFunc("/admin/levels/new", handlers.RequireAdmin(config.GetAdminEmails())(handlers.NewLevelFormHandler))
@@ -118,6 +125,11 @@ func RegisterRoutes() http.Handler {
 	Mux.HandleFunc("/enter/email", handlers.CORS(handlers.EmailOnly))
 	Mux.HandleFunc("/enter/email-verify", handlers.CORS(handlers.EmailVerify))
 
+	Mux.HandleFunc("/api/test", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.Write([]byte(`{"test": "success"}`))
+	})
+	Mux.HandleFunc("/api/countdown-status", handlers.CountdownStatusHandler)
 	Mux.HandleFunc("/api/question", handlers.GetQuestionHandler)
 	Mux.HandleFunc("/api/announcements", handlers.GetAnnouncementsForPublicHandler)
 	Mux.HandleFunc("/api/submit", handlers.SubmitAnswer)

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#0D0E11">
+    <meta name="description" content="Website for Exun Intra Sudo 2025">
+    <title>Intra Sudo 2025 - Status</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="icon" href="assets/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <div class="page-container">
+        <main class="main-content-pages">
+            <div class="content-card">
+                <div class="card-header">
+                    <img src="assets/logo-blue.png" alt="Sudocrypt Logo" class="auth-logo">
+                    <h1 class="card-title">Intra Sudo v6.0</h1>
+                    <p class="auth-subtitle" id="status-subtitle">Checking competition status...</p>
+                </div>
+                
+                <div class="card-content">
+                    <div class="landing-description" id="status-content">
+                        <p class="landing-text">Please wait while we check the competition status.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <footer class="page-footer">
+        <div class="footer-content">
+            <p class="footer-text">&copy; Exun Clan</p>
+            <p class="footer-text">The Computer Club of Delhi Public School, R.K. Puram</p>
+        </div>
+    </footer>
+
+    <script>
+        fetch('/api/countdown-status?' + Date.now())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.text();
+            })
+            .then(text => {
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    throw new Error('Response is not valid JSON: ' + text.substring(0, 100));
+                }
+                
+                const subtitle = document.getElementById('status-subtitle');
+                const content = document.getElementById('status-content');
+                
+                if (data.status === 'not_started') {
+                    subtitle.textContent = data.message;
+                    content.innerHTML = `<p class="landing-text">${data.details}</p>`;
+                } else if (data.status === 'ended') {
+                    subtitle.textContent = data.message;
+                    content.innerHTML = `<p class="landing-text">${data.details}</p>`;
+                } else if (data.status === 'active') {
+                    window.location.href = '/landing';
+                } else {
+                    window.location.href = '/landing';
+                }
+            })
+            .catch(error => {
+                console.error('Error checking status:', error);
+                const subtitle = document.getElementById('status-subtitle');
+                const content = document.getElementById('status-content');
+                subtitle.textContent = 'Error';
+                content.innerHTML = `<p class="landing-text">Error: ${error.message}</p>`;
+            });
+    </script>
+</body>
+</html>
