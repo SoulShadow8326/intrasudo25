@@ -14,6 +14,7 @@ async function initializePage() {
         await loadCurrentLevel();
         await checkNotifications();
         await updateHintsDisplay();
+        await updateSourceHint();
         
         setInterval(checkNotifications, 30000);
         setInterval(updateHintsDisplay, 30000);
@@ -80,6 +81,7 @@ async function loadCurrentLevel() {
         currentLevel = newLevel;
         updateLevelDisplay();
         updateHintsDisplay();
+        await updateSourceHint();
         
     } catch (error) {
         console.error('Failed to load current level:', error);
@@ -443,6 +445,37 @@ async function updateHintsDisplay() {
             }
         }
     } catch (error) {
+    }
+}
+
+async function updateSourceHint() {
+    try {
+        if (!currentLevel || !currentLevel.number) {
+            return;
+        }
+
+        const response = await fetch(`/api/user/level-hint/${currentLevel.number}`, {
+            headers: {
+                'CSRFtok': getCookie('X-CSRF_COOKIE') || ''
+            }
+        });
+
+        const htmlElement = document.documentElement;
+        const currentHTML = htmlElement.innerHTML;
+        const cleanHTML = currentHTML.replace(/<!([^>]*)>/g, '');
+
+        if (response.ok) {
+            const data = await response.json();
+            if (data.hint && data.hint.trim() !== '') {
+                const hintComment = `<!${data.hint}>`;
+                const newHTML = cleanHTML.replace('</head>', `</head>\n${hintComment}`);
+                htmlElement.innerHTML = newHTML;
+            } else {
+                htmlElement.innerHTML = cleanHTML;
+            }
+        }
+    } catch (error) {
+        console.error('Failed to update source hint:', error);
     }
 }
 

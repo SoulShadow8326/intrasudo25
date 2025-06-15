@@ -74,7 +74,34 @@ func renderTemplate(w http.ResponseWriter, templateName string, data PageData) {
 }
 
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "./frontend/index.html")
+	htmlContent, err := os.ReadFile("./frontend/index.html")
+	if err != nil {
+		http.ServeFile(w, r, "./frontend/index.html")
+		return
+	}
+
+	user, err := GetUserFromSession(r)
+	if err != nil {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write(htmlContent)
+		return
+	}
+
+	currentLevel, err := database.GetCurrentLevelForUser(user.Gmail)
+	if err != nil {
+		w.Header().Set("Content-Type", "text/html")
+		w.Write(htmlContent)
+		return
+	}
+
+	srcHint, err := database.GetLevelHint(currentLevel.Number)
+	if err == nil && srcHint != "" {
+		hintComment := "<!" + srcHint + ">"
+		htmlContent = []byte(strings.Replace(string(htmlContent), "</head>", "</head>\n"+hintComment, 1))
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(htmlContent)
 }
 
 func HintsHandler(w http.ResponseWriter, r *http.Request) {

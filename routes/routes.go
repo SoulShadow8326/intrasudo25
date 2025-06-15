@@ -151,6 +151,7 @@ func RegisterRoutes() http.Handler {
 
 	Mux.HandleFunc("/api/user/session", handlers.UserSessionHandler)
 	Mux.HandleFunc("/api/user/current-level", handlers.RequireAuth(handlers.GetCurrentLevelHandler))
+	Mux.HandleFunc("/api/user/level-hint/", handlers.RequireAuth(handlers.GetLevelHintHandler))
 
 	Mux.HandleFunc("/api/submit-answer", handlers.RequireAuth(handlers.SubmitAnswerHandler))
 	Mux.HandleFunc("/api/notifications/unread-count", handlers.RequireAuth(handlers.GetNotificationCountHandler))

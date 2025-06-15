@@ -87,6 +87,7 @@ func CreateLvlHandler(w http.ResponseWriter, r *http.Request) {
 		LevelNumber string `json:"level_number"`
 		Markdown    string `json:"markdown"`
 		Answer      string `json:"answer"`
+		SrcHint     string `json:"src_hint"`
 		Active      string `json:"active"`
 	}
 
@@ -114,7 +115,7 @@ func CreateLvlHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	active := requestData.Active == "true"
-	err = database.CreateLevelSimple(levelNum, requestData.Markdown, requestData.Answer, active)
+	err = database.CreateLevelWithHint(levelNum, requestData.Markdown, requestData.Answer, requestData.SrcHint, active)
 	if err != nil {
 		fmt.Printf("Error creating level: %v\n", err)
 		w.Header().Set("Content-Type", "application/json")
@@ -163,6 +164,7 @@ func UpdateLvlHandler(w http.ResponseWriter, r *http.Request, id string) {
 	var requestData struct {
 		Markdown string `json:"markdown"`
 		Answer   string `json:"answer"`
+		SrcHint  string `json:"src_hint"`
 		Active   string `json:"active"`
 	}
 
@@ -182,7 +184,7 @@ func UpdateLvlHandler(w http.ResponseWriter, r *http.Request, id string) {
 	}
 
 	active := requestData.Active == "true"
-	err = database.UpdateLevelSimple(idInt, requestData.Markdown, requestData.Answer, active)
+	err = database.UpdateLevelWithHint(idInt, requestData.Markdown, requestData.Answer, requestData.SrcHint, active)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)

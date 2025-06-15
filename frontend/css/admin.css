@@ -1247,3 +1247,10 @@ input:checked + .toggle-slider:before {
     font-size: 0.85rem;
     min-width: 100px;
 }
+
+.form-help {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+    display: block;
+}

@@ -124,13 +124,14 @@ func GetAdminStats() (*AdminStats, error) {
 }
 
 type AdminLevelResponse struct {
-	ID       int    `json:"id"`
-	Number   int    `json:"number"`
-	Title    string `json:"title"`
-	Question string `json:"question"`
-	Answer   string `json:"answer"`
-	Active   bool   `json:"active"`
-	Enabled  bool   `json:"enabled"`
+	ID         int    `json:"id"`
+	Number     int    `json:"number"`
+	Title      string `json:"title"`
+	Question   string `json:"question"`
+	Answer     string `json:"answer"`
+	SourceHint string `json:"sourceHint"`
+	Active     bool   `json:"active"`
+	Enabled    bool   `json:"enabled"`
 }
 
 func GetAllLevelsForAdmin() ([]AdminLevelResponse, error) {
@@ -152,6 +153,7 @@ func GetAllLevelsForAdmin() ([]AdminLevelResponse, error) {
 
 		level.ID = level.Number
 		level.Title = fmt.Sprintf("Level %d", level.Number)
+		level.SourceHint = srcHint
 		level.Enabled = level.Active
 
 		levels = append(levels, level)
@@ -227,6 +229,41 @@ func CreateLevelSimple(levelNum int, question, answer string, active bool) error
 		}
 	}
 	return err
+}
+
+func CreateLevelWithHint(levelNum int, question, answer, srcHint string, active bool) error {
+	fmt.Printf("Creating level: number=%d, question=%s, answer=%s, srcHint=%s, active=%t\n", levelNum, question, answer, srcHint, active)
+	level := AdminLevel{
+		LevelNumber: levelNum,
+		Markdown:    question,
+		SourceHint:  srcHint,
+		ConsoleHint: question,
+		Answer:      answer,
+		Active:      active,
+	}
+
+	err := Create("level", level)
+	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			err = Update("level", map[string]interface{}{"number": levelNum}, level)
+		}
+		if err != nil {
+			fmt.Printf("Database error in CreateLevelWithHint: %v\n", err)
+		}
+	}
+	return err
+}
+
+func UpdateLevelWithHint(levelNum int, question, answer, srcHint string, active bool) error {
+	level := AdminLevel{
+		LevelNumber: levelNum,
+		Markdown:    question,
+		SourceHint:  srcHint,
+		ConsoleHint: question,
+		Answer:      answer,
+		Active:      active,
+	}
+	return Update("level", map[string]interface{}{"number": levelNum}, level)
 }
 
 func UpdateLevelSimple(levelNum int, question, answer string, active bool) error {
@@ -1478,4 +1515,16 @@ func IsEmailBanned(email string) (bool, error) {
 		return false, err
 	}
 	return count > 0, nil
+}
+
+func GetLevelHint(levelNumber int) (string, error) {
+	var srcHint sql.NullString
+	err := db.QueryRow("SELECT src_hint FROM levels WHERE level_number = ? AND active = 1", levelNumber).Scan(&srcHint)
+	if err != nil {
+		return "", err
+	}
+	if !srcHint.Valid || srcHint.String == "" {
+		return "", nil
+	}
+	return srcHint.String, nil
 }

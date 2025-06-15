@@ -98,6 +98,11 @@
                                 <label class="form-label" for="levelAnswer">Correct Answer:</label>
                                 <input type="text" id="levelAnswer" class="form-input" placeholder="Enter the correct answer">
                             </div>
+                            <div class="form-group">
+                                <label class="form-label" for="levelSrcHint">Source Code Hint (Optional):</label>
+                                <textarea id="levelSrcHint" class="form-input form-textarea" placeholder="Enter hint to be embedded in page source"></textarea>
+                                <small class="form-help">This hint will appear as an HTML comment in the page source for this level</small>
+                            </div>
                             <div class="form-actions">
                                 <button class="btn-secondary" onclick="cancelAddLevel()">Cancel</button>
                                 <button class="btn-primary" onclick="createLevel()">Create Level</button>

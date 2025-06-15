@@ -114,6 +114,12 @@ function renderLevels(levels) {
                             <div class="question-label">Question</div>
                             <p class="question-text">${level.question || 'No question set'}</p>
                         </div>
+                        ${level.sourceHint ? `
+                        <div class="question-preview">
+                            <div class="question-label">Source Hint</div>
+                            <p class="question-text">${level.sourceHint}</p>
+                        </div>
+                        ` : ''}
                     </div>
                     
                     <div class="level-answer-section">
@@ -136,6 +142,10 @@ function renderLevels(levels) {
                         <input type="text" class="form-input" id="editAnswer_${level.id}" value="${level.answer}">
                     </div>
                     <div class="form-group">
+                        <label class="form-label">Source Code Hint (Optional):</label>
+                        <textarea class="form-input form-textarea" id="editSrcHint_${level.id}" placeholder="Enter hint to be embedded in page source">${level.sourceHint || ''}</textarea>
+                    </div>
+                    <div class="form-group">
                         <label class="form-label">
                             <input type="checkbox" id="editActive_${level.id}" ${level.active ? 'checked' : ''}> Active
                         </label>
@@ -154,6 +164,7 @@ async function createLevel() {
     const levelNumber = document.getElementById('levelNumber').value;
     const levelQuestion = document.getElementById('levelQuestion').value.trim();
     const levelAnswer = document.getElementById('levelAnswer').value.trim();
+    const levelSrcHint = document.getElementById('levelSrcHint').value.trim();
 
     if (!levelNumber || !levelAnswer) {
         showNotification('Please fill in level number and answer.', 'error');
@@ -170,6 +181,7 @@ async function createLevel() {
         title: `Level ${levelNumber}`,
         markdown: levelQuestion,
         answer: levelAnswer,
+        src_hint: levelSrcHint,
         active: "true"
     };
 
@@ -460,6 +472,7 @@ function clearAddLevelForm() {
     document.getElementById('levelNumber').value = '';
     document.getElementById('levelQuestion').value = '';
     document.getElementById('levelAnswer').value = '';
+    document.getElementById('levelSrcHint').value = '';
 }
 
 function cancelEditLevel() {
@@ -843,6 +856,7 @@ async function updateLevel(levelId) {
     const levelQuestion = document.getElementById(`editQuestion_${levelId}`).value.trim();
     const levelNumber = document.getElementById(`editNumber_${levelId}`).value;
     const levelAnswer = document.getElementById(`editAnswer_${levelId}`).value.trim();
+    const levelSrcHint = document.getElementById(`editSrcHint_${levelId}`).value.trim();
     const levelActive = document.getElementById(`editActive_${levelId}`).checked;
 
     if (!levelNumber || !levelAnswer) {
@@ -860,6 +874,7 @@ async function updateLevel(levelId) {
         title: `Level ${levelNumber}`,
         markdown: levelQuestion,
         answer: levelAnswer,
+        src_hint: levelSrcHint,
         active: levelActive.toString()
     };
 
