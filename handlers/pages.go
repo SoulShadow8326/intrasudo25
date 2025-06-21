@@ -79,7 +79,7 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Expires", "Thu, 01 Jan 1970 00:00:00 GMT")
 	w.Header().Set("Last-Modified", "Thu, 01 Jan 1970 00:00:00 GMT")
 	w.Header().Set("ETag", "")
-	
+
 	htmlContent, err := os.ReadFile("./frontend/index.html")
 	if err != nil {
 		http.ServeFile(w, r, "./frontend/index.html")
