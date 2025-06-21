@@ -99,7 +99,10 @@ async function handleCodeSubmit(event) {
         console.log('Code verification response data:', data);
         
         if (response.ok) {
-            window.location.href = '/playground';
+            if (!isRedirecting) {
+                isRedirecting = true;
+                window.location.href = '/playground';
+            }
         } else {
             showNotification(data.error || 'Invalid verification code', 'error');
         }
@@ -200,18 +203,25 @@ function hidePopup() {
     modal.classList.remove('show');
 }
 
+let isRedirecting = false;
+
 async function checkExistingSession() {
+    if (isRedirecting) return;
+    
     try {
         const response = await fetch('/api/user/session');
         if (response.ok) {
             const data = await response.json();
-            if (data.userId) {
+            if (data.userId && !isRedirecting) {
+                isRedirecting = true;
                 window.location.href = '/playground';
                 return;
             }
+        } else if (response.status === 401) {
+            return;
         }
     } catch (error) {
-        
+        console.log('No existing session found, staying on auth page');
     }
 }
 

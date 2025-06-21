@@ -1,12 +1,18 @@
 let currentLevel = null;
 let userSession = null;
 let isSubmitting = false;
+let isRedirecting = false;
 
 async function initializePage() {
+    if (isRedirecting) return;
+    
     try {
         const sessionData = await loadUserSession();
         if (!sessionData) {
-            window.location.href = '/auth';
+            if (!isRedirecting) {
+                isRedirecting = true;
+                window.location.href = '/auth';
+            }
             return;
         }
 
@@ -20,7 +26,11 @@ async function initializePage() {
         setInterval(updateHintsDisplay, 30000);
         
     } catch (error) {
-        window.location.href = '/auth';
+        console.error('Error initializing page:', error);
+        if (!isRedirecting) {
+            isRedirecting = true;
+            window.location.href = '/auth';
+        }
     }
 }
 
@@ -35,10 +45,15 @@ async function loadUserSession() {
         if (response.ok) {
             userSession = await response.json();
             return userSession;
+        } else if (response.status === 401) {
+            console.log('Session expired, redirecting to auth');
+            return null;
         } else {
+            console.error('Session check failed with status:', response.status);
             return null;
         }
     } catch (error) {
+        console.error('Error checking session:', error);
         return null;
     }
 }

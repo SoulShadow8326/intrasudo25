@@ -11,6 +11,9 @@ async function getCurrentUser() {
                 return await response.json();
             }
         }
+        if (response.status === 401) {
+            return null;
+        }
     } catch (error) {
         console.error('Failed to check user session:', error);
     }
@@ -36,6 +39,9 @@ async function checkUserSession() {
             if (contentType && contentType.includes('application/json')) {
                 return await response.json();
             }
+        }
+        if (response.status === 401) {
+            return null;
         }
     } catch (error) {
         console.error('Failed to check user session:', error);
@@ -179,6 +185,10 @@ async function checkAuthRedirect() {
     const pathname = window.location.pathname;
     const allowedUnauthPaths = ['/auth', '/landing', '/guidelines', '/', '/404'];
     
+    if (pathname === '/auth') {
+        return;
+    }
+    
     if (!allowedUnauthPaths.includes(pathname)) {
         const session = await checkUserSession();
         if (!session) {
@@ -190,8 +200,12 @@ async function checkAuthRedirect() {
             }
         }
     } else if (pathname === '/guidelines') {
-        const session = await checkUserSession();
-        if (!session) {
+        try {
+            const session = await checkUserSession();
+            if (!session) {
+                initializeNavbarDisabling();
+            }
+        } catch (error) {
             initializeNavbarDisabling();
         }
     }
@@ -219,6 +233,9 @@ function initializeNavbarDisabling() {
 
 async function handleLogout() {
     try {
+        adminCheckCache = null;
+        adminCheckTime = 0;
+        
         const response = await fetch('/api/auth/logout', {
             method: 'POST'
         });
