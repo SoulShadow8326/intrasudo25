@@ -7,9 +7,9 @@
     }
   ],
   "security": {
-    "ddos_threshold": 5000,
-    "dos_threshold": 500,
-    "ban_duration": "5m",
+    "ddos_threshold": 10000,
+    "dos_threshold": 2000,
+    "ban_duration": "1m",
     "window_size": "1m",
     "max_tracked_ips": 1000,
     "js_challenge_secret": "challenge-secret-key-2025",
