@@ -392,8 +392,15 @@ function setupChatSignalHandlers() {
     const chatCloseBtn = document.getElementById("chatCloseBtn");
     const chatMinimizeBtn = document.getElementById("chatMinimizeBtn");
     
-    if (!chatToggleBtn || !chatPopup) return;        chatSignal.onChange = () => {
+    if (!chatToggleBtn || !chatPopup) {
+        console.error('Chat elements not found:', { chatToggleBtn: !!chatToggleBtn, chatPopup: !!chatPopup });
+        return;
+    }
+    
+    chatSignal.onChange = () => {
+        console.log('Chat signal changed to:', chatSignal.Value());
         if (chatSignal.Value() === "open") {
+            console.log('Opening chat popup');
             chatPopup.style.display = "flex";
 
             chatToggleBtn.style.opacity = 0;
@@ -446,6 +453,7 @@ function setupChatSignalHandlers() {
     
     if (chatToggleBtn) {
         chatToggleBtn.addEventListener("click", (e) => {
+            console.log('Chat button clicked, setting signal to open');
             chatSignal.setValue("open");
             hideNotificationDot();
             hideChatToggleNotificationDot();

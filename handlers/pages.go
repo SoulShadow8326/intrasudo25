@@ -74,6 +74,12 @@ func renderTemplate(w http.ResponseWriter, templateName string, data PageData) {
 }
 
 func IndexHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "Thu, 01 Jan 1970 00:00:00 GMT")
+	w.Header().Set("Last-Modified", "Thu, 01 Jan 1970 00:00:00 GMT")
+	w.Header().Set("ETag", "")
+	
 	htmlContent, err := os.ReadFile("./frontend/index.html")
 	if err != nil {
 		http.ServeFile(w, r, "./frontend/index.html")
@@ -96,7 +102,7 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 
 	srcHint, err := database.GetLevelHint(currentLevel.Number)
 	if err == nil && srcHint != "" {
-		hintComment := "<!" + srcHint + ">"
+		hintComment := "<!-- " + srcHint + " -->"
 		htmlContent = []byte(strings.Replace(string(htmlContent), "</head>", "</head>\n"+hintComment, 1))
 	}
 

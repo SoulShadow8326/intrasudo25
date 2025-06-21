@@ -20,7 +20,6 @@ async function initializePage() {
         await loadCurrentLevel();
         await checkNotifications();
         await updateHintsDisplay();
-        await updateSourceHint();
         
         setInterval(checkNotifications, 30000);
         setInterval(updateHintsDisplay, 30000);
@@ -97,6 +96,8 @@ async function loadCurrentLevel() {
         updateLevelDisplay();
         updateHintsDisplay();
         await updateSourceHint();
+        
+        console.log('Level loaded:', currentLevel.number, 'updating source hint...');
         
     } catch (error) {
         console.error('Failed to load current level:', error);
@@ -343,11 +344,9 @@ async function handleSubmit() {
             feedback.textContent = 'Correct! Loading next level...';
             feedback.style.color = '#28a745';
             
-            currentLevel = null;
-            
             setTimeout(() => {
-                window.location.reload();
-            }, 150);
+                window.location.replace(window.location.pathname + '?v=' + Date.now());
+            }, 800);
         } else if (result.reload_page) {
             feedback.textContent = result.message || 'Processing...';
             feedback.style.color = '#2977F5';
@@ -371,8 +370,9 @@ async function handleSubmit() {
             }, 2000);
         }
     } catch (error) {
-        feedback.textContent = 'Correct! Loading next level...';
-        feedback.style.color = '#28a745';
+        console.error('Error submitting answer:', error);
+        feedback.textContent = 'Error submitting answer. Please try again.';
+        feedback.style.color = '#dc3545';
         
         const submitButton = document.querySelector('button[onclick="handleSubmit()"]');
         if (submitButton) {
@@ -381,8 +381,10 @@ async function handleSubmit() {
         }
         
         setTimeout(() => {
-            window.location.reload();
-        }, 150);
+            feedback.textContent = '';
+            feedback.style.color = 'var(--primary)';
+            isSubmitting = false;
+        }, 2000);
     }
 }
 
@@ -466,6 +468,15 @@ async function updateHintsDisplay() {
 async function updateSourceHint() {
     try {
         if (!currentLevel || !currentLevel.number) {
+            const existingHints = document.querySelectorAll('meta[name="level-hint"]');
+            existingHints.forEach(hint => hint.remove());
+            
+            for (let i = document.head.childNodes.length - 1; i >= 0; i--) {
+                const node = document.head.childNodes[i];
+                if (node.nodeType === 8 && node.data && node.data.trim().length > 0) {
+                    document.head.removeChild(node);
+                }
+            }
             return;
         }
 
@@ -475,18 +486,33 @@ async function updateSourceHint() {
             }
         });
 
-        const htmlElement = document.documentElement;
-        const currentHTML = htmlElement.innerHTML;
-        const cleanHTML = currentHTML.replace(/<!([^>]*)>/g, '');
+        const head = document.head;
+        
+        const existingHints = document.querySelectorAll('meta[name="level-hint"]');
+        existingHints.forEach(hint => hint.remove());
+        
+        for (let i = head.childNodes.length - 1; i >= 0; i--) {
+            const node = head.childNodes[i];
+            if (node.nodeType === 8 && node.data && node.data.trim().length > 0) {
+                head.removeChild(node);
+            }
+        }
 
         if (response.ok) {
             const data = await response.json();
             if (data.hint && data.hint.trim() !== '') {
-                const hintComment = `<!${data.hint}>`;
-                const newHTML = cleanHTML.replace('</head>', `</head>\n${hintComment}`);
-                htmlElement.innerHTML = newHTML;
+                const hintMeta = document.createElement('meta');
+                hintMeta.setAttribute('name', 'level-hint');
+                hintMeta.setAttribute('content', data.hint);
+                hintMeta.setAttribute('data-level', currentLevel.number);
+                head.appendChild(hintMeta);
+                
+                const hintComment = document.createComment(' ' + data.hint + ' ');
+                head.appendChild(hintComment);
+                
+                console.log(`Updated source hint for level ${currentLevel.number}:`, data.hint);
             } else {
-                htmlElement.innerHTML = cleanHTML;
+                console.log(`No source hint for level ${currentLevel.number}`);
             }
         }
     } catch (error) {
