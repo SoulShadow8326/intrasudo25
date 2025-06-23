@@ -7,10 +7,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/smtp"
+	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/resend/resend-go/v2"
 
 	"intrasudo25/config"
 	"intrasudo25/database"
@@ -105,68 +107,49 @@ func hash(pass string) (string, error) {
 }
 
 func sendVerificationEmail(email string, codeToSend string) error {
-	emailConfig := config.GetEmailConfig()
-
-	from := emailConfig.From
-	pass := emailConfig.Password
-	smtpHost := emailConfig.SMTPHost + ":" + emailConfig.SMTPPort
-
-	msg := []byte("To: " + email + "\r\n" +
-		"Subject: Exun Elite - Verification Code\r\n" +
-		"\r\n" +
-		"Your verification code (last 4 digits) is: " + codeToSend + "\r\n")
-
-	err := smtp.SendMail(smtpHost,
-		smtp.PlainAuth("", from, pass, emailConfig.SMTPHost),
-		from, []string{email}, msg)
-
-	if err != nil {
-		return err
+	from := config.GetEmailConfig().From
+	apiKey := os.Getenv("RESEND_API_KEY")
+	if apiKey == "" {
+		fmt.Println("RESEND_API_KEY not set")
+		return fmt.Errorf("RESEND_API_KEY not set")
 	}
-
-	fmt.Println("Sent code (last 4 digits):", codeToSend, "to:", email)
-	return nil
+	client := resend.NewClient(apiKey)
+	params := &resend.SendEmailRequest{
+		From:    from,
+		To:      []string{email},
+		Subject: "Exun Elite - Verification Code",
+		Html:    "Your verification code (last 4 digits) is: " + codeToSend,
+	}
+	_, err := client.Emails.Send(params)
+	if err != nil {
+		fmt.Println("Resend sendVerificationEmail error:", err)
+	}
+	return err
 }
 
 func sendLoginCodeEmail(email string, name string, loginCode string) error {
-	userName := name
-	if userName == "" {
-		userName = "user"
+	from := config.GetEmailConfig().From
+	apiKey := os.Getenv("RESEND_API_KEY")
+	if apiKey == "" {
+		fmt.Println("RESEND_API_KEY not set")
+		return fmt.Errorf("RESEND_API_KEY not set")
 	}
-
-	emailConfig := config.GetEmailConfig()
-
-	from := emailConfig.From
-	pass := emailConfig.Password
-	smtpHost := emailConfig.SMTPHost + ":" + emailConfig.SMTPPort
-
 	greeting := "Hello,"
 	if name != "" {
 		greeting = "Hello " + name + ","
 	}
-
-	msg := []byte("To: " + email + "\r\n" +
-		"Subject: Intra Sudo 2025 - Your Login Code\r\n" +
-		"\r\n" +
-		greeting + "\r\n" +
-		"\r\n" +
-		"Your permanent 8-digit login code for Intra Sudo 2025 is: " + loginCode + "\r\n" +
-		"\r\n" +
-		"Keep this code safe - you'll use it every time you log in.\r\n" +
-		"\r\n" +
-		"Good luck with the challenge!\r\n" +
-		"- Exun Team\r\n")
-
-	err := smtp.SendMail(smtpHost,
-		smtp.PlainAuth("", from, pass, emailConfig.SMTPHost),
-		from, []string{email}, msg)
-
-	if err != nil {
-		return err
+	client := resend.NewClient(apiKey)
+	params := &resend.SendEmailRequest{
+		From:    from,
+		To:      []string{email},
+		Subject: "Intra Sudo 2025 - Your Login Code",
+		Html:    greeting + "<br><br>Your permanent 8-digit login code for Intra Sudo 2025 is: " + loginCode + "<br><br>Keep this code safe - you'll use it every time you log in.<br><br>Good luck with the challenge!<br>- Exun Team",
 	}
-
-	fmt.Println("Sent login code:", loginCode, "to:", email, "for user:", userName)
-	return nil
+	_, err := client.Emails.Send(params)
+	if err != nil {
+		fmt.Println("Resend sendLoginCodeEmail error:", err)
+	}
+	return err
 }
 
 func Verify(w http.ResponseWriter, r *http.Request) {

@@ -8,10 +8,7 @@ import (
 )
 
 type EmailConfig struct {
-	From     string
-	Password string
-	SMTPHost string
-	SMTPPort string
+	From string
 }
 
 type Config struct {
@@ -30,10 +27,7 @@ func GetConfig() *Config {
 
 	return &Config{
 		Email: EmailConfig{
-			From:     os.Getenv("EMAIL_FROM"),
-			Password: os.Getenv("EMAIL_PASSWORD"),
-			SMTPHost: os.Getenv("EMAIL_SMTP_HOST"),
-			SMTPPort: os.Getenv("EMAIL_SMTP_PORT"),
+			From: os.Getenv("EMAIL_FROM"),
 		},
 		AdminEmails:  adminEmails,
 		XSecretValue: os.Getenv("X_SECRET_VALUE"),
