@@ -20,6 +20,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+const td = `<td style="border-radius: 0.25rem; width: 42px; height: 42px; background-color: rgb(241, 245, 249); text-align: center; vertical-align: middle; font-size: 1.5rem; line-height: 2rem; font-weight: 800; color: rgb(15, 23, 42);">{digit}</td>`
+
 type CodeCooldown struct {
 	mu       sync.RWMutex
 	lastSent map[string]time.Time
@@ -107,6 +109,13 @@ func hash(pass string) (string, error) {
 }
 
 func sendVerificationEmail(email string, codeToSend string) error {
+	otp, _ := os.ReadFile("./frontend/otp.html")
+	otp_str := string(otp)
+	digits := ""
+	for i := 0; i < 8; i++ {
+		digits += strings.ReplaceAll(td, "{digit}", string(codeToSend[i]))
+	}
+	otp_str = strings.ReplaceAll(otp_str, "{otp}", digits)
 	from := config.GetEmailConfig().From
 	apiKey := os.Getenv("RESEND_API_KEY")
 	if apiKey == "" {
@@ -117,37 +126,12 @@ func sendVerificationEmail(email string, codeToSend string) error {
 	params := &resend.SendEmailRequest{
 		From:    from,
 		To:      []string{email},
-		Subject: "Exun Elite - Verification Code",
-		Html:    "Your verification code (last 4 digits) is: " + codeToSend,
+		Subject: "Intra Sudo v6.0 - Verification Code",
+		Html:    otp_str,
 	}
 	_, err := client.Emails.Send(params)
 	if err != nil {
 		fmt.Println("Resend sendVerificationEmail error:", err)
-	}
-	return err
-}
-
-func sendLoginCodeEmail(email string, name string, loginCode string) error {
-	from := config.GetEmailConfig().From
-	apiKey := os.Getenv("RESEND_API_KEY")
-	if apiKey == "" {
-		fmt.Println("RESEND_API_KEY not set")
-		return fmt.Errorf("RESEND_API_KEY not set")
-	}
-	greeting := "Hello,"
-	if name != "" {
-		greeting = "Hello " + name + ","
-	}
-	client := resend.NewClient(apiKey)
-	params := &resend.SendEmailRequest{
-		From:    from,
-		To:      []string{email},
-		Subject: "Intra Sudo 2025 - Your Login Code",
-		Html:    greeting + "<br><br>Your permanent 8-digit login code for Intra Sudo 2025 is: " + loginCode + "<br><br>Keep this code safe - you'll use it every time you log in.<br><br>Good luck with the challenge!<br>- Exun Team",
-	}
-	_, err := client.Emails.Send(params)
-	if err != nil {
-		fmt.Println("Resend sendLoginCodeEmail error:", err)
 	}
 	return err
 }
@@ -357,7 +341,7 @@ func EmailOnly(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		err = sendLoginCodeEmail(gmail, "", permanentLoginCode)
+		err = sendVerificationEmail(gmail, permanentLoginCode)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(w).Encode(map[string]string{"error": "Unable to send login code. Please try again"})
