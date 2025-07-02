@@ -47,10 +47,14 @@ func RegisterRoutes() http.Handler {
 	})
 	Mux.HandleFunc("/playground", handlers.TimeGateMiddleware(handlers.RequireAuth(handlers.IndexHandler)))
 	Mux.HandleFunc("/home", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/playground", http.StatusMovedPermanently)
+		http.Redirect(w, r, "/auth", http.StatusMovedPermanently)
 	})
 	Mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/landing", http.StatusSeeOther)
+		if r.URL.Path != "/" && r.URL.Path != "/auth" && r.URL.Path != "/home" && r.URL.Path != "/landing" && r.URL.Path != "/playground" && r.URL.Path != "/leaderboard" && r.URL.Path != "/announcements" && r.URL.Path != "/hints" && r.URL.Path != "/guidelines" && r.URL.Path != "/status" && r.URL.Path != "/admin" && !strings.HasPrefix(r.URL.Path, "/admin/") && !strings.HasPrefix(r.URL.Path, "/api/") && !strings.HasPrefix(r.URL.Path, "/enter") && !strings.HasPrefix(r.URL.Path, "/static/") && !strings.HasPrefix(r.URL.Path, "/assets/") && !strings.HasPrefix(r.URL.Path, "/css/") && !strings.HasPrefix(r.URL.Path, "/js/") && r.URL.Path != "/styles.css" {
+			http.Redirect(w, r, "/404", http.StatusFound)
+			return
+		}
+		http.Redirect(w, r, "/auth", http.StatusSeeOther)
 	})
 	Mux.HandleFunc("/auth", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
